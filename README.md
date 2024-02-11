@@ -4,8 +4,8 @@
 This *hcllight* package removes position and location tags from the hclsyntax parsing tree.
 
  - You can dynamically add and delete tags, then output the tree back to
-HCL data, with logic expressions being evaluated or kepted in the original format.
- - The package is defined by protobuf, which let you accurately measure the state of changes in the parsing tree.
+HCL data, with logic expressions being evaluated or without.
+ - The package is defined by protobuf, so you can accurately measure the state of changes in the parsing tree.
 
 To install,
 
