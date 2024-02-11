@@ -1,0 +1,254 @@
+{
+    "openapi": "3.0.3",
+    "info": {
+        "version": "1.0.0",
+        "title": "OpenAPI for Vault Database Content",
+        "description": "HTTP API that gives you full access to Database.",
+        "license": {
+            "name": "MIT"
+        }
+    },
+    "servers": [
+        {
+            "url": "/v1/graph/model/admin",
+            "description": "Database Content Engine for team admin"
+        }
+    ],
+    "paths": { 
+        "/": {
+            "get": {
+                "summary": "List of components in admin",
+                "operationId": "listadmin",
+                "responses": {
+                    "200": {
+                        "description": "List of components in admin",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Dashboard"
+                                }
+                            }
+                        }
+                    },
+                    "default": {
+                        "description": "unexpected error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/ac": {
+            "$ref": "./ac/openapi_landing"
+        },
+        "/add_address": {
+            "$ref": "./add_address/openapi_landing"
+        },
+        "/admin": {
+            "$ref": "./admin/openapi_landing"
+        },
+        "/adv": {
+            "$ref": "./adv/openapi_landing"
+        },
+        "/adv_attrname": {
+            "$ref": "./adv_attrname/openapi_landing"
+        },
+        "/adv_attrvalue": {
+            "$ref": "./adv_attrvalue/openapi_landing"
+        },
+        "/adv_balance": {
+            "$ref": "./adv_balance/openapi_landing"
+        },
+        "/adv_campaign": {
+            "$ref": "./adv_campaign/openapi_landing"
+        },
+        "/adv_creative": {
+            "$ref": "./adv_creative/openapi_landing"
+        },
+        "/adv_fail": {
+            "$ref": "./adv_fail/openapi_landing"
+        },
+        "/adv_ip": {
+            "$ref": "./adv_ip/openapi_landing"
+        },
+        "/adv_item": {
+            "$ref": "./adv_item/openapi_landing"
+        },
+        "/adv_media": {
+            "$ref": "./adv_media/openapi_landing"
+        },
+        "/adv_targetname": {
+            "$ref": "./adv_targetname/openapi_landing"
+        },
+        "/adv_targetvalue": {
+            "$ref": "./adv_targetvalue/openapi_landing"
+        },
+        "/agent": {
+            "$ref": "./agent/openapi_landing"
+        },
+        "/ch_ac": {
+            "$ref": "./ch_ac/openapi_landing"
+        },
+        "/ch_belong": {
+            "$ref": "./ch_belong/openapi_landing"
+        },
+        "/cron_halfhour": {
+            "$ref": "./cron_halfhour/openapi_landing"
+        },
+        "/daily_adv": {
+            "$ref": "./daily_adv/openapi_landing"
+        },
+        "/daily_log": {
+            "$ref": "./daily_log/openapi_landing"
+        },
+        "/daily_pub": {
+            "$ref": "./daily_pub/openapi_landing"
+        },
+        "/daily_pub_adv": {
+            "$ref": "./daily_pub_adv/openapi_landing"
+        },
+        "/def_channel": {
+            "$ref": "./def_channel/openapi_landing"
+        },
+        "/def_city": {
+            "$ref": "./def_city/openapi_landing"
+        },
+        "/def_continent": {
+            "$ref": "./def_continent/openapi_landing"
+        },
+        "/def_country": {
+            "$ref": "./def_country/openapi_landing"
+        },
+        "/def_dma": {
+            "$ref": "./def_dma/openapi_landing"
+        },
+        "/def_entitytype": {
+            "$ref": "./def_entitytype/openapi_landing"
+        },
+        "/def_isp": {
+            "$ref": "./def_isp/openapi_landing"
+        },
+        "/def_paytype": {
+            "$ref": "./def_paytype/openapi_landing"
+        },
+        "/def_size": {
+            "$ref": "./def_size/openapi_landing"
+        },
+        "/def_state": {
+            "$ref": "./def_state/openapi_landing"
+        },
+        "/his_balance": {
+            "$ref": "./his_balance/openapi_landing"
+        },
+        "/his_payment": {
+            "$ref": "./his_payment/openapi_landing"
+        },
+        "/ip": {
+            "$ref": "./ip/openapi_landing"
+        },
+        "/ledger_adv": {
+            "$ref": "./ledger_adv/openapi_landing"
+        },
+        "/ledger_log": {
+            "$ref": "./ledger_log/openapi_landing"
+        },
+        "/ledger_pub": {
+            "$ref": "./ledger_pub/openapi_landing"
+        },
+        "/ledger_pub_adv": {
+            "$ref": "./ledger_pub_adv/openapi_landing"
+        },
+        "/pay_alipay": {
+            "$ref": "./pay_alipay/openapi_landing"
+        },
+        "/pay_cc": {
+            "$ref": "./pay_cc/openapi_landing"
+        },
+        "/pay_cheque": {
+            "$ref": "./pay_cheque/openapi_landing"
+        },
+        "/pay_payment": {
+            "$ref": "./pay_payment/openapi_landing"
+        },
+        "/pay_wechat": {
+            "$ref": "./pay_wechat/openapi_landing"
+        },
+        "/pub": {
+            "$ref": "./pub/openapi_landing"
+        },
+        "/pub_fail": {
+            "$ref": "./pub_fail/openapi_landing"
+        },
+        "/pub_ip": {
+            "$ref": "./pub_ip/openapi_landing"
+        },
+        "/pub_referer": {
+            "$ref": "./pub_referer/openapi_landing"
+        },
+        "/pub_site": {
+            "$ref": "./pub_site/openapi_landing"
+        },
+        "/pub_slot": {
+            "$ref": "./pub_slot/openapi_landing"
+        },
+        "/pub_weight": {
+            "$ref": "./pub_weight/openapi_landing"
+        },
+        "/pub_white": {
+            "$ref": "./pub_white/openapi_landing"
+        }
+    },
+    "components": {
+        "schemas": {
+            "Dashboard": {
+                "type": "object",
+                "properties": {
+                    "landings": {
+                        "description": "List of landing components to start with in admin",
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "generics": {
+                        "description": "List of generic components in admin",
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    }
+                }
+            },
+            "Error": {
+                "required": [
+                    "code",
+                    "message"
+                ],
+                "properties": {
+                    "code": {
+                        "type": "integer",
+                        "format": "integer"
+                    },
+                    "message": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
+        "securitySchemes": {
+            "vaultToken": {
+                "type": "apiKey",
+                "in": "header",
+                "name": "X-VAULT-TOKEN"
+            }
+        }
+    },
+    "security": [
+        {"vaultToken": []}
+    ]
+}

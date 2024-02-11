@@ -1,0 +1,327 @@
+syntax = "proto3";
+
+package kinet;
+
+option go_package = "./internal/ast";
+
+message CtyList {
+	repeated CtyValue values = 1;
+}	
+
+message CtyMap {
+	map<string, CtyValue> values = 1;
+}
+
+message CtyValue {
+	oneof CtyValueClause {
+		string stringValue = 1;
+		bool boolValue = 2;
+		double numberValue = 3;
+		CtyList listValue = 4;
+		CtyMap mapValue = 5;
+	}
+}
+
+enum CtyType {
+	CtyUnknown = 0;
+	String = 1;
+	Bool = 2;
+	Number = 3;
+	List = 4;
+	Map = 5;
+	DynamicPseudo = 6;
+}
+
+enum TokenType {
+	TokenUnknown = 0;
+	OBrace = 1;
+	CBrace = 2;
+	OBrack = 3;
+	CBrack = 4;
+	OParen = 5;
+	CParen = 6;
+	OQuote = 7;
+	CQuote = 8;
+	OHeredoc = 9;
+	CHeredoc = 10;
+
+	Star = 11;
+	Slash = 12;
+	Plus = 13;
+	Minus = 14;
+	Percent = 15;
+	Equal = 16;
+	EqualOp = 17;
+	NotEqual = 18;
+	LessThan = 19;
+	LessThanEq = 20;
+	GreaterThan = 21;
+	GreaterThanEq = 22;
+
+	And = 23;
+	Or = 24;
+	Bang = 25;
+	Dot = 26;
+	Comma = 27;
+	Ellipsis = 28;
+	FatArrow = 29;
+	Question = 30;
+	Colon = 31;
+	TemplateInterp = 32;
+	TemplateControl = 33;
+	TemplateSeqEnd = 34;
+
+	QuotedLit = 35;
+	StringLit = 36;
+	NumberLit = 37;
+	Ident = 38;
+	Comment = 39;
+	Newline = 40;
+	EOF = 41;
+
+	BitwiseAnd = 42;
+	BitwiseOr = 43;
+	BitwiseNot = 44;
+	BitwiseXor = 45;
+	StarStar = 46;
+	Apostrophe = 47;
+	Backtick = 48;
+	Semicolon = 49;
+	Tabs = 50;
+	Invalid = 51;
+	BadUTF8 = 52;
+	QuotedNewline = 53;
+	Nil = 54;
+}
+
+message CtyParameter {
+	string name = 1;
+	string description = 2;
+	CtyType typ = 3;
+	bool allowNull = 4;
+	bool allowDynamicType = 5;
+	bool allowMarked = 6;
+}
+
+message CtyFunction {
+	string description = 1;
+	repeated CtyParameter parameters = 2;
+	CtyParameter varParam = 3;
+	CtyType type = 4;
+}
+
+message Pos {
+	int64 line = 1;
+	int64 column = 2;
+	int64 bt = 3;
+}
+
+message Range {
+	string filename = 1;
+	Pos start = 2;
+	Pos end = 3;
+}
+
+message AnonSymbolExpr {
+	Range srcRange = 1;
+}
+
+message Operation {
+	CtyFunction impl = 1;
+	CtyType typ = 2;
+	TokenType sign = 3;
+}
+
+message BinaryOpExpr {
+	Expression LHS = 1;
+	Operation op = 2;
+	Expression RHS = 3;
+	Range srcRange = 4;
+}
+
+message ConditionalExpr {
+	Expression condition = 1;
+	Expression trueResult = 2;
+	Expression falseResult = 3;
+	Range srcRange = 4;
+}
+
+message ForExpr {
+	string keyVar = 1;
+	string valVar = 2;
+	Expression collExpr = 3;
+	Expression keyExpr  = 4;
+	Expression valExpr  = 5;
+	Expression condExpr = 6;
+	bool grp = 7;
+	Range srcRange   = 8;
+	Range openRange  = 9;
+	Range closeRange = 10;
+}
+
+message FunctionCallExpr {
+	string name = 1;
+	repeated Expression args = 2;
+	// If true, the final argument should be a tuple, list or set which will
+	// expand to be one argument per element.
+	bool expandFinal = 3;
+	Range nameRange       = 4;
+	Range openParenRange  = 5;
+	Range closeParenRange = 6;
+}
+
+message IndexExpr {
+	Expression collection = 1;
+	Expression key = 2;
+	Range srcRange     = 3;
+	Range openRange    = 4;
+	Range bracketRange = 5;
+}
+
+message LiteralValueExpr {
+	CtyValue val = 1;
+	Range srcRange = 2;
+}
+
+message ObjectConsItem {
+	Expression keyExpr = 1;
+	Expression valueExpr = 2;
+}
+
+message ObjectConsExpr {
+	repeated ObjectConsItem items = 1;
+	Range srcRange  = 2;
+	Range openRange = 3;
+}
+
+message ObjectConsKeyExpr {
+	Expression wrapped = 1;
+	bool forceNonLiteral = 2;
+}
+
+message ParenthesesExpr {
+	Expression expr = 1;
+	Range srcRange = 2;
+}
+
+message TraverseAttr {
+	string name = 1;
+	Range srcRange = 2;
+}
+
+message TraverseIndex {
+	CtyValue key = 1;
+	Range srcRange = 2;
+}
+
+message TraverseRoot {
+	string name = 1;
+	Range srcRange = 2;
+}
+
+message Traverser {
+	oneof TraverserClause {
+		TraverseAttr tAttr = 1;
+		TraverseIndex tIndex = 2;
+		TraverseRoot tRoot = 3;
+	}
+}
+
+message RelativeTraversalExpr {
+	Expression source = 1;
+	repeated Traverser traversal = 2;
+	Range srcRange = 3;
+}
+
+message ScopeTraversalExpr {
+	repeated Traverser traversal = 1;
+	Range srcRange = 2;
+}
+
+message SplatExpr {
+	Expression source = 1;
+	Expression each   = 2;
+	AnonSymbolExpr item = 3;
+	Range srcRange    = 4;
+	Range markerRange = 5;
+}
+
+message TemplateExpr {
+	repeated Expression parts = 1;
+	Range srcRange = 2;
+}
+
+message TemplateJoinExpr {
+	Expression tuple = 1;
+}
+
+message TemplateWrapExpr {
+	Expression wrapped = 1;
+	Range srcRange = 2;
+}
+
+message TupleConsExpr {
+	repeated Expression exprs = 1;
+	Range srcRange = 2;
+	Range openRange = 3;
+}
+
+message UnaryOpExpr {
+	Operation op = 1;
+	Expression val = 2;
+	Range srcRange    = 3;
+	Range symbolRange = 4;
+}
+
+message Expression {
+	oneof ExpressionClause {
+		AnonSymbolExpr asexpr = 1;
+		BinaryOpExpr boexpr = 2;
+		ConditionalExpr cexpr = 3;
+		ForExpr fexpr = 4;
+		FunctionCallExpr fcexpr = 5;
+		IndexExpr iexpr = 6;
+		LiteralValueExpr lvexpr = 7;
+		ObjectConsExpr ocexpr = 8;
+		ObjectConsKeyExpr ockexpr = 9;
+		ParenthesesExpr pexpr = 10;
+		RelativeTraversalExpr rtexpr = 11;
+		ScopeTraversalExpr stexpr = 12;
+		SplatExpr sexpr = 13;
+		TemplateExpr texpr = 14;
+		TemplateJoinExpr tjexpr = 15;
+		TemplateWrapExpr twexpr = 16;
+		TupleConsExpr tcexpr = 17;		
+		UnaryOpExpr uoexpr = 18;		
+	}
+}
+
+message Attribute {
+	string name = 1;
+	Expression expr = 2;
+	Range srcRange = 3;
+	Range nameRange = 4;
+	Range equalsRange = 5;
+}
+
+message Block {
+	string type = 1;
+	repeated string labels = 2;
+	Body bdy = 3;
+	Range typeRange = 4;
+	repeated Range labelRanges = 5;
+	Range openBraceRange  = 6;
+	Range closeBraceRange = 7;
+}
+
+message Body {
+	map<string, Attribute> attributes = 1;
+	repeated Block blocks = 2;
+	Range srcRange = 3;
+	Range endRange = 4;
+}
+
+message File {
+	Body bdy = 1;
+	bytes bts = 2;
+}
