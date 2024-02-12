@@ -60,7 +60,7 @@ func TestEval(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			bs, err := Encode(bdy)
+			bs, err := Evaluate(bdy)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -69,7 +69,7 @@ func TestEval(t *testing.T) {
 				if err != nil {
 					t.Fatal(err)
 				}
-				bs1, err := Encode(bdy1)
+				bs1, err := Evaluate(bdy1)
 				if err != nil {
 					t.Fatal(err)
 				}
@@ -180,7 +180,7 @@ func hclBack(body *generated.Body) (*generated.Body, error) {
 
 func evalBack(body *generated.Body) (*generated.Body, error) {
 	ref := getRef()
-	eval, err := Encode(body, ref)
+	eval, err := Evaluate(body, ref)
 	if err != nil {
 		return nil, err
 	}

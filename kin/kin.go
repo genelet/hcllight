@@ -3,7 +3,6 @@ package kin
 import (
 	"context"
 	"fmt"
-	"log"
 	"net/url"
 	"os"
 	"strings"
@@ -153,17 +152,8 @@ func getStructName(ref string) (string, error) {
 
 func (self *Kin) schemaRefToBody(key string, v *openapi3.SchemaRef) (*generated.Body, string, error) {
 	if v.Ref != "" {
-		log.Printf("relative ref %s, ignore\n", v.Ref)
 		rel, err := getStructName(v.Ref)
-		if err != nil {
-			return nil, "", err
-		}
-		bs, err := v.Value.MarshalJSON()
-		if err != nil {
-			return nil, "", err
-		}
-		log.Printf("value %s\n", bs)
-		return nil, rel, nil
+		return nil, rel, err
 	}
 	return self.schemaToBody(key, v.Value)
 }

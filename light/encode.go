@@ -28,7 +28,7 @@ func Parse(dat []byte) (*generated.Body, error) {
 	return bodyTo(bdy)
 }
 
-func encodeBodyNode(self *generated.Body, ref map[string]interface{}, node *utils.Tree, level int) (string, error) {
+func evaluateBodyNode(self *generated.Body, ref map[string]interface{}, node *utils.Tree, level int) (string, error) {
 	var arr []string
 
 	leading := strings.Repeat("  ", level+1)
@@ -70,7 +70,7 @@ func encodeBodyNode(self *generated.Body, ref map[string]interface{}, node *util
 		for _, label := range block.Labels {
 			name += fmt.Sprintf(` "%s"`, label)
 		}
-		bs, err := encodeBodyNode(block.Bdy, ref, node.AddNode(name), level+1)
+		bs, err := evaluateBodyNode(block.Bdy, ref, node.AddNode(name), level+1)
 		if err != nil {
 			return "", err
 		}
@@ -92,8 +92,8 @@ func encodeBodyNode(self *generated.Body, ref map[string]interface{}, node *util
 	return fmt.Sprintf("{\n%s\n%s}", leading+strings.Join(arr, "\n"+leading), lessLeading), nil
 }
 
-// Encode converts Body proto to HCL with expressions evaluated.
-func Encode(body *generated.Body, ref ...map[string]interface{}) ([]byte, error) {
+// Evaluate converts Body proto to HCL with expressions evaluated.
+func Evaluate(body *generated.Body, ref ...map[string]interface{}) ([]byte, error) {
 	var r map[string]interface{}
 	if ref != nil {
 		r = ref[0]
@@ -101,7 +101,7 @@ func Encode(body *generated.Body, ref ...map[string]interface{}) ([]byte, error)
 		r = make(map[string]interface{})
 	}
 	node, r := utils.DefaultTreeFunctions(r)
-	str, err := encodeBodyNode(body, r, node, 0)
+	str, err := evaluateBodyNode(body, r, node, 0)
 	if err != nil {
 		return nil, err
 	}
