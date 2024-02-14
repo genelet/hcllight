@@ -59,53 +59,52 @@ func stringToExpression(val string) *generated.Expression {
 	}
 }
 
-func (self *Kin) schemaToBody(key string, schema *openapi3.Schema) (*generated.Body, string, error) {
+func (self *Kin) schemaToBody(key string, schema *openapi3.Schema) (*generated.Body, *openapi3.Schema, error) {
 	switch schema.Type {
-	case "string":
-		return nil, "string", nil
-	case "number":
-		return nil, "number", nil
-	case "integer":
-		return nil, "integer", nil
-	case "boolean":
-		return nil, "boolean", nil
+	case "string", "number", "integer", "boolean":
+		return nil, schema, nil
 	case "array":
-		bdy, str, err := self.schemaRefToBody(key, schema.Items)
+		bdy, s, err := self.schemaRefToBody(key, schema.Items)
 		if err != nil {
-			return nil, "", err
+			return nil, nil, err
 		}
-		if str != "" {
-			return nil, "list(" + str + ")", nil
+		if bdy == nil {
+			schema.Type = "list(" + s.Type + ")"
+			return nil, schema, nil
 		}
 		if self.extra == nil {
 			self.extra = make(map[string]*generated.Body)
 		}
 		self.extra[key] = bdy
-		return nil, "list(" + key + ")", nil
+		schema.Type = "list(" + key + ")"
+		return nil, schema, nil
 	default:
 	}
 
 	if schema.Properties == nil {
+		typ := "{}"
 		if schema.AdditionalProperties.Schema != nil {
-			_, str, err := self.schemaRefToBody(key, schema.AdditionalProperties.Schema)
+			_, s, err := self.schemaRefToBody(key, schema.AdditionalProperties.Schema)
 			if err != nil {
-				return nil, "", err
+				return nil, nil, err
 			}
-			if str != "" {
-				return nil, "map(" + str + ")", err
+			if s == nil {
+				typ = key
+			} else {
+				typ = s.Type
 			}
-			return nil, "map(" + key + ")", nil
 		} else if schema.AdditionalProperties.Has != nil {
-			return nil, "map(any)", nil
+			typ = "any"
 		}
-		return nil, "map(false)", nil
+		schema.Type = "object(string," + typ + ")"
+		return nil, schema, nil
 	}
 
 	var body = &generated.Body{}
 	for k, v := range schema.Properties {
-		bdy, str, err := self.schemaRefToBody(k, v)
+		bdy, s, err := self.schemaRefToBody(k, v)
 		if err != nil {
-			return nil, "", err
+			return nil, s, err
 		}
 		if bdy == nil {
 			if body.Attributes == nil {
@@ -113,7 +112,7 @@ func (self *Kin) schemaToBody(key string, schema *openapi3.Schema) (*generated.B
 			}
 			body.Attributes[k] = &generated.Attribute{
 				Name: k,
-				Expr: stringToExpression(str),
+				Expr: stringToExpression(s.Type),
 			}
 		} else {
 			block := &generated.Block{
@@ -124,7 +123,15 @@ func (self *Kin) schemaToBody(key string, schema *openapi3.Schema) (*generated.B
 		}
 	}
 
-	return body, "", nil
+	return body, nil, nil
+}
+
+func (self *Kin) schemaRefToBody(key string, v *openapi3.SchemaRef) (*generated.Body, *openapi3.Schema, error) {
+	if v.Ref != "" {
+		rel, err := getStructName(v.Ref)
+		return nil, &openapi3.Schema{Type: rel}, err
+	}
+	return self.schemaToBody(key, v.Value)
 }
 
 func getStructName(ref string) (string, error) {
@@ -148,14 +155,6 @@ func getStructName(ref string) (string, error) {
 		}
 	}
 	return "", nil
-}
-
-func (self *Kin) schemaRefToBody(key string, v *openapi3.SchemaRef) (*generated.Body, string, error) {
-	if v.Ref != "" {
-		rel, err := getStructName(v.Ref)
-		return nil, rel, err
-	}
-	return self.schemaToBody(key, v.Value)
 }
 
 // Build generates a HCL file named openapi.hcl from the OpenAPI 3.0 document.
@@ -187,15 +186,20 @@ func (self *Kin) Build() error {
 		}
 	}
 
-	fmt.Fprintf(f, "var {\n")
 	for key, val := range components.Parameters {
-		_, str, err := self.schemaRefToBody(key, val.Value.Schema)
+		_, s, err := self.schemaRefToBody(key, val.Value.Schema)
 		if err != nil {
 			return err
 		}
-		fmt.Fprintf(f, "  %s = %s\n", key, str)
+		fmt.Fprintf(f, "variables \"%s\" {\n  type = %s\n", key, s.Type)
+		if s.Description != "" {
+			fmt.Fprintf(f, "  description = %s\n", s.Description)
+		}
+		if s.Default != "" {
+			fmt.Fprintf(f, "  default = %v\n", s.Default)
+		}
+		fmt.Fprintf(f, "}\n\n")
 	}
-	fmt.Fprintf(f, "}\n\n")
 
 	for path, item := range self.doc.Paths.Map() {
 		hash := map[string]*openapi3.Operation{
@@ -218,7 +222,9 @@ func (self *Kin) Build() error {
 				return err
 			}
 			fmt.Fprintf(f, "paths \"%s\" \"%s\" {\n", path, k)
-			fmt.Fprintf(f, "  request = %s\n", twoSpace(req))
+			if req != nil {
+				fmt.Fprintf(f, "  request = %s\n", twoSpace(req))
+			}
 			fmt.Fprintf(f, "  response = %s\n", twoSpace(res))
 			fmt.Fprintf(f, "}\n\n")
 		}
@@ -230,7 +236,8 @@ func (self *Kin) Build() error {
 func twoSpace(s []byte) string {
 	lines := strings.Split(string(s), "\n")
 	for i, line := range lines {
-		lines[i] = "  " + line
+		//lines[i] = "  " + line
+		lines[i] = line
 	}
 	return strings.Join(lines, "\n")
 }
@@ -238,24 +245,24 @@ func twoSpace(s []byte) string {
 func (self *Kin) getRR(op *openapi3.Operation) ([]byte, []byte, error) {
 	var bsRequest, bsResponse []byte
 	var bdy *generated.Body
-	var str string
+	var s *openapi3.Schema
 	var err error
 
 	if op.RequestBody != nil {
-		bdy, str, err = self.schemaRefToBody("", op.RequestBody.Value.Content["application/json"].Schema)
+		bdy, s, err = self.schemaRefToBody("", op.RequestBody.Value.Content["application/json"].Schema)
 		if err == nil {
 			if bdy == nil {
-				bsRequest = []byte(str)
+				bsRequest = []byte(s.Type)
 			} else {
 				bsRequest, err = light.Hcl(bdy)
 			}
 		}
 	}
 	if op.Responses != nil {
-		bdy, str, err = self.schemaRefToBody("", op.Responses.Value("200").Value.Content["application/json"].Schema)
+		bdy, s, err = self.schemaRefToBody("", op.Responses.Value("200").Value.Content["application/json"].Schema)
 		if err == nil {
 			if bdy == nil {
-				bsResponse = []byte(str)
+				bsResponse = []byte(s.Type)
 			} else {
 				bsResponse, err = light.Hcl(bdy)
 			}

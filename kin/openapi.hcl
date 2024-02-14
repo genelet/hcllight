@@ -1,58 +1,28 @@
-components schema "Auth" {
-  lease_duration = integer
-  orphan = boolean
-  entity_id = string
-  token_type = string
-  renewable = boolean
-  mfa_requirement = MFARequirement
-  client_token = string
-  accessor = string
-  num_uses = integer
-  token_policies = list(string)
-  identity_policies = list(string)
-  metadata = map(string)
-  policies = list(string)
-}
-
 components schema "WrapInfo" {
+  creation_path = string
   wrapped_accessor = string
   token = string
   accessor = string
   ttl = integer
   creation_time = string
-  creation_path = string
 }
 
 components schema "ConfigReport" {
-  mount_type = string
   auth = Auth
-  request_id = string
-  wrap_info = WrapInfo
-  data = map(any)
-  renewable = boolean
-  warnings = list(string)
-  lease_id = string
+  data = object(string,any)
   lease_duration = integer
+  warnings = list(string)
+  mount_type = string
+  request_id = string
+  lease_id = string
+  renewable = boolean
+  wrap_info = WrapInfo
 }
 
-components schema "ConfigRequest" {
-  dbconfig = DBConfig
-  parameters = Parameters
-  teams = map(Team)
-}
-
-components schema "Parameters" {
-  path_auth_config = string
-  vault_addr = string
-  vault_token = string
-}
-
-components schema "Team" {
-  dbteam = DBTeam
-  team_name = string
-  meta {
-    Policies = list(string)
-  }
+components schema "DBConfig" {
+  dbvars = list(string)
+  database = string
+  dbdriver = integer
 }
 
 components schema "Login" {
@@ -61,15 +31,39 @@ components schema "Login" {
   password = string
 }
 
-components schema "DBConfig" {
-  database = string
-  dbdriver = integer
-  dbvars = list(string)
+components schema "Auth" {
+  metadata = object(string,string)
+  num_uses = integer
+  client_token = string
+  lease_duration = integer
+  token_type = string
+  entity_id = string
+  mfa_requirement = MFARequirement
+  renewable = boolean
+  accessor = string
+  identity_policies = list(string)
+  policies = list(string)
+  token_policies = list(string)
+  orphan = boolean
+}
+
+components schema "Parameters" {
+  path_auth_config = string
+  vault_addr = string
+  vault_token = string
 }
 
 components schema "DBTeam" {
-  output = list(string)
   call_name = string
+  output = list(string)
+}
+
+components schema "Team" {
+  team_name = string
+  dbteam = DBTeam
+  meta {
+    Policies = list(string)
+  }
 }
 
 components schema "Error" {
@@ -79,34 +73,35 @@ components schema "Error" {
 
 components schema "MFARequirement" {
   mfa_request_id = string
-  mfa_constraints = map(any)
+  mfa_constraints = object(string,any)
 }
 
-var {
-}
-
-paths "/auth/graphauth/config" "get" {
-  request =   
-  response =   ConfigReport
-}
-
-paths "/auth/graphauth/login" "post" {
-  request =   Login
-  response =   ConfigReport
-}
-
-paths "/graph/config" "get" {
-  request =   
-  response =   ConfigReport
+components schema "ConfigRequest" {
+  dbconfig = DBConfig
+  parameters = Parameters
+  teams = object(string,Team)
 }
 
 paths "/graph/config" "post" {
-  request =   ConfigRequest
-  response =   ConfigReport
+  request = ConfigRequest
+  response = ConfigReport
+}
+
+paths "/graph/config" "get" {
+  response = ConfigReport
 }
 
 paths "/graph/config/generate" "post" {
-  request =   ConfigRequest
-  response =   ConfigReport
+  request = ConfigRequest
+  response = ConfigReport
+}
+
+paths "/auth/graphauth/config" "get" {
+  response = ConfigReport
+}
+
+paths "/auth/graphauth/login" "post" {
+  request = Login
+  response = ConfigReport
 }
 
