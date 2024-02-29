@@ -1,0 +1,300 @@
+# comment
+
+openapi: 3.0.3
+info:
+    title: OpenAPI for Vault Database Configuration
+    description: HTTP API that gives you full access to Config and Authentication. All API routes are prefixed with /v1
+    license:
+        name: MIT
+    version: 1.0.0
+servers:
+    - url: /v1
+      description: Database Authentication and Configuration
+paths:
+    /auth/graphauth/login:
+        post:
+            tags:
+                - authentication
+            summary: Login to the system
+            operationId: graphauth-login
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/Login'
+                required: true
+            responses:
+                default:
+                    description: unexpected error
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/Error'
+                "200":
+                    description: Expected response to a valid request
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ConfigReport'
+                "403":
+                    description: User is not authorized
+        x-vault-unauthenticated: true
+    /auth/graphauth/config:
+        get:
+            summary: Report current server config
+            operationId: readAuthConfig
+            responses:
+                default:
+                    description: unexpected error
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/Error'
+                "200":
+                    description: Expected response to a valid request
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ConfigReport'
+            security:
+                - vaultToken: []
+    /graph/config/generate:
+        post:
+            summary: Generate No-Code Server Programs in HCL
+            operationId: serverGenesis
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/ConfigRequest'
+                required: true
+            responses:
+                default:
+                    description: unexpected error
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/Error'
+                "200":
+                    description: Expected response to a valid request
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ConfigReport'
+            security:
+                - vaultToken: []
+    /graph/config:
+        get:
+            summary: Report current graph server config
+            operationId: readGraphConfig
+            responses:
+                default:
+                    description: unexpected error
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/Error'
+                "200":
+                    description: Expected response to a valid request
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ConfigReport'
+            security:
+                - vaultToken: []
+        post:
+            summary: Upload local config to graph server
+            operationId: createGraphConfig
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/ConfigRequest'
+                required: true
+            responses:
+                default:
+                    description: unexpected error
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/Error'
+                "200":
+                    description: Expected response to a valid request
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ConfigReport'
+            security:
+                - vaultToken: []
+components:
+    schemas:
+        Login:
+            required:
+                - team
+                - username
+                - password
+            properties:
+                team:
+                    type: string
+                username:
+                    type: string
+                password:
+                    type: string
+        MFARequirement:
+            type: object
+            properties:
+                mfa_request_id:
+                    type: string
+                mfa_constraints:
+                    type: object(string,any)
+                    additionalProperties: true
+        Auth:
+            type: object
+            properties:
+                client_token:
+                    type: string
+                accessor:
+                    type: string
+                policies:
+                    type: list(string)
+                    items:
+                        type: string
+                token_policies:
+                    type: list(string)
+                    items:
+                        type: string
+                identity_policies:
+                    type: list(string)
+                    items:
+                        type: string
+                metadata:
+                    type: object(string,string)
+                    additionalProperties:
+                        type: string
+                lease_duration:
+                    type: integer
+                renewable:
+                    type: boolean
+                entity_id:
+                    type: string
+                token_type:
+                    type: string
+                orphan:
+                    type: boolean
+                mfa_requirement:
+                    $ref: '#/components/schemas/MFARequirement'
+                num_uses:
+                    type: integer
+        WrapInfo:
+            type: object
+            properties:
+                token:
+                    type: string
+                accessor:
+                    type: string
+                ttl:
+                    type: integer
+                creation_time:
+                    type: string
+                creation_path:
+                    type: string
+                wrapped_accessor:
+                    type: string
+        ConfigReport:
+            type: object
+            properties:
+                auth:
+                    $ref: '#/components/schemas/Auth'
+                request_id:
+                    type: string
+                    description: Name to associate with this request
+                lease_id:
+                    type: string
+                    description: Name of the entity alias to associate with this token
+                renewable:
+                    type: boolean
+                lease_duration:
+                    type: integer
+                data:
+                    type: object(string,any)
+                    additionalProperties: true
+                wrap_info:
+                    $ref: '#/components/schemas/WrapInfo'
+                warnings:
+                    type: list(string)
+                    items:
+                        type: string
+                mount_type:
+                    type: string
+        ConfigRequest:
+            required:
+                - dbconfig
+                - teams
+            type: object
+            properties:
+                dbconfig:
+                    $ref: '#/components/schemas/DBConfig'
+                parameters:
+                    $ref: '#/components/schemas/Parameters'
+                teams:
+                    type: object(string,Team)
+                    additionalProperties:
+                        $ref: '#/components/schemas/Team'
+        DBConfig:
+            type: object
+            properties:
+                database:
+                    type: string
+                dbdriver:
+                    type: integer
+                dbvars:
+                    type: list(string)
+                    items:
+                        type: string
+        Parameters:
+            type: object
+            properties:
+                path_auth_config:
+                    type: string
+                vault_addr:
+                    type: string
+                vault_token:
+                    type: string
+        DBTeam:
+            type: object
+            properties:
+                call_name:
+                    type: string
+                output:
+                    type: list(string)
+                    items:
+                        type: string
+        Team:
+            type: object
+            properties:
+                team_name:
+                    type: string
+                meta:
+                    type: object
+                    properties:
+                        Policies:
+                            type: list(string)
+                            items:
+                                type: string
+                dbteam:
+                    $ref: '#/components/schemas/DBTeam'
+        Error:
+            required:
+                - code
+                - message
+            properties:
+                code:
+                    type: integer
+                    format: int32
+                message:
+                    type: string
+    securitySchemes:
+        vaultToken:
+            type: apiKey
+            name: X-VAULT-TOKEN
+            in: header
