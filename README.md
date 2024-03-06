@@ -5,7 +5,7 @@ This *hcllight* package removes position and location tags in *hclsyntax*.
 
  - This allows for dynamic addition and deletion of attributes, variables, expressions and blocks, after which the tree can be output back to HCL data.
  - This can be done with or without the evaluation of logic expressions in HCL.
- - The package is defined by Protobuf, enabling precise tracking of changes in the tree state.
+ - The package is defined by Protobuf, enabling precise tracking of changes in ythe AST status.
 
 To install,
 
@@ -16,12 +16,6 @@ go install github.com/genelet/hcllight
 To use the *hcllight* package,
 
 [![GoDoc](https://godoc.org/github.com/genelet/hcllight?status.svg)](https://godoc.org/github.com/genelet/hcllight)
-
-## Application 
-
-As a demo application of *hcllight*, package *kin*, included, builds Terraform scripts from OpenAPI 3.0 documents.
-
-
 
 ## Example
 
