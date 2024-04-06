@@ -228,7 +228,7 @@ func (self *Config) ParseDocument(data []byte) error {
 	self.document = doc
 
 	paths := doc.Paths
-	if paths == nil && len(paths.Path) == 0 {
+	if paths == nil || len(paths.Path) == 0 {
 		return fmt.Errorf("no paths found in OpenAPI document")
 	}
 	for _, namedPathItem := range paths.Path {

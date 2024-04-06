@@ -31,14 +31,11 @@ func NewGno(bs []byte) (*Gno, error) {
 		u = doc.Servers[0].Url
 	}
 	address, err := url.Parse(u)
-	if err != nil {
-		return nil, err
-	}
 	return &Gno{
 		doc:     doc,
 		address: address,
 		ref:     make(map[string]*generated.Body),
-	}, nil
+	}, err
 }
 
 func (self *Gno) YAMLValue(comment string) ([]byte, error) {
@@ -358,7 +355,7 @@ func (self *Gno) getRR(op *openapiv3.Operation) ([]byte, []byte, error) {
 				return nil, nil, err
 			}
 			bsRequest = []byte(rel)
-		} else if x.GetRequestBody(); x != nil {
+		} else if x.GetRequestBody() != nil {
 			bdy, s, err = self.schemaRefToBody("", x.GetRequestBody().Content.AdditionalProperties[0].Value.Schema)
 			if err == nil {
 				if bdy == nil {
