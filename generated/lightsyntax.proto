@@ -222,7 +222,6 @@ message TemplateWrapExpr {
 	Expression wrapped = 1;
 }
 
-
 message TupleConsExpr {
 	repeated Expression exprs = 1;
 }

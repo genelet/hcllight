@@ -5,57 +5,57 @@ components schema "Login" {
 }
 
 components schema "MFARequirement" {
-  mfa_constraints = object(string,any)
   mfa_request_id = string
+  mfa_constraints = object(string,any)
 }
 
 components schema "Auth" {
-  renewable = boolean
-  mfa_requirement = MFARequirement
-  num_uses = integer
-  accessor = string
-  policies = list(string)
-  entity_id = string
-  token_type = string
-  client_token = string
   token_policies = list(string)
   identity_policies = list(string)
   metadata = object(string,string)
-  lease_duration = integer
+  entity_id = string
   orphan = boolean
+  accessor = string
+  mfa_requirement = MFARequirement
+  policies = list(string)
+  renewable = boolean
+  client_token = string
+  lease_duration = integer
+  token_type = string
+  num_uses = integer
 }
 
 components schema "WrapInfo" {
-  creation_path = string
-  wrapped_accessor = string
   token = string
   accessor = string
   ttl = integer
   creation_time = string
+  creation_path = string
+  wrapped_accessor = string
 }
 
 components schema "ConfigReport" {
   auth = Auth
   request_id = string
   lease_id = string
-  lease_duration = integer
-  wrap_info = WrapInfo
-  warnings = list(string)
   renewable = boolean
   data = object(string,any)
+  wrap_info = WrapInfo
+  warnings = list(string)
+  lease_duration = integer
   mount_type = string
 }
 
 components schema "ConfigRequest" {
-  dbconfig = DBConfig
   parameters = Parameters
   teams = object(string,Team)
+  dbconfig = DBConfig
 }
 
 components schema "DBConfig" {
+  dbdriver = integer
   dbvars = list(string)
   database = string
-  dbdriver = integer
 }
 
 components schema "Parameters" {
@@ -96,12 +96,12 @@ paths "/graph/config/generate" "post" {
   response = ConfigReport
 }
 
-paths "/graph/config" "get" {
+paths "/graph/config" "post" {
+  request = ConfigRequest
   response = ConfigReport
 }
 
-paths "/graph/config" "post" {
-  request = ConfigRequest
+paths "/graph/config" "get" {
   response = ConfigReport
 }
 

@@ -2,6 +2,7 @@ package light
 
 import (
 	"fmt"
+	"log"
 	"strings"
 
 	"github.com/genelet/determined/utils"
@@ -379,6 +380,7 @@ func hclBodyNode(self *generated.Body, level int) (string, error) {
 		for _, label := range block.Labels {
 			name += fmt.Sprintf(` "%s"`, label)
 		}
+		log.Printf("%#v", block)
 		bs, err := hclBodyNode(block.Bdy, level+1)
 		if err != nil {
 			return "", err

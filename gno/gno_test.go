@@ -12,16 +12,16 @@ func TestBuild(t *testing.T) {
 	if err != nil {
 		panic(err)
 	}
-	kn, err := NewGno(bs)
+	g, err := NewGno(bs)
 	if err != nil {
 		panic(err)
 	}
-	err = kn.Build()
+	err = g.Build()
 	if err != nil {
 		panic(err)
 	}
 
-	bs, err = kn.YAMLValue("comment")
+	bs, err = g.YAMLValue("comment")
 	if err != nil {
 		panic(err)
 	}
@@ -40,16 +40,16 @@ func TestCodeGen(t *testing.T) {
 	if err != nil {
 		panic(err)
 	}
-	kn, err := NewGno(bs)
+	g, err := NewGno(bs)
 	if err != nil {
 		panic(err)
 	}
 
-	bs, err = os.ReadFile("tf.yaml")
+	bs, err = os.ReadFile("pets_generator.yaml")
 	if err != nil {
 		panic(err)
 	}
-	_, err = kn.DocumentNode(bs)
+	_, err = g.DocumentNode(bs)
 	if err != nil {
 		panic(err)
 	}
