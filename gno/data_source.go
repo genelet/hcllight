@@ -1,6 +1,6 @@
 // Copyright (c) Greetingland LLC
 // MIT License
-package config
+package gno
 
 import (
 	"errors"

@@ -2,7 +2,6 @@ package light
 
 import (
 	"fmt"
-	"log"
 	"strings"
 
 	"github.com/genelet/determined/utils"
@@ -12,9 +11,21 @@ import (
 	"github.com/hashicorp/hcl/v2/hclsyntax"
 )
 
-func hclExpression(self *generated.Expression, parent ...*generated.Expression) (string, error) {
+func hclExpression(self *generated.Expression, x ...interface{}) (string, error) {
 	if self == nil {
 		return "", nil
+	}
+
+	var parent *generated.Expression
+	var level int
+	if x != nil {
+		switch t := x[0].(type) {
+		case *generated.Expression:
+			parent = t
+		case int:
+			level = t
+		default:
+		}
 	}
 
 	switch self.ExpressionClause.(type) {
@@ -127,6 +138,8 @@ func hclExpression(self *generated.Expression, parent ...*generated.Expression) 
 		expr := self.GetLvexpr()
 		return hclCty(expr.GetVal())
 	case *generated.Expression_Ocexpr:
+		nextLeading := strings.Repeat("  ", level+2)
+		leading := strings.Repeat("  ", level+1)
 		expr := self.GetOcexpr()
 		var arr []string
 		for _, item := range expr.GetItems() {
@@ -138,15 +151,14 @@ func hclExpression(self *generated.Expression, parent ...*generated.Expression) 
 			if err != nil {
 				return "", err
 			}
-			if parent != nil && parent[0].ExpressionClause.(*generated.Expression_Fexpr) != nil {
+			if parent != nil && parent.ExpressionClause.(*generated.Expression_Fexpr) != nil {
 				arr = append(arr, key+`:`+val)
 			} else {
-				arr = append(arr, key+" = "+val)
+				arr = append(arr, nextLeading+key+" = "+val)
 			}
 		}
-		// without proper leading space, we shall not split by newline
-		//return "{\n" + strings.Join(arr, "\n") + "\n}", nil
-		return "{" + strings.Join(arr, ", ") + "}", nil
+		return fmt.Sprintf("{\n%s\n%s}", strings.Join(arr, ",\n"), leading), nil
+		//return "{" + strings.Join(arr, ", ") + "}", nil
 	case *generated.Expression_Ockexpr:
 		expr := self.GetOckexpr()
 		return hclExpression(expr.GetWrapped())
@@ -189,7 +201,7 @@ func hclExpression(self *generated.Expression, parent ...*generated.Expression) 
 			}
 		}
 		if rootOnly && parent != nil {
-			if _, ok := parent[0].ExpressionClause.(*generated.Expression_Texpr); ok {
+			if _, ok := parent.ExpressionClause.(*generated.Expression_Texpr); ok {
 				return `${` + arr[0] + `}`, nil
 			}
 
@@ -360,7 +372,7 @@ func hclBodyNode(self *generated.Body, level int) (string, error) {
 	lessLeading := strings.Repeat("  ", level)
 
 	for name, attr := range self.Attributes {
-		str, err := hclExpression(attr.Expr)
+		str, err := hclExpression(attr.Expr, level)
 		if err != nil {
 			return "", err
 		}
@@ -380,7 +392,6 @@ func hclBodyNode(self *generated.Body, level int) (string, error) {
 		for _, label := range block.Labels {
 			name += fmt.Sprintf(` "%s"`, label)
 		}
-		log.Printf("%#v", block)
 		bs, err := hclBodyNode(block.Bdy, level+1)
 		if err != nil {
 			return "", err

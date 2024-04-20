@@ -1,6 +1,6 @@
 // Copyright (c) Greetingland LLC
 
-package config
+package gno
 
 import (
 	"github.com/genelet/hcllight/generated"
@@ -81,76 +81,62 @@ func (self *GnoConfig) exprBodySchemaOrReference(v *openapiv3.SchemaOrReference)
 }
 
 func (self *GnoConfig) exprBodySchema(v *openapiv3.Schema) (*generated.Expression, *generated.Body, error) {
-	fcexpr := &generated.FunctionCallExpr{Name: v.Type}
-	var bdy *generated.Body
-	var blocks []*generated.Block
-
 	switch v.Type {
 	case "string", "number", "integer", "boolean":
+		fcexpr := &generated.FunctionCallExpr{Name: v.Type}
 		if v.Format != "" {
 			fcexpr.Args = append(fcexpr.Args, stringToLiteralValueExpr(v.Format))
 		}
+		return &generated.Expression{
+			ExpressionClause: &generated.Expression_Fcexpr{
+				Fcexpr: fcexpr,
+			},
+		}, nil, nil
 	case "array":
+		tcexpr := &generated.TupleConsExpr{}
 		for _, item := range v.Items.SchemaOrReference {
 			expr, _, err := self.exprBodySchemaOrReference(item)
 			if err != nil {
 				return nil, nil, err
 			}
-			fcexpr.Args = append(fcexpr.Args, expr)
+			tcexpr.Exprs = append(tcexpr.Exprs, expr)
 		}
+		return &generated.Expression{
+			ExpressionClause: &generated.Expression_Tcexpr{
+				Tcexpr: tcexpr,
+			},
+		}, nil, nil
 	default:
-		if v.Properties != nil {
-			var items []*generated.ObjectConsItem
-			attrs := make(map[string]*generated.Attribute)
-			for _, item := range v.Properties.AdditionalProperties {
-				expr, body, err := self.exprBodySchemaOrReference(item.Value)
-				if err != nil {
-					return nil, nil, err
-				}
-				items = append(items, &generated.ObjectConsItem{
-					KeyExpr:   stringToLiteralValueExpr(item.Name),
-					ValueExpr: expr,
-				})
-				attrs[item.Name] = &generated.Attribute{
-					Name: item.Name,
-					Expr: expr,
-				}
-				if body != nil {
-					blocks = append(blocks, &generated.Block{
-						Type: item.Name,
-						Bdy:  body,
-					})
-				}
-			}
+	}
 
-			fcexpr.Args = append(fcexpr.Args, &generated.Expression{
-				ExpressionClause: &generated.Expression_Ocexpr{
-					Ocexpr: &generated.ObjectConsExpr{
-						Items: items,
-					},
-				},
+	if v.Properties != nil {
+		ocexpr := &generated.ObjectConsExpr{}
+		var items []*generated.ObjectConsItem
+		for _, item := range v.Properties.AdditionalProperties {
+			expr, _, err := self.exprBodySchemaOrReference(item.Value)
+			if err != nil {
+				return nil, nil, err
+			}
+			items = append(items, &generated.ObjectConsItem{
+				KeyExpr:   stringToLiteralValueExpr(item.Name),
+				ValueExpr: expr,
 			})
+		}
+		ocexpr.Items = items
+		return &generated.Expression{
+			ExpressionClause: &generated.Expression_Ocexpr{
+				Ocexpr: ocexpr,
+			},
+		}, nil, nil
+	}
 
-			bdy = &generated.Body{
-				Attributes: attrs,
-				Blocks:     blocks,
-			}
-		} else if v.AdditionalProperties != nil {
-			if x := v.AdditionalProperties.GetSchemaOrReference(); x != nil {
-				expr, _, err := self.exprBodySchemaOrReference(x)
-				if err != nil {
-					return nil, nil, err
-				}
-				fcexpr.Args = append(fcexpr.Args, expr)
-			}
+	if v.AdditionalProperties != nil {
+		if x := v.AdditionalProperties.GetSchemaOrReference(); x != nil {
+			return self.exprBodySchemaOrReference(x)
 		}
 	}
 
-	return &generated.Expression{
-		ExpressionClause: &generated.Expression_Fcexpr{
-			Fcexpr: fcexpr,
-		},
-	}, bdy, nil
+	return nil, nil, nil
 }
 
 // parameter always return body, different bodies could be added

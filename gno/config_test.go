@@ -7,14 +7,12 @@
 // Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: MPL-2.0
 
-package config_test
+package gno
 
 import (
 	"encoding/json"
 	"regexp"
 	"testing"
-
-	"github.com/genelet/hcllight/internal/config"
 )
 
 func TestParseConfig_Valid(t *testing.T) {
@@ -384,11 +382,11 @@ data_sources:
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
-			config1, err := config.ParseConfig([]byte(testCase.input))
+			config1, err := ParseConfig([]byte(testCase.input))
 			if err != nil {
 				t.Errorf("Unexpected error: %s", err.Error())
 			}
-			config2, err := config.ParseConfig([]byte(testCase.hcl), "hcl")
+			config2, err := ParseConfig([]byte(testCase.hcl), "hcl")
 			if err != nil {
 				t.Fatalf("Failed to hcl unmarshal: %s", err)
 			}
@@ -664,7 +662,7 @@ data_sources:
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
-			_, err := config.ParseConfig([]byte(testCase.input))
+			_, err := ParseConfig([]byte(testCase.input))
 			if err == nil {
 				t.Fatalf("Expected err to match %q, got nil", testCase.expectedErrRegex)
 			}

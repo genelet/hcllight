@@ -51,7 +51,12 @@ cidr_block = cidrsubnet(aws_vpc.main.cidr_block, 4, count.index+1)
 		{"check key value", `aws = {
 source  = "hashicorp/aws"
 version = "~> 1.0.4"
-}`, `aws = {source = "hashicorp/aws", version = "~> 1.0.4"}`},
+}`, `aws = {
+    source = "hashicorp/aws",
+    version = "~> 1.0.4"
+  }`},
+		{"check square", `
+availability_zones = ["X", "Y", "Z"]`, `availability_zones = ["X", "Y", "Z"]`},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {

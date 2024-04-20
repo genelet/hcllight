@@ -7,7 +7,7 @@
 // Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: MPL-2.0
 
-package config
+package gno
 
 import (
 	"errors"

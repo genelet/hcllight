@@ -1,6 +1,6 @@
 // Copyright (c) Greetingland LLC
 
-package config
+package gno
 
 import (
 	"errors"
