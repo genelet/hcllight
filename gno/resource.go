@@ -12,11 +12,11 @@ import (
 
 // Resource generator config section.
 type Resource struct {
-	Create        *OpenApiSpecLocation `yaml:"create" hcl:"create,block"`
-	Read          *OpenApiSpecLocation `yaml:"read" hcl:"read,block"`
-	Update        *OpenApiSpecLocation `yaml:"update" hcl:"update,block"`
-	Delete        *OpenApiSpecLocation `yaml:"delete" hcl:"delete,block"`
-	SchemaOptions `yaml:"schema" hcl:"schema,block"`
+	Create         *OpenApiSpecLocation `yaml:"create" hcl:"create,block"`
+	Read           *OpenApiSpecLocation `yaml:"read" hcl:"read,block"`
+	Update         *OpenApiSpecLocation `yaml:"update" hcl:"update,block"`
+	Delete         *OpenApiSpecLocation `yaml:"delete" hcl:"delete,block"`
+	*SchemaOptions `yaml:"schema" hcl:"schema,block"`
 }
 
 func (r *Resource) Validate() error {
@@ -97,63 +97,24 @@ func (self *Resource) BuildGnoResource(doc *openapiv3.Document) (*GnoResource, e
 	return gr, nil
 }
 
-func (self *GnoConfig) blksArrayParameters(blks []*generated.Block, name string, params []*openapiv3.ParameterOrReference) ([]*generated.Block, error) {
-	var bdy *generated.Body
-	var err error
-	_, bdy, err = self.exprBodyArrayParameterOrReference(params)
-	if err != nil {
-		return nil, err
-	}
-	return appendBlock(blks, name, bdy), nil
-}
-
-func (self *GnoConfig) blockResources() (*generated.Block, error) {
-	var attributes map[string]*generated.Attribute
+func (self *GnoResource) ToBlocks(name string) ([]*generated.Block, error) {
 	var blocks []*generated.Block
-	for name, resource := range self.GnoResources {
-		var blks []*generated.Block
-		var err error
-		if resource.ReadOp != nil {
-			blks, err = self.blksArrayParameters(blks, "read_op", resource.ReadOp.Parameters)
-		}
-		if err != nil {
-			return nil, err
-		}
-		if resource.CreateOp != nil {
-			blks, err = self.blksArrayParameters(blks, "create_op", resource.CreateOp.Parameters)
-		}
-		if err != nil {
-			return nil, err
-		}
-		if resource.UpdateOp != nil {
-			blks, err = self.blksArrayParameters(blks, "update_op", resource.UpdateOp.Parameters)
-		}
-		if err != nil {
-			return nil, err
-		}
-		if resource.DeleteOp != nil {
-			blks, err = self.blksArrayParameters(blks, "delete_op", resource.DeleteOp.Parameters)
-		}
-		if err != nil {
-			return nil, err
-		}
-		if resource.CommonParameters != nil {
-			blks, err = self.blksArrayParameters(blks, "common_parameters", resource.CommonParameters)
-		}
-		if err != nil {
-			return nil, err
-		}
-		body := &generated.Body{
-			Blocks: blks,
-		}
-		blocks = appendBlock(blocks, name, body)
+	var err error
+	if self.ReadOp != nil {
+		blocks, err = blksArrayParameters(blocks, "resource", name, "read_op", self.ReadOp.Parameters, self.SchemaOptions)
+	}
+	if err == nil && self.CreateOp != nil {
+		blocks, err = blksArrayParameters(blocks, "resource", name, "create_op", self.CreateOp.Parameters, self.SchemaOptions)
+	}
+	if err == nil && self.UpdateOp != nil {
+		blocks, err = blksArrayParameters(blocks, "resource", name, "update_op", self.UpdateOp.Parameters, self.SchemaOptions)
+	}
+	if err == nil && self.DeleteOp != nil {
+		blocks, err = blksArrayParameters(blocks, "resource", name, "delete_op", self.DeleteOp.Parameters, self.SchemaOptions)
+	}
+	if err == nil && self.CommonParameters != nil {
+		blocks, err = blksArrayParameters(blocks, "resource", name, "common_parameters", self.CommonParameters, self.SchemaOptions)
 	}
 
-	return &generated.Block{
-		Type: "resource",
-		Bdy: &generated.Body{
-			Attributes: attributes,
-			Blocks:     blocks,
-		},
-	}, nil
+	return blocks, err
 }

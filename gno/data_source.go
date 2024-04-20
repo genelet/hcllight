@@ -26,8 +26,8 @@ type DataSource struct {
 
 	    * private end
 	*/
-	Read          *OpenApiSpecLocation `yaml:"read" hcl:"read,block"`
-	SchemaOptions `yaml:"schema" hcl:"schema,block"`
+	Read           *OpenApiSpecLocation `yaml:"read" hcl:"read,block"`
+	*SchemaOptions `yaml:"schema" hcl:"schema,block"`
 }
 
 func (d *DataSource) Validate() error {
@@ -57,7 +57,7 @@ func (d *DataSource) Validate() error {
 type GnoDataSource struct {
 	ReadOp           *openapiv3.Operation              `hcl:"read_op,block"`
 	CommonParameters []*openapiv3.ParameterOrReference `hcl:"common_parameters,block"`
-	SchemaOptions    `hcl:"schema,block"`
+	*SchemaOptions   `hcl:"schema,block"`
 }
 
 func getOperationByMethod(pathItem *openapiv3.PathItem, method string) *openapiv3.Operation {
@@ -92,35 +92,76 @@ func (self *DataSource) BuildGnoDataSource(doc *openapiv3.Document) (*GnoDataSou
 	return gds, nil
 }
 
-func (self *GnoConfig) blockDataSources() (*generated.Block, error) {
-	var attributes map[string]*generated.Attribute
+func (self *GnoDataSource) ToBlocks(name string) ([]*generated.Block, error) {
 	var blocks []*generated.Block
-	for name, data_source := range self.GnoDataSources {
-		var blks []*generated.Block
-		var err error
-		if data_source.ReadOp != nil {
-			blks, err = self.blksArrayParameters(blks, "read_op", data_source.ReadOp.Parameters)
-		}
-		if err != nil {
-			return nil, err
-		}
-		if data_source.CommonParameters != nil {
-			blks, err = self.blksArrayParameters(blks, "common_parameters", data_source.CommonParameters)
-		}
-		if err != nil {
-			return nil, err
-		}
-		body := &generated.Body{
-			Blocks: blks,
-		}
-		blocks = appendBlock(blocks, name, body)
+	var err error
+
+	if self.ReadOp != nil {
+		blocks, err = blksArrayParameters(blocks, "data_source", name, "read_op", self.ReadOp.Parameters, self.SchemaOptions)
+	}
+	if err == nil && self.CommonParameters != nil {
+		blocks, err = blksArrayParameters(blocks, "data_source", name, "common_parameters", self.CommonParameters, self.SchemaOptions)
+	}
+	if err != nil {
+		return nil, err
 	}
 
-	return &generated.Block{
-		Type: "data_source",
-		Bdy: &generated.Body{
-			Attributes: attributes,
-			Blocks:     blocks,
-		},
+	return blocks, nil
+}
+
+func bodyArrayParameterOrReference(v []*openapiv3.ParameterOrReference, so *SchemaOptions) (*generated.Body, error) {
+	attributes := make(map[string]*generated.Attribute)
+TOP:
+	for _, item := range v {
+		name, expr, err := nameExprParameterOrReference(item)
+		if err != nil {
+			return nil, err
+		}
+		if name == "" {
+			name = "XREF"
+		}
+		if so != nil {
+			for _, ignore := range so.Ignores {
+				if ignore == name {
+					continue TOP
+				}
+			}
+			for k, v := range so.Aliases {
+				if k == name {
+					name = v
+				}
+			}
+			/*
+				for k, v := range so.Overrides {
+					if k == name {
+						if v.Description != "" {
+							expr.Expression = v.Description
+						}
+					}
+				}
+			*/
+		}
+
+		attributes[name] = &generated.Attribute{
+			Name: name,
+			Expr: expr,
+		}
+	}
+
+	return &generated.Body{
+		Attributes: attributes,
 	}, nil
+}
+
+func blksArrayParameters(blocks []*generated.Block, name1, name2, name3 string, params []*openapiv3.ParameterOrReference, so *SchemaOptions) ([]*generated.Block, error) {
+	body, err := bodyArrayParameterOrReference(params, so)
+	if err != nil {
+		return nil, err
+	}
+	blocks = append(blocks, &generated.Block{
+		Type:   name1,
+		Labels: []string{name2, name3},
+		Bdy:    body,
+	})
+	return blocks, nil
 }

@@ -74,22 +74,19 @@ func (self *GnoConfig) buildProvider() (*generated.Block, error) {
 	}
 
 	if p.SchemaProxy != nil {
-		expr, body, err := self.exprBodySchemaOrReference(p.SchemaProxy)
+		expr, err := exprSchemaOrReference(p.SchemaProxy)
 		if err != nil {
 			return nil, err
 		}
-		if expr != nil {
-			block.Bdy = &generated.Body{
-				Attributes: map[string]*generated.Attribute{
-					"schema_proxy": {
-						Expr: expr,
-					},
+
+		block.Bdy = &generated.Body{
+			Attributes: map[string]*generated.Attribute{
+				"schema_proxy": {
+					Expr: expr,
 				},
-			}
-		} else {
-			block.Labels = append(block.Labels, "schema_proxy")
-			block.Bdy = body
+			},
 		}
+
 	}
 
 	return block, nil
@@ -99,21 +96,19 @@ func (self *GnoConfig) blockSchemas() (*generated.Block, error) {
 	var attributes map[string]*generated.Attribute
 	var blocks []*generated.Block
 	for name, schema := range self.Schemas {
-		expr, body, err := self.exprBodySchemaOrReference(schema)
+		expr, err := exprSchemaOrReference(schema)
 		if err != nil {
 			return nil, err
 		}
-		if expr != nil {
-			if attributes == nil {
-				attributes = make(map[string]*generated.Attribute)
-			}
-			attributes[name] = &generated.Attribute{
-				Name: name,
-				Expr: expr,
-			}
-		} else {
-			blocks = appendBlock(blocks, name, body)
+
+		if attributes == nil {
+			attributes = make(map[string]*generated.Attribute)
 		}
+		attributes[name] = &generated.Attribute{
+			Name: name,
+			Expr: expr,
+		}
+
 	}
 
 	return &generated.Block{
@@ -130,14 +125,11 @@ func (self *GnoConfig) blockParameters() (*generated.Block, error) {
 	//	var attributes map[string]*generated.Attribute
 	var blocks []*generated.Block
 	for name, parameter := range self.Parameters {
-		str, expr, body, err := self.nameExprBodyParameterOrReference(parameter)
+		str, expr, err := nameExprParameterOrReference(parameter)
 		if err != nil {
 			return nil, err
 		}
-		if expr != nil {
-			body = simpleBody(str, expr)
-		}
-		blocks = appendBlock(blocks, name, body)
+		blocks = appendBlock(blocks, name, simpleBody(str, expr))
 	}
 
 	return &generated.Block{
@@ -153,20 +145,16 @@ func (self *GnoConfig) blockRequestBodies() (*generated.Block, error) {
 	var attributes map[string]*generated.Attribute
 	var blocks []*generated.Block
 	for name, requestBody := range self.RequestBodies {
-		expr, body, err := self.exprBodyRequestBodyOrReference(requestBody)
+		expr, err := exprRequestBodyOrReference(requestBody)
 		if err != nil {
 			return nil, err
 		}
-		if expr != nil {
-			if attributes == nil {
-				attributes = make(map[string]*generated.Attribute)
-			}
-			attributes[name] = &generated.Attribute{
-				Name: name,
-				Expr: expr,
-			}
-		} else {
-			blocks = appendBlock(blocks, name, body)
+		if attributes == nil {
+			attributes = make(map[string]*generated.Attribute)
+		}
+		attributes[name] = &generated.Attribute{
+			Name: name,
+			Expr: expr,
 		}
 	}
 
