@@ -3,88 +3,272 @@
 package gno
 
 import (
-	"errors"
 	"fmt"
 	"net/url"
 	"strings"
 
-	"github.com/genelet/determined/dethcl"
 	"github.com/genelet/hcllight/generated"
 	openapiv3 "github.com/google/gnostic-models/openapiv3"
-	"gopkg.in/yaml.v3"
 )
 
-// Config represents a YAML generator config.
-type Config struct {
-	Provider    `yaml:"provider" hcl:"provider,block"`
-	Resources   map[string]*Resource   `yaml:"resources" hcl:"resources,block"`
-	DataSources map[string]*DataSource `yaml:"data_sources" hcl:"data_sources,block"`
+type GnoConfig struct {
+	GnoProvider    `hcl:"provider,block"`
+	Schemas        map[string]*openapiv3.SchemaOrReference      `hcl:"schemas,block"`
+	Parameters     map[string]*openapiv3.ParameterOrReference   `hcl:"parameters,block"`
+	RequestBodies  map[string]*openapiv3.RequestBodyOrReference `hcl:"request_bodies,block"`
+	GnoResources   map[string]*GnoResource                      `hcl:"resources,block"`
+	GnoDataSources map[string]*GnoDataSource                    `hcl:"data_sources,block"`
 }
 
-// ParseConfig takes in a byte array, unmarshals into a Config struct, and validates the result
-// By default the byte array is assumed to be YAML, but if data_type is "hcl" or "tf", it will be unmarshaled as HCL
-func ParseConfig(bytes []byte, data_type ...string) (*Config, error) {
-	var result Config
-	var typ string
-	var err error
-	if data_type != nil {
-		typ = strings.ToLower(data_type[0])
-	}
-	if typ == "hcl" || typ == "tf" {
-		err = dethcl.Unmarshal(bytes, &result)
-	} else {
-		err = yaml.Unmarshal(bytes, &result)
-	}
+func (self *GnoConfig) BuildHCL() (*generated.Body, error) {
+	var blocks []*generated.Block
+
+	provider, err := self.GnoProvider.buildProvider()
 	if err != nil {
-		return nil, fmt.Errorf("error unmarshaling config: %w", err)
+		return nil, err
 	}
-	if err = result.Validate(); err != nil {
-		return nil, fmt.Errorf("config validation error(s): %w", err)
-	}
+	blocks = append(blocks, provider)
 
-	return &result, nil
-}
-
-func (self *Config) Validate() error {
-	if self == nil {
-		return errors.New("config is nil")
-	}
-
-	var result error
-
-	if (self.DataSources == nil || len(self.DataSources) == 0) && (self.Resources == nil || len(self.Resources) == 0) {
-		result = errors.Join(result, fmt.Errorf("\t%s", "at least one object is required in either 'resources' or 'data_sources'"))
-	}
-
-	// Validate Provider
-	err := self.Provider.Validate()
+	schemas, err := self.blockSchemas()
 	if err != nil {
-		result = errors.Join(result, fmt.Errorf("\tprovider %w", err))
+		return nil, err
 	}
+	blocks = append(blocks, schemas)
 
-	// Validate all Resources
-	for name, resource := range self.Resources {
-		err := resource.Validate()
+	parameters, err := self.blockParameters()
+	if err != nil {
+		return nil, err
+	}
+	blocks = append(blocks, parameters)
+
+	reqs, err := self.blockRequestBodies()
+	if err != nil {
+		return nil, err
+	}
+	blocks = append(blocks, reqs)
+
+	for name, resource := range self.GnoResources {
+		blks, err := resource.ToBlocks(name)
 		if err != nil {
-			result = errors.Join(result, fmt.Errorf("\tresource '%s' %w", name, err))
+			return nil, err
+		}
+		blocks = append(blocks, blks...)
+	}
+
+	for name, data_source := range self.GnoDataSources {
+		blks, err := data_source.ToBlocks(name)
+		if err != nil {
+			return nil, err
+		}
+		blocks = append(blocks, blks...)
+	}
+
+	return &generated.Body{
+		Blocks: blocks,
+	}, nil
+}
+
+func (self *GnoConfig) blockSchemas() (*generated.Block, error) {
+	var attributes map[string]*generated.Attribute
+	var blocks []*generated.Block
+	for name, schema := range self.Schemas {
+		expr, err := exprSchemaOrReference(schema)
+		if err != nil {
+			return nil, err
+		}
+
+		if attributes == nil {
+			attributes = make(map[string]*generated.Attribute)
+		}
+		attributes[name] = &generated.Attribute{
+			Name: name,
+			Expr: expr,
+		}
+
+	}
+
+	return &generated.Block{
+		Type:   "variables",
+		Labels: []string{"schemas"},
+		Bdy: &generated.Body{
+			Attributes: attributes,
+			Blocks:     blocks,
+		},
+	}, nil
+}
+
+func (self *GnoConfig) blockParameters() (*generated.Block, error) {
+	//	var attributes map[string]*generated.Attribute
+	var blocks []*generated.Block
+	for name, parameter := range self.Parameters {
+		str, expr, err := nameExprParameterOrReference(parameter)
+		if err != nil {
+			return nil, err
+		}
+		blocks = append(blocks, &generated.Block{
+			Type: name,
+			Bdy: &generated.Body{
+				Attributes: map[string]*generated.Attribute{
+					name: {
+						Name: str,
+						Expr: expr,
+					},
+				},
+			},
+		})
+	}
+
+	return &generated.Block{
+		Type:   "variables",
+		Labels: []string{"parameters"},
+		Bdy: &generated.Body{
+			Blocks: blocks,
+		},
+	}, nil
+}
+
+func (self *GnoConfig) blockRequestBodies() (*generated.Block, error) {
+	var attributes map[string]*generated.Attribute
+	var blocks []*generated.Block
+	for name, requestBody := range self.RequestBodies {
+		expr, err := exprRequestBodyOrReference(requestBody)
+		if err != nil {
+			return nil, err
+		}
+		if attributes == nil {
+			attributes = make(map[string]*generated.Attribute)
+		}
+		attributes[name] = &generated.Attribute{
+			Name: name,
+			Expr: expr,
 		}
 	}
 
-	// Validate all Data Sources
-	for name, dataSource := range self.DataSources {
-		err := dataSource.Validate()
-		if err != nil {
-			result = errors.Join(result, fmt.Errorf("\tdata_source '%s' %w", name, err))
+	return &generated.Block{
+		Type:   "variables",
+		Labels: []string{"request_bodies"},
+		Bdy: &generated.Body{
+			Attributes: attributes,
+			Blocks:     blocks,
+		},
+	}, nil
+}
+
+func exprSchemaOrReference(v *openapiv3.SchemaOrReference) (*generated.Expression, error) {
+	if x := v.GetReference(); x != nil {
+		return exprReference(x)
+	}
+	return exprSchema(v.GetSchema())
+}
+
+func exprReference(v *openapiv3.Reference) (*generated.Expression, error) {
+	traversal, err := refToScopeTraversalExpr(v.GetXRef())
+	if err != nil {
+		return nil, err
+	}
+	return &generated.Expression{
+		ExpressionClause: &generated.Expression_Stexpr{
+			Stexpr: traversal,
+		},
+	}, nil
+}
+
+func exprSchema(v *openapiv3.Schema) (*generated.Expression, error) {
+	switch v.Type {
+	case "string", "number", "integer", "boolean":
+		fcexpr := &generated.FunctionCallExpr{Name: v.Type}
+		if v.Format != "" {
+			fcexpr.Args = append(fcexpr.Args, stringToLiteralValueExpr(v.Format))
+		}
+		return &generated.Expression{
+			ExpressionClause: &generated.Expression_Fcexpr{
+				Fcexpr: fcexpr,
+			},
+		}, nil
+	case "array":
+		tcexpr := &generated.TupleConsExpr{}
+		for _, item := range v.Items.SchemaOrReference {
+			expr, err := exprSchemaOrReference(item)
+			if err != nil {
+				return nil, err
+			}
+			tcexpr.Exprs = append(tcexpr.Exprs, expr)
+		}
+		return &generated.Expression{
+			ExpressionClause: &generated.Expression_Tcexpr{
+				Tcexpr: tcexpr,
+			},
+		}, nil
+	default:
+	}
+
+	if v.Properties != nil {
+		ocexpr := &generated.ObjectConsExpr{}
+		var items []*generated.ObjectConsItem
+		for _, item := range v.Properties.AdditionalProperties {
+			expr, err := exprSchemaOrReference(item.Value)
+			if err != nil {
+				return nil, err
+			}
+			items = append(items, &generated.ObjectConsItem{
+				KeyExpr:   stringToLiteralValueExpr(item.Name),
+				ValueExpr: expr,
+			})
+		}
+		ocexpr.Items = items
+		return &generated.Expression{
+			ExpressionClause: &generated.Expression_Ocexpr{
+				Ocexpr: ocexpr,
+			},
+		}, nil
+	}
+
+	if v.AdditionalProperties != nil {
+		if x := v.AdditionalProperties.GetSchemaOrReference(); x != nil {
+			return exprSchemaOrReference(x)
 		}
 	}
 
-	return result
+	return nil, nil
+}
+
+func nameExprParameterOrReference(v *openapiv3.ParameterOrReference) (string, *generated.Expression, error) {
+	if x := v.GetReference(); x != nil {
+		expr, err := exprReference(x)
+		return "", expr, err
+	}
+
+	expr, err := exprParameter(v.GetParameter())
+	return v.GetParameter().Name, expr, err
+}
+
+// parameter always return body, different bodies could be added
+func exprParameter(p *openapiv3.Parameter) (*generated.Expression, error) {
+	if p.GetSchema() != nil {
+		return exprSchemaOrReference(p.GetSchema())
+	}
+
+	// p.Content != nil
+	schemaOrReference := schemaMediaTypes(p.Content)
+	return exprSchemaOrReference(schemaOrReference)
+}
+
+func exprRequestBodyOrReference(v *openapiv3.RequestBodyOrReference) (*generated.Expression, error) {
+	if x := v.GetReference(); x != nil {
+		return exprReference(x)
+	}
+	return exprRequestBody(v.GetRequestBody())
+}
+
+func exprRequestBody(v *openapiv3.RequestBody) (*generated.Expression, error) {
+	schemaOrReference := schemaMediaTypes(v.Content)
+	return exprSchemaOrReference(schemaOrReference)
 }
 
 func (c *Config) NewGnoConfig(doc *openapiv3.Document) (*GnoConfig, error) {
 	gc := &GnoConfig{}
 
-	gp, err := c.Provider.BuildGnoProvider(doc)
+	gp, err := c.Provider.NewGnoProvider(doc)
 	if err != nil {
 		return nil, fmt.Errorf("error building provider: %w", err)
 	}
@@ -92,7 +276,7 @@ func (c *Config) NewGnoConfig(doc *openapiv3.Document) (*GnoConfig, error) {
 
 	var grs map[string]*GnoResource
 	for name, resource := range c.Resources {
-		gr, err := resource.BuildGnoResource(doc)
+		gr, err := resource.NewGnoResource(doc)
 		if err != nil {
 			return nil, fmt.Errorf("error building resource '%s': %w", name, err)
 		}
@@ -108,7 +292,7 @@ func (c *Config) NewGnoConfig(doc *openapiv3.Document) (*GnoConfig, error) {
 
 	var gdss map[string]*GnoDataSource
 	for name, dataSource := range c.DataSources {
-		gds, err := dataSource.BuildGnoDataSource(doc)
+		gds, err := dataSource.NewGnoDataSource(doc)
 		if err != nil {
 			return nil, fmt.Errorf("error building data source '%s': %w", name, err)
 		}
@@ -206,49 +390,4 @@ func schemaMediaTypes(m *openapiv3.MediaTypes) *openapiv3.SchemaOrReference {
 	}
 
 	return m.AdditionalProperties[0].Value.GetSchema()
-}
-
-func sumBodies(bodies ...*generated.Body) *generated.Body {
-	var result *generated.Body
-	for _, body := range bodies {
-		if body == nil {
-			continue
-		}
-		if result == nil {
-			result = &generated.Body{}
-		}
-		if body.Attributes != nil {
-			if result.Attributes == nil {
-				result.Attributes = make(map[string]*generated.Attribute)
-			}
-			for name, attr := range body.Attributes {
-				result.Attributes[name] = attr
-			}
-		}
-		if body.Blocks != nil {
-			if result.Blocks == nil {
-				result.Blocks = make([]*generated.Block, 0, len(body.Blocks))
-			}
-			result.Blocks = append(result.Blocks, body.Blocks...)
-		}
-	}
-	return result
-}
-
-func simpleBody(name string, expr *generated.Expression) *generated.Body {
-	return &generated.Body{
-		Attributes: map[string]*generated.Attribute{
-			name: {
-				Name: name,
-				Expr: expr,
-			},
-		},
-	}
-}
-
-func appendBlock(blocks []*generated.Block, name string, body *generated.Body) []*generated.Block {
-	return append(blocks, &generated.Block{
-		Type: name,
-		Bdy:  body,
-	})
 }
