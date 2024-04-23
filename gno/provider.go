@@ -13,15 +13,15 @@ type GnoProvider struct {
 	SchemaOptions
 }
 
-func (self *Provider) NewGnoProvider(doc *openapiv3.Document) (*GnoProvider, error) {
+func NewGnoProvider(p *Provider, doc *openapiv3.Document) (*GnoProvider, error) {
 	gp := &GnoProvider{
-		Name:          self.Name,
-		SchemaOptions: self.SchemaOptions,
+		Name:          p.Name,
+		SchemaOptions: p.SchemaOptions,
 	}
 
 	if doc != nil && doc.Components != nil && doc.Components.Schemas != nil {
 		for _, item := range doc.Components.Schemas.AdditionalProperties {
-			if item.Name == self.SchemaRef {
+			if item.Name == p.SchemaRef {
 				gp.SchemaProxy = item.Value
 				return gp, nil
 			}
@@ -31,7 +31,7 @@ func (self *Provider) NewGnoProvider(doc *openapiv3.Document) (*GnoProvider, err
 	return gp, nil
 }
 
-func (self *GnoProvider) buildProvider() (*generated.Block, error) {
+func (self *GnoProvider) blockProvider(c *GnoConfig) (*generated.Block, error) {
 	block := &generated.Block{
 		Type:   "provider",
 		Labels: []string{self.Name},
@@ -39,7 +39,7 @@ func (self *GnoProvider) buildProvider() (*generated.Block, error) {
 	}
 
 	if self.SchemaProxy != nil {
-		expr, err := exprSchemaOrReference(self.SchemaProxy)
+		expr, err := c.exprSchemaOrReference(self.SchemaProxy)
 		if err != nil {
 			return nil, err
 		}

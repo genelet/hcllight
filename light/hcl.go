@@ -26,6 +26,9 @@ func hclExpression(self *generated.Expression, x ...interface{}) (string, error)
 			level = t
 		default:
 		}
+		if len(x) > 1 {
+			level = x[1].(int)
+		}
 	}
 
 	switch self.ExpressionClause.(type) {
@@ -147,7 +150,7 @@ func hclExpression(self *generated.Expression, x ...interface{}) (string, error)
 			if err != nil {
 				return "", err
 			}
-			val, err := hclExpression(item.GetValueExpr())
+			val, err := hclExpression(item.GetValueExpr(), level+1)
 			if err != nil {
 				return "", err
 			}
@@ -248,7 +251,8 @@ func hclExpression(self *generated.Expression, x ...interface{}) (string, error)
 		v := self.GetTcexpr()
 		var arr []string
 		for _, item := range v.GetExprs() {
-			str, err := hclExpression(item)
+			// for tuple or array, each item stays at the current level
+			str, err := hclExpression(item, level)
 			if err != nil {
 				return "", err
 			}

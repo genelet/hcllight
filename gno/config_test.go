@@ -25,7 +25,7 @@ func TestGnoConfigGenerator(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	gc, err := config.NewGnoConfig(doc)
+	gc, err := NewGnoConfig(config, doc)
 	if err != nil {
 		t.Fatal(err)
 	}
