@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-package hclopenapi;
+package hcl;
 
 import "google/protobuf/any.proto";
 
@@ -8,45 +8,47 @@ import "google/protobuf/any.proto";
 // name (see below) instead of inside an outer class. It creates a simpler
 // developer experience by reducing one-level of name nesting and be
 // consistent with most programming languages that don't support outer classes.
-option java_multiple_files = true;
+//option java_multiple_files = true;
 
 // The Java outer classname should be the filename in UpperCamelCase. This
 // class is only used to hold proto descriptor, so developers don't need to
 // work with it directly.
-option java_outer_classname = "OpenAPIProto";
+//option java_outer_classname = "OpenAPIProto";
 
 // The Java package name must be proto package name with proper prefix.
-option java_package = "org.openapi_v3";
+//option java_package = "org.openapi_v3";
 
 // A reasonable prefix for the Objective-C symbols generated from the package.
 // It should at a minimum be 3 characters long, all uppercase, and convention
 // is to use an abbreviation of the package name. Something short, but
 // hopefully unique enough to not conflict with things that may come along in
 // the future. 'GPB' is reserved for the protocol buffer implementation itself.
-option objc_class_prefix = "OAS";
+//option objc_class_prefix = "OAS";
 
 // The Go package name.
-option go_package = "./openapiv3;openapi_v3";
-
+//option go_package = "./openapiv3;openapi_v3";
+option go_package = "./internal/hcl";
+/*
 message AdditionalPropertiesItem {
   oneof oneof {
     SchemaOrReference schema_or_reference = 1;
     bool boolean = 2;
   }
 }
+*/
 
 message Any {
   google.protobuf.Any value = 1;
   string yaml = 2;
 }
-
+/*
 message AnyOrExpression {
   oneof oneof {
     Any any = 1;
     Expression expression = 2;
   }
 }
-
+*/
 // A map of possible out-of band callbacks related to the parent operation. Each value in the map is a Path Item Object that describes a set of requests that may be initiated by the API provider and the expected responses. The key value used to identify the callback object is an expression, evaluated at runtime, that identifies a URL to use for the callback operation.
 message Callback {
   map<string,PathItem> path = 1;
@@ -59,22 +61,22 @@ message CallbackOrReference {
     Reference reference = 2;
   }
 }
-
+/*
 message CallbacksOrReferences {
   map<string,CallbackOrReference> additional_properties = 1;
 }
-
+*/
 // Holds a set of reusable objects for different aspects of the OAS. All objects defined within the components object will have no effect on the API unless they are explicitly referenced from properties outside the components object.
 message Components {
-  map<string,SchemasOrReference> schemas = 1;
-  map<string,ResponsesOrReference> responses = 2;
-  map<string,ParametersOrReference> parameters = 3;
-  map<string,ExamplesOrReference> examples = 4;
-  map<string,RequestBodiesOrReference> request_bodies = 5;
-  map<string,HeadersOrReference> headers = 6;
-  map<string,SecuritySchemesOrReference> security_schemes = 7;
-  map<string,LinksOrReference> links = 8;
-  map<string,CallbacksOrReference> callbacks = 9;
+  map<string,SchemaOrReference> schemas = 1;
+  map<string,ResponseOrReference> responses = 2;
+  map<string,ParameterOrReference> parameters = 3;
+  map<string,ExampleOrReference> examples = 4;
+  map<string,RequestBodyOrReference> request_bodies = 5;
+  map<string,SchemaOrReference> headers = 6;
+  map<string,SecuritySchemeOrReference> security_schemes = 7;
+  //map<string,LinkOrReference> links = 8;
+  map<string,CallbackOrReference> callbacks = 9;
   map<string,Any>specification_extension = 10;
 }
 
@@ -116,7 +118,7 @@ message Document {
 // A single encoding definition applied to a single schema property.
 message Encoding {
   string content_type = 1;
-  map<string,HeadersOrReference> headers = 2;
+  map<string,SchemaOrReference> headers = 2;
   string style = 3;
   bool explode = 4;
   bool allow_reserved = 5;
@@ -148,7 +150,7 @@ message ExternalDocs {
   string url = 2;
   map<string,Any> specification_extension = 3;
 }
-
+/*
 // The Header Object follows the structure of the Parameter Object with the following changes:  1. `name` MUST NOT be specified, it is given in the corresponding `headers` map. 1. `in` MUST NOT be specified, it is implicitly in `header`. 1. All traits that are affected by the location MUST be applicable to a location of `header` (for example, `style`).
 message Header {
   string description = 1;
@@ -160,8 +162,8 @@ message Header {
   bool allow_reserved = 7;
   SchemaOrReference schema = 8;
   Any example = 9;
-  map<string,ExamplesOrReference> examples = 10;
-  map<string,MediaType> content = 11;
+  map<string,ExampleOrReference> examples = 10;
+  map<string,SchemaOrReference> content = 11;
   map<string,Any> specification_extension = 12;
 }
 
@@ -171,7 +173,7 @@ message HeaderOrReference {
     Reference reference = 2;
   }
 }
-
+*/
 // The object provides metadata about the API. The metadata MAY be used by the clients if needed, and MAY be presented in editing or documentation generation tools for convenience.
 message Info {
   string title = 1;
@@ -194,7 +196,7 @@ message License {
   string url = 2;
   map<string,Any> specification_extension = 3;
 }
-
+/*
 // The `Link object` represents a possible design-time link for a response. The presence of a link does not guarantee the caller's ability to successfully invoke it, rather it provides a known relationship and traversal mechanism between responses and other operations.  Unlike _dynamic_ links (i.e. links provided **in** the response payload), the OAS linking mechanism does not require link information in the runtime response.  For computing links, and providing instructions to execute them, a runtime expression is used for accessing values in an operation and using them as parameters while invoking the linked operation.
 message Link {
   string operation_ref = 1;
@@ -212,15 +214,17 @@ message LinkOrReference {
     Reference reference = 2;
   }
 }
-
+*/
+/*
 // Each Media Type Object provides schema and examples for the media type identified by its key.
 message MediaType {
   SchemaOrReference schema = 1;
   Any example = 2;
-  map<string,ExamplesOrReference> examples = 3;
+  map<string,ExampleOrReference> examples = 3;
   map<string,Encoding> encoding = 4;
   map<string,Any> specification_extension = 5;
 }
+*/
 
 // Configuration details for a supported OAuth Flow
 message OauthFlow {
@@ -252,13 +256,17 @@ message Operation {
   ExternalDocs external_docs = 4;
   string operation_id = 5;
   repeated ParameterOrReference parameters = 6;
-  RequestBodyOrReference request_body = 7;
-  Responses responses = 8;
-  CallbacksOrReferences callbacks = 9;
-  bool deprecated = 10;
-  repeated SecurityRequirement security = 11;
-  repeated Server servers = 12;
-  map<string,Any> specification_extension = 13;
+  oneof request_body_or_reference {
+    RequestBody request_body = 7;
+    Reference request_reference = 8;
+  }
+  map<string,ResponseOrReference> responses = 9;
+  map<string,SchemaOrReference> headers = 10;
+  map<string,CallbackOrReference> callbacks = 11;
+  bool deprecated = 12;
+  repeated SecurityRequirement security = 13;
+  repeated Server servers = 14;
+  map<string,Any> specification_extension = 15;
 }
 
 // Describes a single operation parameter.  A unique parameter is defined by a combination of a name and location.
@@ -274,8 +282,8 @@ message Parameter {
   bool allow_reserved = 9;
   SchemaOrReference schema = 10;
   Any example = 11;
-  map<string,ExamplesOrReference> examples = 12;
-  map<string,MediaType> content = 13;
+  map<string,ExampleOrReference> examples = 12;
+  map<string,SchemaOrReference> content = 13;
   map<string,Any> specification_extension = 14;
 }
 
@@ -319,10 +327,10 @@ message Reference {
 
 // Describes a single request body.
 message RequestBody {
-  string description = 1;
-  map<string,MediaType> content = 2;
-  bool required = 3;
-  map<string,Any> specification_extension = 4;
+//  string description = 1;
+  map<string,SchemaOrReference> content = 2;
+//  bool required = 3;
+//  map<string,Any> specification_extension = 4;
 }
 
 message RequestBodyOrReference {
@@ -334,11 +342,7 @@ message RequestBodyOrReference {
 
 // Describes a single response from an API Operation, including design-time, static  `links` to operations based on the response.
 message Response {
-  string description = 1;
-  map<string,HeadersOrReference> headers = 2;
-  map<string,MediaType> content = 3;
-  map<string,LinkOrReference> links = 4;
-  map<string,Any> specification_extension = 5;
+  map<string,SchemaOrReference> content = 3;
 }
 
 message ResponseOrReference {
@@ -348,13 +352,93 @@ message ResponseOrReference {
   }
 }
 
+/*
 // A container for the expected responses of an operation. The container maps a HTTP response code to the expected response.  The documentation is not necessarily expected to cover all possible HTTP response codes because they may not be known in advance. However, documentation is expected to cover a successful operation response and any known errors.  The `default` MAY be used as a default response object for all HTTP codes  that are not covered individually by the specification.  The `Responses Object` MUST contain at least one response code, and it  SHOULD be the response for a successful operation call.
 message Responses {
   ResponseOrReference default = 1;
   map<string,ResponseOrReference> response_or_reference = 2;
   map<string,Any> specification_extension = 3;
 }
+*/
 
+message OASString {
+  string format = 1;
+  bool required = 2;
+  int64 minLength = 3;
+  int64 maxLength = 4;
+  string pattern = 5;
+  string default = 6;
+}
+
+message OASNumber {
+  string format = 1;
+  bool required = 2;
+  double maximum = 3;
+  double minimum = 4;
+  double multiple_of = 5;
+  bool exclusive_maximum = 6;
+  bool exclusive_minimum = 7;
+  double default = 8;
+}
+
+message OASInteger {
+  string format = 1;
+  bool required = 2;
+  int64 maximum = 3;
+  int64 minimum = 4;
+  int64 multiple_of = 5;
+  bool exclusive_maximum = 6;
+  bool exclusive_minimum = 7;
+  int64 default = 8;
+}
+
+message OASBoolean {
+  bool required = 1;
+  bool default = 2;
+}
+
+message OASObject {
+  map<string,SchemaOrReference> properties = 1;
+//  int64 max_properties = 2;
+//  int64 min_properties = 3;
+//  repeated string required = 4;
+//  Any example = 5;    
+}
+
+message OASArray {
+  repeated SchemaOrReference items = 1;
+//  int64 max_items = 2;
+//  int64 min_items = 3;
+//  bool unique_items = 4;
+//  Any example = 5;
+}
+/*
+message OASEnum {
+  repeated Any enum = 1;
+  Any example = 2;
+}
+
+message SchemaOrReferenceArray {
+  repeated SchemaOrReference schema = 1;
+}
+*/
+message SchemaOrReference {
+  oneof oneof {
+    OASString string = 1;
+    OASNumber number = 2;
+    OASInteger integer = 3;
+    OASBoolean boolean = 4;
+    OASObject object = 5;
+    OASArray array = 6;
+    OASArray enum = 7;
+    OASArray oas_oneof = 8;
+    OASArray oas_allof = 9;
+    OASArray oas_anyof = 10;
+    SchemaOrReference oas_not = 11;
+    Reference reference = 15;
+  }
+}
+/*
 // The Schema Object allows the definition of input and output data types. These types can be objects, but also primitives and arrays. This object is an extended subset of the JSON Schema Specification Wright Draft 00.  For more information about the properties, see JSON Schema Core and JSON Schema Validation. Unless stated otherwise, the property definitions follow the JSON Schema.
 message Schema {
   bool nullable = 1;
@@ -401,7 +485,7 @@ message SchemaOrReference {
     Reference reference = 2;
   }
 }
-
+*/
 // Lists the required security schemes to execute this operation. The name used for each property MUST correspond to a security scheme declared in the Security Schemes under the Components Object.  Security Requirement Objects that contain multiple schemes require that all schemes MUST be satisfied for a request to be authorized. This enables support for scenarios where multiple query parameters or HTTP headers are required to convey security information.  When a list of Security Requirement Objects is defined on the OpenAPI Object or Operation Object, only one of the Security Requirement Objects in the list needs to be satisfied to authorize the request.
 message SecurityRequirement {
   map<string,StringArray> additional_properties = 1;
