@@ -68,10 +68,10 @@ message CallbacksOrReferences {
 // Holds a set of reusable objects for different aspects of the OAS. All objects defined within the components object will have no effect on the API unless they are explicitly referenced from properties outside the components object.
 message Components {
   map<string,SchemaOrReference> schemas = 1;
-  map<string,RequestBodyOrReference> responses = 2;
+  map<string,MediaTypesOrReference> responses = 2;
   map<string,SchemaOrReference> headers = 6;
   map<string,ParameterOrReference> parameters = 3;
-  map<string,RequestBodyOrReference> request_bodies = 5;
+  map<string,MediaTypesOrReference> request_bodies = 5;
   map<string,ExampleOrReference> examples = 4;
   map<string,SecuritySchemeOrReference> security_schemes = 7;
   map<string,LinkOrReference> links = 8;
@@ -255,9 +255,9 @@ message Operation {
   ExternalDocs external_docs = 4;
   string operation_id = 5;
   repeated ParameterOrReference parameters = 6;
-  RequestBodyOrReference request_body = 7;
-  map<string,RequestBodyOrReference> responses = 9;
-  map<string,RequestBodyOrReference> headers = 10;
+  MediaTypesOrReference request_body = 7;
+  map<string,MediaTypesOrReference> responses = 9;
+  map<string,MediaTypesOrReference> headers = 10;
   map<string,CallbacksOrReference> calls = 11;
   bool deprecated = 12;
   repeated SecurityRequirement security = 13;
@@ -323,6 +323,7 @@ message Reference {
   string description = 3;
 }
 
+/*
 // Describes a single request body.
 message RequestBody {
 //  string description = 1;
@@ -337,11 +338,11 @@ message RequestBodyOrReference {
     Reference reference = 2;
   }
 }
+*/
 
-/*
 // Describes a single response from an API Operation, including design-time, static  `links` to operations based on the response.
 message MediaTypes {
-  map<string,SchemaOrReference> content = 3;
+  map<string,SchemaOrReference> content = 1;
 }
 
 message MediaTypesOrReference {
@@ -350,7 +351,7 @@ message MediaTypesOrReference {
     Reference reference = 2;
   }
 }
-*/
+
 /*
 // A container for the expected responses of an operation. The container maps a HTTP response code to the expected response.  The documentation is not necessarily expected to cover all possible HTTP response codes because they may not be known in advance. However, documentation is expected to cover a successful operation response and any known errors.  The `default` MAY be used as a default response object for all HTTP codes  that are not covered individually by the specification.  The `Responses Object` MUST contain at least one response code, and it  SHOULD be the response for a successful operation call.
 message Responses {
@@ -404,6 +405,10 @@ message OASObject {
 //  Any example = 5;    
 }
 
+message AnyArray {
+	repeated Any anies = 1;
+}
+
 message OASArray {
   repeated SchemaOrReference items = 1;
 //  int64 max_items = 2;
@@ -429,7 +434,7 @@ message SchemaOrReference {
     OASBoolean boolean = 4;
     OASObject object = 5;
     OASArray array = 6;
-    OASArray enum = 7;
+    AnyArray enum = 7;
     OASArray oas_oneof = 8;
     OASArray oas_allof = 9;
     OASArray oas_anyof = 10;

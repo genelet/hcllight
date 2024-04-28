@@ -143,7 +143,7 @@ func SecurityRequirementToHcl(requirement *openapiv3.SecurityRequirement) *Secur
 	}
 }
 
-func SecuritySchemaToHcl(security *openapiv3.SecuritySchemeOrReference) *SecuritySchemeOrReference {
+func SecuritySchemaOrReferenceToHcl(security *openapiv3.SecuritySchemeOrReference) *SecuritySchemeOrReference {
 	if security == nil {
 		return nil
 	}
@@ -227,7 +227,7 @@ func anyOrReferenceToHcl(any *openapiv3.AnyOrExpression) *AnyOrExpression {
 	}
 }
 
-func LinkToHcl(link *openapiv3.LinkOrReference) *LinkOrReference {
+func LinkOrReferenceToHcl(link *openapiv3.LinkOrReference) *LinkOrReference {
 	if link == nil {
 		return nil
 	}
@@ -286,13 +286,13 @@ func ComponentsToHcl(components *openapiv3.Components) *Components {
 	if components.Links != nil {
 		c.Links = make(map[string]*LinkOrReference)
 		for _, v := range components.Links.AdditionalProperties {
-			c.Links[v.Name] = LinkToHcl(v.Value)
+			c.Links[v.Name] = LinkOrReferenceToHcl(v.Value)
 		}
 	}
 	if components.SecuritySchemes != nil {
 		c.SecuritySchemes = make(map[string]*SecuritySchemeOrReference)
 		for _, v := range components.SecuritySchemes.AdditionalProperties {
-			c.SecuritySchemes[v.Name] = SecuritySchemaToHcl(v.Value)
+			c.SecuritySchemes[v.Name] = SecuritySchemaOrReferenceToHcl(v.Value)
 		}
 	}
 	if components.Examples != nil {
@@ -302,9 +302,9 @@ func ComponentsToHcl(components *openapiv3.Components) *Components {
 		}
 	}
 	if components.RequestBodies != nil {
-		c.RequestBodies = make(map[string]*RequestBodyOrReference)
+		c.RequestBodies = make(map[string]*MediaTypesOrReference)
 		for _, v := range components.RequestBodies.AdditionalProperties {
-			c.RequestBodies[v.Name] = RequestBodyOrReferenceToHcl(v.Value)
+			c.RequestBodies[v.Name] = MediaTypesOrReferenceToHcl(v.Value)
 		}
 	}
 	if components.Schemas != nil {
@@ -320,9 +320,9 @@ func ComponentsToHcl(components *openapiv3.Components) *Components {
 		}
 	}
 	if components.Responses != nil {
-		c.Responses = make(map[string]*RequestBodyOrReference)
+		c.Responses = make(map[string]*MediaTypesOrReference)
 		for _, v := range components.Responses.AdditionalProperties {
-			c.Responses[v.Name] = RequestBodyOrReferenceToHcl(responseOrReferenceToRequestOrReference(v.Value))
+			c.Responses[v.Name] = MediaTypesOrReferenceToHcl(responseOrReferenceToRequestOrReference(v.Value))
 		}
 	}
 	if components.Headers != nil {
@@ -339,9 +339,9 @@ func ComponentsToHcl(components *openapiv3.Components) *Components {
 	}
 
 	if components.RequestBodies != nil {
-		c.RequestBodies = make(map[string]*RequestBodyOrReference)
+		c.RequestBodies = make(map[string]*MediaTypesOrReference)
 		for _, v := range components.RequestBodies.AdditionalProperties {
-			c.RequestBodies[v.Name] = RequestBodyOrReferenceToHcl(v.Value)
+			c.RequestBodies[v.Name] = MediaTypesOrReferenceToHcl(v.Value)
 		}
 	}
 	return c
@@ -421,6 +421,7 @@ func SchemaOrReferenceToHcl(schema *openapiv3.SchemaOrReference) *SchemaOrRefere
 	if schema == nil {
 		return nil
 	}
+
 	if x := schema.GetReference(); x != nil {
 		return &SchemaOrReference{
 			Oneof: &SchemaOrReference_Reference{
@@ -430,6 +431,57 @@ func SchemaOrReferenceToHcl(schema *openapiv3.SchemaOrReference) *SchemaOrRefere
 	}
 
 	s := SchemaToHcl(schema.GetSchema())
+
+	if s.Enum != nil {
+		items := make([]*Any, 0)
+		for _, v := range s.Enum {
+			items = append(items, &Any{Value: v})
+		}
+		return &SchemaOrReference{
+			Oneof: &SchemaOrReference_Enum{
+				Enum: &AnyArray{
+					Anies: items,
+				},
+			},
+		}
+	} else if s.AllOf != nil {
+		var items []*SchemaOrReference
+		for _, v := range s.AllOf {
+			items = append(items, SchemaOrReferenceToHcl(v))
+		}
+		return &SchemaOrReference{
+			Oneof: &SchemaOrReference_OasAllof{
+				OasAllof: &OASArray{
+					Items: items,
+				},
+			},
+		}
+	} else if s.OneOf != nil {
+		var items []*SchemaOrReference
+		for _, v := range s.OneOf {
+			items = append(items, SchemaOrReferenceToHcl(v))
+		}
+		return &SchemaOrReference{
+			Oneof: &SchemaOrReference_OasOneof{
+				OasOneof: &OASArray{
+					Items: items,
+				},
+			},
+		}
+	} else if s.AnyOf != nil {
+		var items []*SchemaOrReference
+		for _, v := range s.AnyOf {
+			items = append(items, SchemaOrReferenceToHcl(v))
+		}
+		return &SchemaOrReference{
+			Oneof: &SchemaOrReference_OasAnyof{
+				OasAnyof: &OASArray{
+					Items: items,
+				},
+			},
+		}
+	}
+
 	return &SchemaOrReference{
 		Oneof: &SchemaOrReference_Array{
 			Schema: s,
@@ -556,23 +608,23 @@ func ParameterOrReferenceToHcl(parameter *openapiv3.ParameterOrReference) *Param
 	}
 }
 
-func RequestBodyOrReferenceToHcl(body *openapiv3.RequestBodyOrReference) *RequestBodyOrReference {
+func MediaTypesOrReferenceToHcl(body *openapiv3.RequestBodyOrReference) *MediaTypesOrReference {
 	if body == nil {
 		return nil
 	}
 
 	if x := body.GetReference(); x != nil {
-		return &RequestBodyOrReference{
-			Oneof: &RequestBodyOrReference_Reference{
+		return &MediaTypesOrReference{
+			Oneof: &MediaTypesOrReference_Reference{
 				Reference: ReferenceToHcl(x),
 			},
 		}
 	}
 
 	b := body.GetRequestBody()
-	return &RequestBodyOrReference{
-		Oneof: &RequestBodyOrReference_RequestBody{
-			RequestBody: requestBodyToHcl(b.Content),
+	return &MediaTypesOrReference{
+		Oneof: &MediaTypesOrReference_MediaTypes{
+			MediaTypes: requestBodyToHcl(b.Content),
 		},
 	}
 }
@@ -584,7 +636,7 @@ func OperationToHcl(operation *openapiv3.Operation) *Operation {
 		Description:            operation.Description,
 		ExternalDocs:           ExternalDocsToHcl(operation.ExternalDocs),
 		OperationId:            operation.OperationId,
-		RequestBody:            RequestBodyOrReferenceToHcl(operation.RequestBody),
+		RequestBody:            MediaTypesOrReferenceToHcl(operation.RequestBody),
 		Deprecated:             operation.Deprecated,
 		SpecificationExtension: extensionToHcl(operation.SpecificationExtension),
 	}
@@ -612,16 +664,16 @@ func OperationToHcl(operation *openapiv3.Operation) *Operation {
 			})
 		}
 		for _, v := range operation.Responses.ResponseOrReference {
-			x, y := RequestBodyOrReferenceToHcl2(v.Value)
+			x, y := MediaTypesOrReferenceToHcl2(v.Value)
 			if x != nil {
 				if o.Responses == nil {
-					o.Responses = make(map[string]*RequestBodyOrReference)
+					o.Responses = make(map[string]*MediaTypesOrReference)
 				}
 				o.Responses[v.Name] = x
 			}
 			if y != nil {
 				if o.Headers == nil {
-					o.Headers = make(map[string]*RequestBodyOrReference)
+					o.Headers = make(map[string]*MediaTypesOrReference)
 				}
 				o.Headers[v.Name] = y
 			}
@@ -675,7 +727,7 @@ func headerOrReferenceToHcl(header *openapiv3.HeaderOrReference) *SchemaOrRefere
 	return SchemaOrReferenceToHcl(header.GetHeader().GetSchema())
 }
 
-func headersOrReferenceToHcl(headers *openapiv3.HeadersOrReferences) *RequestBodyOrReference {
+func headersOrReferenceToHcl(headers *openapiv3.HeadersOrReferences) *MediaTypesOrReference {
 	if headers == nil {
 		return nil
 	}
@@ -685,16 +737,16 @@ func headersOrReferenceToHcl(headers *openapiv3.HeadersOrReferences) *RequestBod
 		hs[v.Name] = headerOrReferenceToHcl(v.Value)
 	}
 
-	return &RequestBodyOrReference{
-		Oneof: &RequestBodyOrReference_RequestBody{
-			RequestBody: &RequestBody{
+	return &MediaTypesOrReference{
+		Oneof: &MediaTypesOrReference_MediaTypes{
+			MediaTypes: &MediaTypes{
 				Content: hs,
 			},
 		},
 	}
 }
 
-func requestBodyToHcl(content *openapiv3.MediaTypes) *RequestBody {
+func requestBodyToHcl(content *openapiv3.MediaTypes) *MediaTypes {
 	if content == nil {
 		return nil
 	}
@@ -704,7 +756,7 @@ func requestBodyToHcl(content *openapiv3.MediaTypes) *RequestBody {
 		c[v.Name] = mediaTypeToHcl(v.Value)
 	}
 
-	return &RequestBody{
+	return &MediaTypes{
 		Content: c,
 	}
 }
@@ -717,14 +769,14 @@ func mediaTypeToHcl(mt *openapiv3.MediaType) *SchemaOrReference {
 	return SchemaOrReferenceToHcl(mt.GetSchema())
 }
 
-func RequestBodyOrReferenceToHcl2(response *openapiv3.ResponseOrReference) (*RequestBodyOrReference, *RequestBodyOrReference) {
+func MediaTypesOrReferenceToHcl2(response *openapiv3.ResponseOrReference) (*MediaTypesOrReference, *MediaTypesOrReference) {
 	if response == nil {
 		return nil, nil
 	}
 
 	if x := response.GetReference(); x != nil {
-		return &RequestBodyOrReference{
-			Oneof: &RequestBodyOrReference_Reference{
+		return &MediaTypesOrReference{
+			Oneof: &MediaTypesOrReference_Reference{
 				Reference: ReferenceToHcl(x),
 			},
 		}, nil
@@ -732,9 +784,9 @@ func RequestBodyOrReferenceToHcl2(response *openapiv3.ResponseOrReference) (*Req
 
 	r := response.GetResponse()
 	mt := requestBodyToHcl(r.Content)
-	return &RequestBodyOrReference{
-		Oneof: &RequestBodyOrReference_RequestBody{
-			RequestBody: mt,
+	return &MediaTypesOrReference{
+		Oneof: &MediaTypesOrReference_MediaTypes{
+			MediaTypes: mt,
 		},
 	}, headersOrReferenceToHcl(r.Headers)
 }
