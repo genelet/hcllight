@@ -50,14 +50,13 @@ message AnyOrExpression {
 }
 */
 // A map of possible out-of band callbacks related to the parent operation. Each value in the map is a Path Item Object that describes a set of requests that may be initiated by the API provider and the expected responses. The key value used to identify the callback object is an expression, evaluated at runtime, that identifies a URL to use for the callback operation.
-message Callback {
+message Callbacks {
   map<string,PathItem> path = 1;
-  map<string,Any> specification_extension = 2;
 }
 
-message CallbackOrReference {
+message CallbacksOrReference {
   oneof oneof {
-    Callback callback = 1;
+    Callbacks call_backs = 1;
     Reference reference = 2;
   }
 }
@@ -69,14 +68,14 @@ message CallbacksOrReferences {
 // Holds a set of reusable objects for different aspects of the OAS. All objects defined within the components object will have no effect on the API unless they are explicitly referenced from properties outside the components object.
 message Components {
   map<string,SchemaOrReference> schemas = 1;
-  map<string,ResponseOrReference> responses = 2;
+  map<string,MediaTypesOrReference> responses = 2;
+  map<string,MediaTypesOrReference> headers = 6;
   map<string,ParameterOrReference> parameters = 3;
-  map<string,ExampleOrReference> examples = 4;
   map<string,RequestBodyOrReference> request_bodies = 5;
-  map<string,SchemaOrReference> headers = 6;
+  map<string,ExampleOrReference> examples = 4;
   map<string,SecuritySchemeOrReference> security_schemes = 7;
   //map<string,LinkOrReference> links = 8;
-  map<string,CallbackOrReference> callbacks = 9;
+  map<string,CallbacksOrReference> calls = 9;
   map<string,Any>specification_extension = 10;
 }
 
@@ -107,7 +106,7 @@ message Document {
   string openapi = 1;
   Info info = 2;
   repeated Server servers = 3;
-  Paths paths = 4;
+  map<string,PathItem> path_items = 4;
   Components components = 5;
   repeated SecurityRequirement security = 6;
   repeated Tag tags = 7;
@@ -256,13 +255,10 @@ message Operation {
   ExternalDocs external_docs = 4;
   string operation_id = 5;
   repeated ParameterOrReference parameters = 6;
-  oneof request_body_or_reference {
-    RequestBody request_body = 7;
-    Reference request_reference = 8;
-  }
-  map<string,ResponseOrReference> responses = 9;
-  map<string,SchemaOrReference> headers = 10;
-  map<string,CallbackOrReference> callbacks = 11;
+  RequestBodyOrReference request_body = 7;
+  map<string,MediaTypesOrReference> responses = 9;
+  map<string,MediaTypesOrReference> headers = 10;
+  map<string,CallbacksOrReference> calls = 11;
   bool deprecated = 12;
   repeated SecurityRequirement security = 13;
   repeated Server servers = 14;
@@ -313,10 +309,12 @@ message PathItem {
 }
 
 // Holds the relative paths to the individual endpoints and their operations. The path is appended to the URL from the `Server Object` in order to construct the full URL.  The Paths MAY be empty, due to ACL constraints.
+/*
 message Paths {
   map<string,PathItem> path = 1;
   map<string,Any> specification_extension = 2;
 }
+*/
 
 // A simple object to allow referencing other components in the specification, internally and externally.  The Reference Object is defined by JSON Reference and follows the same structure, behavior and rules.   For this specification, reference resolution is accomplished as defined by the JSON Reference specification and not by the JSON Schema specification.
 message Reference {
@@ -341,13 +339,13 @@ message RequestBodyOrReference {
 }
 
 // Describes a single response from an API Operation, including design-time, static  `links` to operations based on the response.
-message Response {
+message MediaTypes {
   map<string,SchemaOrReference> content = 3;
 }
 
-message ResponseOrReference {
+message MediaTypesOrReference {
   oneof oneof {
-    Response response = 1;
+    MediaTypes media_types = 1;
     Reference reference = 2;
   }
 }
@@ -355,8 +353,8 @@ message ResponseOrReference {
 /*
 // A container for the expected responses of an operation. The container maps a HTTP response code to the expected response.  The documentation is not necessarily expected to cover all possible HTTP response codes because they may not be known in advance. However, documentation is expected to cover a successful operation response and any known errors.  The `default` MAY be used as a default response object for all HTTP codes  that are not covered individually by the specification.  The `Responses Object` MUST contain at least one response code, and it  SHOULD be the response for a successful operation call.
 message Responses {
-  ResponseOrReference default = 1;
-  map<string,ResponseOrReference> response_or_reference = 2;
+  MediaTypesOrReference default = 1;
+  map<string,MediaTypesOrReference> response_or_reference = 2;
   map<string,Any> specification_extension = 3;
 }
 */
