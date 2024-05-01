@@ -1,0 +1,8 @@
+1) message Callback
+delete: repeated NamedAny specification_extension 
+2) message Paths
+delete: repeated NamedAny specification_extension
+3) message Responses {
+delete ResponseOrReference default
+but add "default" as the key
+delete: repeated NamedAny specification_extension
