@@ -1,6 +1,8 @@
 package openhcl
 
 import (
+	"fmt"
+
 	"github.com/genelet/hcllight/internal/hcl"
 )
 
@@ -159,7 +161,7 @@ type Document struct {
 	Openapi                string
 	Info                   *hcl.Info
 	Servers                []*hcl.Server
-	Paths                  map[string]PathItemOrReference
+	Paths                  map[[2]string]*Operation
 	Components             *Components
 	Security               []*hcl.SecurityRequirement
 	Tags                   []*hcl.Tag
@@ -182,9 +184,17 @@ func NewDocument(doc *hcl.Document) *Document {
 		SpecificationExtension: doc.SpecificationExtension,
 	}
 	if doc.Paths != nil {
-		d.Paths = make(map[string]PathItemOrReference)
+		d.Paths = make(map[[2]string]*Operation)
 		for k, v := range doc.Paths {
-			d.Paths[k] = NewPathItemOrReference(v)
+			pr := NewPathItemOrReference(v)
+			for k2, v2 := range pr.(map[string]*Operation) {
+				if v2 != nil {
+					if k2 == "common" {
+						fmt.Printf("11111111111111 %+v\n", v2)
+					}
+					d.Paths[[2]string{k, k2}] = v2
+				}
+			}
 		}
 	}
 	return d
@@ -513,7 +523,7 @@ func NewPathItemOrReference(pathItem *hcl.PathItem) PathItemOrReference {
 	if pathItem.Trace != nil {
 		p["trace"] = NewOperation(pathItem.Trace)
 	}
-	if pathItem.Servers == nil || pathItem.Summary == "" || pathItem.Description == "" || pathItem.Parameters == nil || pathItem.SpecificationExtension == nil {
+	if (pathItem.Servers != nil && len(pathItem.Servers) > 0) || pathItem.Summary != "" || pathItem.Description != "" || (pathItem.Parameters != nil && len(pathItem.Parameters) > 0) || (pathItem.SpecificationExtension != nil && len(pathItem.SpecificationExtension) > 0) {
 		p["common"] = &Operation{
 			Summary:                pathItem.Summary,
 			Description:            pathItem.Description,

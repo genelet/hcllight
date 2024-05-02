@@ -7,7 +7,7 @@ import (
 	"github.com/genelet/determined/dethcl"
 	"github.com/genelet/hcllight/internal/hcl"
 	openapiv3 "github.com/google/gnostic-models/openapiv3"
-	"github.com/k0kubun/pp/v3"
+	//"github.com/k0kubun/pp/v3"
 )
 
 func TestOpenHcl(t *testing.T) {
@@ -19,7 +19,7 @@ func TestOpenHcl(t *testing.T) {
 
 	inter := hcl.DocumentToHcl(doc)
 	api := NewDocument(inter)
-	pp.Println(api)
+	//pp.Println(api)
 	bs, err := dethcl.Marshal(api)
 	if err != nil {
 		t.Fatal(err)
