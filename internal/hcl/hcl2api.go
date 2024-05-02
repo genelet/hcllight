@@ -216,6 +216,19 @@ func anyToApi(any *Any) *openapiv3.Any {
 	}
 }
 
+func expressionToApi(expression *Expression) *openapiv3.Expression {
+	if expression == nil {
+		return nil
+	}
+	var ap []*openapiv3.NamedAny
+	for k, v := range expression.AdditionalProperties {
+		ap = append(ap, &openapiv3.NamedAny{Name: k, Value: &openapiv3.Any{Value: v.Value}})
+	}
+	return &openapiv3.Expression{
+		AdditionalProperties: ap,
+	}
+}
+
 func anyOrReferenceToApi(anyOrReference *AnyOrExpression) *openapiv3.AnyOrExpression {
 	if anyOrReference == nil {
 		return nil
@@ -230,22 +243,9 @@ func anyOrReferenceToApi(anyOrReference *AnyOrExpression) *openapiv3.AnyOrExpres
 	e := anyOrReference.GetExpression()
 	return &openapiv3.AnyOrExpression{
 		Oneof: &openapiv3.AnyOrExpression_Expression{
-			Expression: &openapiv3.Expression{
-				AdditionalProperties: extensionToApi(e),
-			},
+			Expression: expressionToApi(e),
 		},
 	}
-	/*
-		expr := &openapiv3.Expression{}
-		for k, v := range e {
-			expr.AdditionalProperties = append(expr.AdditionalProperties, anyToApi(v))
-		}
-		return &openapiv3.AnyOrExpression{
-			Oneof: &openapiv3.AnyOrExpression_Expression{
-				Expression: expr,
-			},
-		}
-	*/
 }
 
 func LinkOrReferenceToApi(linkOrReference *LinkOrReference) *openapiv3.LinkOrReference {
@@ -302,6 +302,210 @@ func ExampleOrReferenceToApi(exampleOrReference *ExampleOrReference) *openapiv3.
 	}
 }
 
+func enumToApi(enum []*Any) []*openapiv3.Any {
+	if enum == nil {
+		return nil
+	}
+	var e []*openapiv3.Any
+	for _, v := range enum {
+		e = append(e, &openapiv3.Any{Value: v.Value})
+	}
+	return e
+}
+
+func XmlToApi(xml *Xml) *openapiv3.Xml {
+	if xml == nil {
+		return nil
+	}
+	return &openapiv3.Xml{
+		Name:                   xml.Name,
+		Namespace:              xml.Namespace,
+		Prefix:                 xml.Prefix,
+		Attribute:              xml.Attribute,
+		Wrapped:                xml.Wrapped,
+		SpecificationExtension: extensionToApi(xml.SpecificationExtension),
+	}
+}
+
+func oasCommonToApi(common *OASCommon) *openapiv3.Schema {
+	if common == nil {
+		return nil
+	}
+	return &openapiv3.Schema{
+		Title:                  common.Title,
+		Description:            common.Description,
+		Nullable:               common.Nullable,
+		Deprecated:             common.Deprecated,
+		Example:                anyToApi(common.Example),
+		Xml:                    XmlToApi(common.Xml),
+		ExternalDocs:           ExternalDocsToApi(common.ExternalDocs),
+		SpecificationExtension: extensionToApi(common.SpecificationExtension),
+	}
+}
+
+func DiscriminatorToApi(discriminator *Discriminator) *openapiv3.Discriminator {
+	if discriminator == nil {
+		return nil
+	}
+	d := &openapiv3.Discriminator{
+		PropertyName:           discriminator.PropertyName,
+		SpecificationExtension: extensionToApi(discriminator.SpecificationExtension),
+	}
+	if discriminator.Mapping != nil {
+		d.Mapping = &openapiv3.Strings{}
+		for k, v := range discriminator.Mapping {
+			d.Mapping.AdditionalProperties = append(d.Mapping.AdditionalProperties,
+				&openapiv3.NamedString{Name: k, Value: v},
+			)
+		}
+	}
+	return d
+}
+
+func additionalPropertiesItemToApi(additionalPropertiesItem *AdditionalPropertiesItem) *openapiv3.AdditionalPropertiesItem {
+	if additionalPropertiesItem == nil {
+		return nil
+	}
+	if x := additionalPropertiesItem.GetBoolean(); x {
+		return &openapiv3.AdditionalPropertiesItem{
+			Oneof: &openapiv3.AdditionalPropertiesItem_Boolean{
+				Boolean: x,
+			},
+		}
+	}
+	x := additionalPropertiesItem.GetSchemaOrReference()
+	return &openapiv3.AdditionalPropertiesItem{
+		Oneof: &openapiv3.AdditionalPropertiesItem_SchemaOrReference{
+			SchemaOrReference: SchemaOrReferenceToApi(x),
+		},
+	}
+}
+
+func arraySchemaToApi(typ string, allof *OASArray) *openapiv3.Schema {
+	if allof == nil {
+		return nil
+	}
+	var a []*openapiv3.SchemaOrReference
+	for _, v := range allof.Items {
+		a = append(a, SchemaOrReferenceToApi(v))
+	}
+	schema := oasCommonToApi(allof.Common)
+	if schema == nil {
+		schema = &openapiv3.Schema{}
+	}
+	schema.MaxItems = allof.MaxItems
+	schema.MinItems = allof.MinItems
+	schema.UniqueItems = allof.UniqueItems
+	schema.Discriminator = DiscriminatorToApi(allof.Discriminator)
+	if x := SchemaOrReferenceToApi(allof.Not); x != nil {
+		schema.Not = x.GetSchema()
+	}
+	switch typ {
+	case "allOf":
+		schema.AllOf = a
+	case "oneOf":
+		schema.OneOf = a
+	case "anyOf":
+		schema.AnyOf = a
+	case "array":
+		schema.Items = &openapiv3.ItemsItem{
+			SchemaOrReference: a,
+		}
+	}
+	return schema
+}
+
+func mapSchemaToApi(mapSchema *OASMap) *openapiv3.Schema {
+	if mapSchema == nil {
+		return nil
+	}
+	schema := oasCommonToApi(mapSchema.Common)
+	if schema == nil {
+		schema = &openapiv3.Schema{}
+	}
+	schema.AdditionalProperties = additionalPropertiesItemToApi(mapSchema.AdditionalProperties)
+	return schema
+}
+
+func objectSchemaToApi(object *OASObject) *openapiv3.Schema {
+	if object == nil {
+		return nil
+	}
+	schema := oasCommonToApi(object.Common)
+	if schema == nil {
+		schema = &openapiv3.Schema{}
+	}
+	if object.Properties != nil {
+		schema.Properties = &openapiv3.Properties{}
+		for k, v := range object.Properties {
+			schema.Properties.AdditionalProperties = append(schema.Properties.AdditionalProperties,
+				&openapiv3.NamedSchemaOrReference{Name: k, Value: SchemaOrReferenceToApi(v)},
+			)
+		}
+	}
+	return schema
+}
+
+func stringSchemaToApi(stringSchema *OASString) *openapiv3.Schema {
+	if stringSchema == nil {
+		return nil
+	}
+	schema := oasCommonToApi(stringSchema.Common)
+	if schema == nil {
+		schema = &openapiv3.Schema{}
+	}
+	schema.Format = stringSchema.Format
+	schema.Pattern = stringSchema.Pattern
+	schema.MaxLength = stringSchema.MaxLength
+	schema.MinLength = stringSchema.MinLength
+	schema.Enum = enumToApi(stringSchema.Enum)
+	if stringSchema.Default != "" {
+		schema.Default = &openapiv3.DefaultType{
+			Oneof: &openapiv3.DefaultType_String_{
+				String_: stringSchema.Default,
+			},
+		}
+	}
+	return schema
+}
+
+func numberSchemaToApi(numberSchema *OASNumber) *openapiv3.Schema {
+	if numberSchema == nil {
+		return nil
+	}
+	schema := oasCommonToApi(numberSchema.Common)
+	if schema == nil {
+		schema = &openapiv3.Schema{}
+	}
+	schema.Format = numberSchema.Format
+	schema.Maximum = numberSchema.Maximum
+	schema.ExclusiveMaximum = numberSchema.ExclusiveMaximum
+	schema.Minimum = numberSchema.Minimum
+	schema.ExclusiveMinimum = numberSchema.ExclusiveMinimum
+	schema.MultipleOf = numberSchema.MultipleOf
+	schema.Enum = enumToApi(numberSchema.Enum)
+
+	return schema
+}
+
+func integerSchemaToApi(integerSchema *OASInteger) *openapiv3.Schema {
+	if integerSchema == nil {
+		return nil
+	}
+	schema := oasCommonToApi(integerSchema.Common)
+	if schema == nil {
+		schema = &openapiv3.Schema{}
+	}
+	schema.Format = integerSchema.Format
+	schema.Maximum = float64(integerSchema.Maximum)
+	schema.ExclusiveMaximum = integerSchema.ExclusiveMaximum
+	schema.Minimum = float64(integerSchema.Minimum)
+	schema.ExclusiveMinimum = integerSchema.ExclusiveMinimum
+	schema.MultipleOf = float64(integerSchema.MultipleOf)
+	schema.Enum = enumToApi(integerSchema.Enum)
+	return schema
+}
+
 func SchemaOrReferenceToApi(schemaOrReference *SchemaOrReference) *openapiv3.SchemaOrReference {
 	if schemaOrReference == nil {
 		return nil
@@ -314,12 +518,62 @@ func SchemaOrReferenceToApi(schemaOrReference *SchemaOrReference) *openapiv3.Sch
 		}
 	}
 
-	s := schemaOrReference.GetSchema()
-	return &openapiv3.SchemaOrReference{
-		Oneof: &openapiv3.SchemaOrReference_Schema{
-			Schema: SchemaToApi(s),
-		},
+	if x := schemaOrReference.GetOasAllof(); x != nil {
+		return &openapiv3.SchemaOrReference{
+			Oneof: &openapiv3.SchemaOrReference_Schema{
+				Schema: arraySchemaToApi("allOf", x),
+			},
+		}
+	} else if x := schemaOrReference.GetOasAnyof(); x != nil {
+		return &openapiv3.SchemaOrReference{
+			Oneof: &openapiv3.SchemaOrReference_Schema{
+				Schema: arraySchemaToApi("anyOf", x),
+			},
+		}
+	} else if x := schemaOrReference.GetOasOneof(); x != nil {
+		return &openapiv3.SchemaOrReference{
+			Oneof: &openapiv3.SchemaOrReference_Schema{
+				Schema: arraySchemaToApi("oneOf", x),
+			},
+		}
+	} else if x := schemaOrReference.GetArray(); x != nil {
+		return &openapiv3.SchemaOrReference{
+			Oneof: &openapiv3.SchemaOrReference_Schema{
+				Schema: arraySchemaToApi("array", x),
+			},
+		}
+	} else if x := schemaOrReference.GetMap(); x != nil {
+		return &openapiv3.SchemaOrReference{
+			Oneof: &openapiv3.SchemaOrReference_Schema{
+				Schema: mapSchemaToApi(x),
+			},
+		}
+	} else if x := schemaOrReference.GetObject(); x != nil {
+		return &openapiv3.SchemaOrReference{
+			Oneof: &openapiv3.SchemaOrReference_Schema{
+				Schema: objectSchemaToApi(x),
+			},
+		}
+	} else if x := schemaOrReference.GetString_(); x != nil {
+		return &openapiv3.SchemaOrReference{
+			Oneof: &openapiv3.SchemaOrReference_Schema{
+				Schema: stringSchemaToApi(x),
+			},
+		}
+	} else if x := schemaOrReference.GetNumber(); x != nil {
+		return &openapiv3.SchemaOrReference{
+			Oneof: &openapiv3.SchemaOrReference_Schema{
+				Schema: numberSchemaToApi(x),
+			},
+		}
+	} else if x := schemaOrReference.GetInteger(); x != nil {
+		return &openapiv3.SchemaOrReference{
+			Oneof: &openapiv3.SchemaOrReference_Schema{
+				Schema: integerSchemaToApi(x),
+			},
+		}
 	}
+	return nil
 }
 
 func parameterToApi(parameter *Parameter) *openapiv3.Parameter {

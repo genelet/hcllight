@@ -302,60 +302,82 @@ message ResponseOrReference {
   }
 }
 
+message OASCommon {
+  bool required = 1;
+  string title = 2;
+  string description = 3;
+  bool nullable = 4;
+  bool deprecated = 5;
+  Any example = 6;    
+  Xml xml = 7;
+  ExternalDocs external_docs = 8;
+  map<string,Any> specification_extension = 9;
+}
+
 message OASString {
-  string format = 1;
-  bool required = 2;
+  OASCommon common = 1;
+  string format = 2;
   int64 minLength = 3;
   int64 maxLength = 4;
   string pattern = 5;
   string default = 6;
+  repeated Any enum = 7;
 }
 
 message OASNumber {
-  string format = 1;
-  bool required = 2;
+  OASCommon common = 1;
+  string format = 2;
   double maximum = 3;
   double minimum = 4;
   double multiple_of = 5;
   bool exclusive_maximum = 6;
   bool exclusive_minimum = 7;
   double default = 8;
+  repeated Any enum = 9;
 }
 
 message OASInteger {
-  string format = 1;
-  bool required = 2;
+  OASCommon common = 1;
+  string format = 2;
   int64 maximum = 3;
   int64 minimum = 4;
   int64 multiple_of = 5;
   bool exclusive_maximum = 6;
   bool exclusive_minimum = 7;
   int64 default = 8;
+  repeated Any enum = 9;
 }
 
 message OASBoolean {
-  bool required = 1;
+  OASCommon common = 1;
   bool default = 2;
 }
-
-message OASObject {
-  map<string,SchemaOrReference> properties = 1;
-  int64 max_properties = 2;
-  int64 min_properties = 3;
-  repeated string required = 4;
-  Any example = 5;    
-}
-
-message AnyArray {
-    repeated Any anies = 1;
-}
-
+  
 message OASArray {
-  repeated SchemaOrReference items = 1;
-  int64 max_items = 2;
-  int64 min_items = 3;
-  bool unique_items = 4;
-  Any example = 5;
+  OASCommon common = 1;
+  repeated SchemaOrReference items = 2;
+  int64 max_items = 3;
+  int64 min_items = 4;
+  bool unique_items = 5;
+  Discriminator discriminator = 6;
+  SchemaOrReference not = 7;
+}
+
+message OASMap {
+  OASCommon common = 1;
+  AdditionalPropertiesItem additional_properties = 2;
+}
+  
+message OASObject {
+  OASCommon common = 1;
+  map<string,SchemaOrReference> properties = 2;
+  int64 max_properties = 3;
+  int64 min_properties = 4;
+  repeated string required = 5;
+  bool read_only = 6;
+  bool write_only = 7;
+  Discriminator discriminator = 8;
+  SchemaOrReference not = 9;
 }
 
 message Schema {
@@ -403,14 +425,13 @@ message SchemaOrReference {
     OASNumber number = 2;
     OASInteger integer = 3;
     OASBoolean boolean = 4;
-    OASObject object = 5;
-    OASArray array = 6;
-    AnyArray enum = 7;
+    OASMap map = 5;
+    OASObject object = 6;
+    OASArray array = 7;
     OASArray oas_oneof = 8;
     OASArray oas_allof = 9;
     OASArray oas_anyof = 10;
-    SchemaOrReference oas_not = 11;
-    Reference reference = 15;
+    Reference reference = 11;
   }
 }
 

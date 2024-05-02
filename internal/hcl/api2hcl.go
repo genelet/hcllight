@@ -338,6 +338,76 @@ func ComponentsToHcl(components *openapiv3.Components) *Components {
 	return c
 }
 
+func xmlToHcl(xml *openapiv3.Xml) *Xml {
+	if xml == nil {
+		return nil
+	}
+	return &Xml{
+		Name:                   xml.Name,
+		Namespace:              xml.Namespace,
+		Prefix:                 xml.Prefix,
+		Attribute:              xml.Attribute,
+		Wrapped:                xml.Wrapped,
+		SpecificationExtension: extensionToHcl(xml.SpecificationExtension),
+	}
+}
+
+func DiscriminatorToHcl(discriminator *openapiv3.Discriminator) *Discriminator {
+	if discriminator == nil {
+		return nil
+	}
+	d := &Discriminator{
+		PropertyName:           discriminator.PropertyName,
+		SpecificationExtension: extensionToHcl(discriminator.SpecificationExtension),
+	}
+	if discriminator.Mapping != nil {
+		d.Mapping = make(map[string]string)
+		for _, v := range discriminator.Mapping.AdditionalProperties {
+			d.Mapping[v.Name] = v.Value
+		}
+	}
+	return d
+}
+
+func additionalPropertiesItemToHcl(item *openapiv3.AdditionalPropertiesItem) *AdditionalPropertiesItem {
+	if item == nil {
+		return nil
+	}
+	if x := item.GetBoolean(); x {
+		return &AdditionalPropertiesItem{
+			Oneof: &AdditionalPropertiesItem_Boolean{
+				Boolean: x,
+			},
+		}
+	} else if x := item.GetSchemaOrReference(); x != nil {
+		return &AdditionalPropertiesItem{
+			Oneof: &AdditionalPropertiesItem_SchemaOrReference{
+				SchemaOrReference: SchemaOrReferenceToHcl(x),
+			},
+		}
+	}
+	return nil
+}
+
+func oasCommonToHcl(common *openapiv3.Schema) *OASCommon {
+	if common == nil {
+		return nil
+	}
+	if common.Title == "" && common.Description == "" && common.Nullable == false && common.Deprecated == false && common.Example == nil && common.Xml == nil && common.ExternalDocs == nil && common.SpecificationExtension == nil {
+		return &OASCommon{
+			Title:                  common.Title,
+			Description:            common.Description,
+			Nullable:               common.Nullable,
+			Deprecated:             common.Deprecated,
+			Example:                anyToHcl(common.Example),
+			Xml:                    xmlToHcl(common.Xml),
+			ExternalDocs:           ExternalDocsToHcl(common.ExternalDocs),
+			SpecificationExtension: extensionToHcl(common.SpecificationExtension),
+		}
+	}
+	return nil
+}
+
 func SchemaOrReferenceToHcl(schema *openapiv3.SchemaOrReference) *SchemaOrReference {
 	if schema == nil {
 		return nil
@@ -352,20 +422,24 @@ func SchemaOrReferenceToHcl(schema *openapiv3.SchemaOrReference) *SchemaOrRefere
 	}
 
 	s := schema.GetSchema()
+	common := oasCommonToHcl(s)
 
-	if s.Enum != nil {
-		items := make([]*Any, 0)
-		for _, v := range s.Enum {
-			items = append(items, &Any{Value: v.Value})
-		}
-		return &SchemaOrReference{
-			Oneof: &SchemaOrReference_Enum{
-				Enum: &AnyArray{
-					Anies: items,
+	/*
+		if s.Enum != nil {
+			items := make([]*Any, 0)
+			for _, v := range s.Enum {
+				items = append(items, &Any{Value: v.Value})
+			}
+			return &SchemaOrReference{
+				Oneof: &SchemaOrReference_Enum{
+					Enum: &AnyArray{
+						Anies: items,
+					},
 				},
-			},
-		}
-	} else if s.AllOf != nil {
+			}
+		} else
+	*/
+	if s.AllOf != nil {
 		var items []*SchemaOrReference
 		for _, v := range s.AllOf {
 			items = append(items, SchemaOrReferenceToHcl(v))
@@ -412,12 +486,28 @@ func SchemaOrReferenceToHcl(schema *openapiv3.SchemaOrReference) *SchemaOrRefere
 		return &SchemaOrReference{
 			Oneof: &SchemaOrReference_Array{
 				Array: &OASArray{
-					Items: items,
+					Common:        common,
+					MaxItems:      s.MaxItems,
+					MinItems:      s.MinItems,
+					UniqueItems:   s.UniqueItems,
+					Not:           schemaToHcl(s.Not),
+					Discriminator: DiscriminatorToHcl(s.Discriminator),
+					Items:         items,
 				},
 			},
 		}
 	case "object":
-		// required := s.Required
+		if s.AdditionalProperties != nil {
+			return &SchemaOrReference{
+				Oneof: &SchemaOrReference_Map{
+					Map: &OASMap{
+						Common:               common,
+						AdditionalProperties: additionalPropertiesItemToHcl(s.AdditionalProperties),
+					},
+				},
+			}
+		}
+
 		var properties map[string]*SchemaOrReference
 		if s.Properties != nil {
 			properties = make(map[string]*SchemaOrReference)
@@ -425,20 +515,18 @@ func SchemaOrReferenceToHcl(schema *openapiv3.SchemaOrReference) *SchemaOrRefere
 				properties[v.Name] = SchemaOrReferenceToHcl(v.Value)
 			}
 		}
-		if s.AdditionalProperties != nil {
-			//if x := s.AdditionalProperties.GetBool(); x {
-			//}
-			if x := s.AdditionalProperties.GetSchemaOrReference(); x != nil {
-				if properties == nil {
-					properties = make(map[string]*SchemaOrReference)
-				}
-				properties["string"] = SchemaOrReferenceToHcl(x)
-			}
-		}
 		return &SchemaOrReference{
 			Oneof: &SchemaOrReference_Object{
 				Object: &OASObject{
-					Properties: properties,
+					Properties:    properties,
+					Common:        common,
+					MaxProperties: s.MaxProperties,
+					MinProperties: s.MinProperties,
+					Required:      s.Required,
+					ReadOnly:      s.ReadOnly,
+					WriteOnly:     s.WriteOnly,
+					Not:           schemaToHcl(s.Not),
+					Discriminator: DiscriminatorToHcl(s.Discriminator),
 				},
 			},
 		}
@@ -460,13 +548,18 @@ func SchemaOrReferenceToHcl(schema *openapiv3.SchemaOrReference) *SchemaOrRefere
 		}
 	case "number":
 		num := &OASNumber{
-			Format: s.Format,
-			//Required:         s.Required,
+			Common:           common,
+			Format:           s.Format,
 			MultipleOf:       s.MultipleOf,
 			Minimum:          s.Minimum,
 			Maximum:          s.Maximum,
 			ExclusiveMinimum: s.ExclusiveMinimum,
 			ExclusiveMaximum: s.ExclusiveMaximum,
+		}
+		if s.Enum != nil {
+			for _, v := range s.Enum {
+				num.Enum = append(num.Enum, &Any{Value: v.Value})
+			}
 		}
 		if s.Default != nil {
 			if x := s.Default.GetNumber(); x != 0 {
@@ -478,13 +571,19 @@ func SchemaOrReferenceToHcl(schema *openapiv3.SchemaOrReference) *SchemaOrRefere
 		}
 	case "integer":
 		integer := &OASInteger{
-			Format: s.Format,
-			//Required:         s.Required,
+			Format:           s.Format,
+			Common:           common,
 			MultipleOf:       int64(s.MultipleOf),
 			Minimum:          int64(s.Minimum),
 			Maximum:          int64(s.Maximum),
 			ExclusiveMinimum: s.ExclusiveMinimum,
 			ExclusiveMaximum: s.ExclusiveMaximum,
+			Default:          int64(s.Default.GetNumber()),
+		}
+		if s.Enum != nil {
+			for _, v := range s.Enum {
+				integer.Enum = append(integer.Enum, &Any{Value: v.Value})
+			}
 		}
 		if s.Default != nil {
 			if x := s.Default.GetNumber(); x != 0 {
@@ -497,6 +596,19 @@ func SchemaOrReferenceToHcl(schema *openapiv3.SchemaOrReference) *SchemaOrRefere
 	default:
 	}
 	return nil
+}
+
+// convert v3.Schema to v3.SchemaOrReference first
+func schemaToHcl(schema *openapiv3.Schema) *SchemaOrReference {
+	if schema == nil {
+		return nil
+	}
+	sr := &openapiv3.SchemaOrReference{
+		Oneof: &openapiv3.SchemaOrReference_Schema{
+			Schema: schema,
+		},
+	}
+	return SchemaOrReferenceToHcl(sr)
 }
 
 func ExampleOrReferenceToHcl(example *openapiv3.ExampleOrReference) *ExampleOrReference {

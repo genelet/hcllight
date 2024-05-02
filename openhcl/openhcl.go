@@ -2,175 +2,413 @@ package openhcl
 
 import (
 	"github.com/genelet/hcllight/internal/hcl"
-	"google.golang.org/protobuf/runtime/protoimpl"
 )
 
-func callbacksOrReferenceToOpen(calls map[string]*hcl.CallbacksOrReference) map[[2]string]*PathItem {
-	if calls == nil {
+type AdditionalPropertiesItem any
+
+func NewAdditionalPropertiesItem(a *hcl.AdditionalPropertiesItem) AdditionalPropertiesItem {
+	if a == nil {
 		return nil
 	}
-	openCalls := make(map[[2]string]*PathItem)
-	for k, v := range calls {
-		if x := v.GetReference(); x != nil {
-			openCalls[[2]string{k, x.XRef}] = nil
-		} else {
-			x := v.GetCallBacks()
-			for key, val := range x.Path {
-				openCalls[[2]string{k, key}] = hclToOpenPathItem(val)
-			}
-		}
+	if x := a.GetBoolean(); x {
+		return x
 	}
-	return openCalls
+	if x := a.GetSchemaOrReference(); x != nil {
+		return NewSchemaOrReference(x)
+	}
+	return nil
 }
 
-func linksOrReferenceToOpen(links map[string]*hcl.LinkOrReference) map[[2]string]*hcl.Link {
-	if links == nil {
+type AnyOrExpression any
+
+func NewAnyOrExpression(a *hcl.AnyOrExpression) AnyOrExpression {
+	if a == nil {
 		return nil
 	}
-	openLinks := make(map[[2]string]*hcl.Link)
-	for k, v := range links {
-		if x := v.GetReference(); x != nil {
-			openLinks[[2]string{k, x.XRef}] = nil
-		} else {
-			openLinks[[2]string{k, ""}] = v.GetLink()
-		}
+	if x := a.GetExpression(); x != nil {
+		return x
 	}
-	return openLinks
+	return a.GetAny()
 }
 
-func securitySchemeOrReferenceToOpen(securitySchemes map[string]*hcl.SecuritySchemeOrReference) map[[2]string]*hcl.SecurityScheme {
-	if securitySchemes == nil {
-		return nil
-	}
-	openSecuritySchemes := make(map[[2]string]*hcl.SecurityScheme)
-	for k, v := range securitySchemes {
-		if x := v.GetReference(); x != nil {
-			openSecuritySchemes[[2]string{k, x.XRef}] = nil
-		} else {
-			openSecuritySchemes[[2]string{k, ""}] = v.GetSecurityScheme()
-		}
-	}
-	return openSecuritySchemes
+type Callback struct {
+	Path map[string]PathItemOrReference
 }
 
-func exampleOrReferenceToOpen(examples map[string]*hcl.ExampleOrReference) map[[2]string]*hcl.Example {
-	if examples == nil {
+func NewCallback(a *hcl.Callback) *Callback {
+	if a == nil {
 		return nil
 	}
-	openExamples := make(map[[2]string]*hcl.Example)
-	for k, v := range examples {
-		if x := v.GetReference(); x != nil {
-			openExamples[[2]string{k, x.XRef}] = nil
-		} else {
-			openExamples[[2]string{k, ""}] = v.GetExample()
+	p := make(map[string]PathItemOrReference)
+	if a.Path != nil {
+		for k, v := range a.Path {
+			p[k] = NewPathItemOrReference(v)
 		}
 	}
-	return openExamples
+	return &Callback{
+		Path: p,
+	}
 }
 
-func parameterOrReferenceToOpen(parameters map[string]*hcl.ParameterOrReference) map[[2]string]*hcl.Parameter {
-	if parameters == nil {
-		return nil
-	}
-	openParameters := make(map[[2]string]*hcl.Parameter)
-	for k, v := range parameters {
-		if x := v.GetReference(); x != nil {
-			openParameters[[2]string{k, x.XRef}] = nil
-		} else {
-			x := v.GetParameter()
-			openParameters[[2]string{k, x.Name}] = x
-		}
-	}
-	return openParameters
-}
+type CallbackOrReference any
 
-func pathItemsToOpen(pathItems map[string]*hcl.PathItem) map[[2]string]*hcl.Operation {
-	if pathItems == nil {
+func NewCallbackOrReference(a *hcl.CallbackOrReference) CallbackOrReference {
+	if a == nil {
 		return nil
 	}
-	openPathItems := make(map[[2]string]*hcl.Operation)
-	for k, v := range pathItems {
-		if v.GetXRef() != "" {
-			openPathItems[[2]string{k, v.GetXRef()}] = nil
-			continue
-		}
-		if v.GetTrace() != nil {
-			openPathItems[[2]string{k, "trace"}] = v.GetTrace()
-		}
-		if v.GetPatch() != nil {
-			openPathItems[[2]string{k, "patch"}] = v.GetPatch()
-		}
-		if v.GetHead() != nil {
-			openPathItems[[2]string{k, "head"}] = v.GetHead()
-		}
-		if v.GetOptions() != nil {
-			openPathItems[[2]string{k, "options"}] = v.GetOptions()
-		}
-		if v.GetDelete() != nil {
-			openPathItems[[2]string{k, "delete"}] = v.GetDelete()
-		}
-		if v.GetPost() != nil {
-			openPathItems[[2]string{k, "post"}] = v.GetPost()
-		}
-		if v.GetPut() != nil {
-			openPathItems[[2]string{k, "put"}] = v.GetPut()
-		}
-		if v.GetGet() != nil {
-			openPathItems[[2]string{k, "get"}] = v.GetGet()
-		}
-		if v.GetSummary() != "" || v.GetDescription() != "" || v.GetServers() != nil || v.GetParameters() != nil {
-			openPathItems[[2]string{k, "common"}] = &hcl.Operation{
-				Summary:     v.GetSummary(),
-				Description: v.GetDescription(),
-				Servers:     v.GetServers(),
-				Parameters:  v.GetParameters(),
-			}
-		}
+	if x := a.GetReference(); x != nil {
+		return x
 	}
-	return openPathItems
+	return NewCallback(a.GetCallback())
 }
 
 type Components struct {
-	//PathItems?
-	Schemas                map[string]*hcl.SchemaOrReference
-	Responses              map[[2]string]*hcl.SchemaOrReference
-	Headers                map[string]*hcl.SchemaOrReference
-	Parameters             map[[2]string]*hcl.Parameter
-	RequestBodies          map[[2]string]*hcl.SchemaOrReference
-	Examples               map[[2]string]*hcl.Example
-	SecuritySchemes        map[[2]string]*hcl.SecurityScheme
-	Links                  map[[2]string]*hcl.Link
-	Calls                  map[[2]string]*PathItem
+	Schemas                map[string]SchemaOrReference
+	Responses              map[string]ResponseOrReference
+	Parameters             map[string]ParameterOrReference
+	Examples               map[string]ExampleOrReference
+	RequestBodies          map[string]RequestBodyOrReference
+	Headers                map[string]HeaderOrReference
+	SecuritySchemes        map[string]SecuritySchemeOrReference
+	Links                  map[string]LinkOrReference
+	Callbacks              map[string]CallbackOrReference
 	SpecificationExtension map[string]*hcl.Any
+}
+
+func NewComponents(c *hcl.Components) *Components {
+	if c == nil {
+		return nil
+	}
+	comp := &Components{
+		SpecificationExtension: c.SpecificationExtension,
+	}
+	if c.Schemas != nil {
+		comp.Schemas = make(map[string]SchemaOrReference)
+		for k, v := range c.Schemas {
+			comp.Schemas[k] = NewSchemaOrReference(v)
+		}
+	}
+	if c.Responses != nil {
+		comp.Responses = make(map[string]ResponseOrReference)
+		for k, v := range c.Responses {
+			comp.Responses[k] = NewReponseOrReference(v)
+		}
+	}
+	if c.Parameters != nil {
+		comp.Parameters = make(map[string]ParameterOrReference)
+		for k, v := range c.Parameters {
+			comp.Parameters[k] = NewParameterOrReference(v)
+		}
+	}
+	if c.Examples != nil {
+		comp.Examples = make(map[string]ExampleOrReference)
+		for k, v := range c.Examples {
+			comp.Examples[k] = NewExampleOrReference(v)
+		}
+	}
+	if c.RequestBodies != nil {
+		comp.RequestBodies = make(map[string]RequestBodyOrReference)
+		for k, v := range c.RequestBodies {
+			comp.RequestBodies[k] = NewRequestBodyOrReference(v)
+		}
+	}
+	if c.Headers != nil {
+		comp.Headers = make(map[string]HeaderOrReference)
+		for k, v := range c.Headers {
+			comp.Headers[k] = NewHeaderOrReference(v)
+		}
+	}
+	if c.SecuritySchemes != nil {
+		comp.SecuritySchemes = make(map[string]SecuritySchemeOrReference)
+		for k, v := range c.SecuritySchemes {
+			comp.SecuritySchemes[k] = NewSecuritySchemeOrReference(v)
+		}
+	}
+	if c.Links != nil {
+		comp.Links = make(map[string]LinkOrReference)
+		for k, v := range c.Links {
+			comp.Links[k] = NewLinkOrReference(v)
+		}
+	}
+	if c.Callbacks != nil {
+		comp.Callbacks = make(map[string]CallbackOrReference)
+		for k, v := range c.Callbacks {
+			comp.Callbacks[k] = NewCallbackOrReference(v)
+		}
+	}
+	return comp
+}
+
+type DefaultType any
+
+func NewDefaultType(a *hcl.DefaultType) DefaultType {
+	if a == nil {
+		return nil
+	}
+	if x := a.GetBoolean(); x {
+		return x
+	} else if x := a.GetNumber(); x != 0 {
+		return x
+	} else if x := a.GetString_(); x != "" {
+		return x
+	}
+	return nil
 }
 
 type Document struct {
 	Openapi                string
 	Info                   *hcl.Info
 	Servers                []*hcl.Server
-	PathItems              map[[2]string]*hcl.Operation
+	Paths                  map[string]PathItemOrReference
 	Components             *Components
 	Security               []*hcl.SecurityRequirement
 	Tags                   []*hcl.Tag
 	ExternalDocs           *hcl.ExternalDocs
-	SpecificationExtension []map[string]*hcl.Any
+	SpecificationExtension map[string]*hcl.Any
+}
+
+func NewDocument(doc *hcl.Document) *Document {
+	if doc == nil {
+		return nil
+	}
+	d := &Document{
+		Openapi:                doc.Openapi,
+		Info:                   doc.Info,
+		Servers:                doc.Servers,
+		Components:             NewComponents(doc.Components),
+		Security:               doc.Security,
+		Tags:                   doc.Tags,
+		ExternalDocs:           doc.ExternalDocs,
+		SpecificationExtension: doc.SpecificationExtension,
+	}
+	if doc.Paths != nil {
+		d.Paths = make(map[string]PathItemOrReference)
+		for k, v := range doc.Paths {
+			d.Paths[k] = NewPathItemOrReference(v)
+		}
+	}
+	return d
+}
+
+type Encoding struct {
+	ContentType            string
+	Headers                map[string]HeaderOrReference
+	Style                  string
+	Explode                bool
+	AllowReserved          bool
+	SpecificationExtension map[string]*hcl.Any
+}
+
+func NewEncoding(a *hcl.Encoding) *Encoding {
+	if a == nil {
+		return nil
+	}
+	e := &Encoding{
+		ContentType:            a.ContentType,
+		Style:                  a.Style,
+		Explode:                a.Explode,
+		AllowReserved:          a.AllowReserved,
+		SpecificationExtension: a.SpecificationExtension,
+	}
+	if a.Headers != nil {
+		e.Headers = make(map[string]HeaderOrReference)
+		for k, v := range a.Headers {
+			e.Headers[k] = v
+		}
+	}
+	return e
+}
+
+type ExampleOrReference any
+
+func NewExampleOrReference(a *hcl.ExampleOrReference) ExampleOrReference {
+	if a == nil {
+		return nil
+	}
+	if x := a.GetReference(); x != nil {
+		return x
+	}
+	return a.GetExample()
+}
+
+type Header struct {
+	Description            string
+	Required               bool
+	Deprecated             bool
+	AllowEmptyValue        bool
+	Style                  string
+	Explode                bool
+	AllowReserved          bool
+	Schema                 SchemaOrReference
+	Example                *hcl.Any
+	Examples               map[string]ExampleOrReference
+	Content                map[string]*MediaType
+	SpecificationExtension map[string]*hcl.Any
+}
+
+func NewHeader(a *hcl.Header) *Header {
+	if a == nil {
+		return nil
+	}
+	h := &Header{
+		Description:            a.Description,
+		Required:               a.Required,
+		Deprecated:             a.Deprecated,
+		AllowEmptyValue:        a.AllowEmptyValue,
+		Style:                  a.Style,
+		Explode:                a.Explode,
+		AllowReserved:          a.AllowReserved,
+		Schema:                 NewSchemaOrReference(a.Schema),
+		Example:                a.Example,
+		SpecificationExtension: a.SpecificationExtension,
+	}
+	if a.Examples != nil {
+		h.Examples = make(map[string]ExampleOrReference)
+		for k, v := range a.Examples {
+			h.Examples[k] = NewExampleOrReference(v)
+		}
+	}
+	if a.Content != nil {
+		h.Content = make(map[string]*MediaType)
+		for k, v := range a.Content {
+			h.Content[k] = NewMediaType(v)
+		}
+	}
+	return h
+}
+
+type HeaderOrReference any
+
+func NewHeaderOrReference(a *hcl.HeaderOrReference) HeaderOrReference {
+	if a == nil {
+		return nil
+	}
+	if x := a.GetReference(); x != nil {
+		return x
+	}
+	return NewHeader(a.GetHeader())
+}
+
+type Link struct {
+	OperationRef           string
+	OperationId            string
+	Parameters             AnyOrExpression
+	RequestBody            AnyOrExpression
+	Description            string
+	Server                 *hcl.Server
+	SpecificationExtension map[string]*hcl.Any
+}
+
+func NewLink(a *hcl.Link) *Link {
+	if a == nil {
+		return nil
+	}
+	return &Link{
+		OperationRef:           a.OperationRef,
+		OperationId:            a.OperationId,
+		Parameters:             NewAnyOrExpression(a.Parameters),
+		RequestBody:            NewAnyOrExpression(a.RequestBody),
+		Description:            a.Description,
+		Server:                 a.Server,
+		SpecificationExtension: a.SpecificationExtension,
+	}
+}
+
+type LinkOrReference any
+
+func NewLinkOrReference(a *hcl.LinkOrReference) LinkOrReference {
+	if a == nil {
+		return nil
+	}
+	if x := a.GetReference(); x != nil {
+		return x
+	}
+	return NewLink(a.GetLink())
+}
+
+type MediaType struct {
+	Schema                 SchemaOrReference
+	Example                *hcl.Any
+	Examples               map[string]ExampleOrReference
+	Encoding               map[string]*Encoding
+	SpecificationExtension map[string]*hcl.Any
+}
+
+func NewMediaType(a *hcl.MediaType) *MediaType {
+	if a == nil {
+		return nil
+	}
+	mt := &MediaType{
+		Schema:                 NewSchemaOrReference(a.Schema),
+		Example:                a.Example,
+		SpecificationExtension: a.SpecificationExtension,
+	}
+	if a.Examples != nil {
+		mt.Examples = make(map[string]ExampleOrReference)
+		for k, v := range a.Examples {
+			mt.Examples[k] = v
+		}
+	}
+	if a.Encoding != nil {
+		mt.Encoding = make(map[string]*Encoding)
+		for k, v := range a.Encoding {
+			mt.Encoding[k] = NewEncoding(v)
+		}
+	}
+	return mt
 }
 
 type Operation struct {
 	Tags                   []string
 	Summary                string
 	Description            string
-	ExternalDocs           *ExternalDocs
+	ExternalDocs           *hcl.ExternalDocs
 	OperationId            string
-	Parameters             []*ParameterOrReference
-	RequestBody            *MediaTypesOrReference
-	Responses              map[string]*MediaTypesOrReference
-	Headers                map[string]*MediaTypesOrReference
-	Calls                  map[string]*CallbacksOrReference
+	Parameters             []ParameterOrReference
+	RequestBody            RequestBodyOrReference
+	Responses              map[string]ResponseOrReference
+	Callbacks              map[string]CallbackOrReference
 	Deprecated             bool
-	Security               []*SecurityRequirement
-	Servers                []*Server
-	SpecificationExtension map[string]*Any
+	Security               []*hcl.SecurityRequirement
+	Servers                []*hcl.Server
+	SpecificationExtension map[string]*hcl.Any
+}
+
+func NewOperation(op *hcl.Operation) *Operation {
+	if op == nil {
+		return nil
+	}
+	o := &Operation{
+		Tags:                   op.Tags,
+		Summary:                op.Summary,
+		Description:            op.Description,
+		ExternalDocs:           op.ExternalDocs,
+		OperationId:            op.OperationId,
+		RequestBody:            NewRequestBodyOrReference(op.RequestBody),
+		Deprecated:             op.Deprecated,
+		Security:               op.Security,
+		Servers:                op.Servers,
+		SpecificationExtension: op.SpecificationExtension,
+	}
+	if op.Parameters != nil {
+		o.Parameters = make([]ParameterOrReference, len(op.Parameters))
+		for i, v := range op.Parameters {
+			o.Parameters[i] = NewParameterOrReference(v)
+		}
+	}
+	if op.Responses != nil {
+		o.Responses = make(map[string]ResponseOrReference)
+		for k, v := range op.Responses {
+			o.Responses[k] = NewReponseOrReference(v)
+		}
+	}
+	if op.Callbacks != nil {
+		o.Callbacks = make(map[string]CallbackOrReference)
+		for k, v := range op.Callbacks {
+			o.Callbacks[k] = NewCallbackOrReference(v)
+		}
+	}
+	return o
 }
 
 type Parameter struct {
@@ -183,103 +421,326 @@ type Parameter struct {
 	Style                  string
 	Explode                bool
 	AllowReserved          bool
-	Schema                 *SchemaOrReference
-	Example                *Any
-	Examples               map[string]*ExampleOrReference
-	Content                map[string]*SchemaOrReference
-	SpecificationExtension map[string]*Any
+	Schema                 SchemaOrReference
+	Example                *hcl.Any
+	Examples               map[string]ExampleOrReference
+	Content                map[string]*MediaType
+	SpecificationExtension map[string]*hcl.Any
+}
+
+func NewParameter(param *hcl.Parameter) *Parameter {
+	if param == nil {
+		return nil
+	}
+	p := &Parameter{
+		Name:                   param.Name,
+		In:                     param.In,
+		Description:            param.Description,
+		Required:               param.Required,
+		Deprecated:             param.Deprecated,
+		AllowEmptyValue:        param.AllowEmptyValue,
+		Style:                  param.Style,
+		Explode:                param.Explode,
+		AllowReserved:          param.AllowReserved,
+		Schema:                 NewSchemaOrReference(param.Schema),
+		Example:                param.Example,
+		SpecificationExtension: param.SpecificationExtension,
+	}
+	if param.Examples != nil {
+		p.Examples = make(map[string]ExampleOrReference)
+		for k, v := range param.Examples {
+			p.Examples[k] = v
+		}
+	}
+	if param.Content != nil {
+		p.Content = make(map[string]*MediaType)
+		for k, v := range param.Content {
+			p.Content[k] = NewMediaType(v)
+		}
+	}
+	return p
 }
 
 type ParameterOrReference any
 
+func NewParameterOrReference(param *hcl.ParameterOrReference) ParameterOrReference {
+	if param == nil {
+		return nil
+	}
+	if x := param.GetReference(); x != nil {
+		return x
+	}
+	return NewParameter(param.GetParameter())
+}
+
 type PathItem struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
+	Operations map[string]*Operation
+}
 
-	XRef                   string
-	Summary                string
+type PathItemOrReference any
+
+func NewPathItemOrReference(pathItem *hcl.PathItem) PathItemOrReference {
+	if pathItem == nil {
+		return nil
+	}
+	if pathItem.XRef != "" {
+		return &hcl.Reference{
+			XRef: pathItem.XRef,
+		}
+	}
+	p := make(map[string]*Operation)
+	if pathItem.Get != nil {
+		p["get"] = NewOperation(pathItem.Get)
+	}
+	if pathItem.Put != nil {
+		p["put"] = NewOperation(pathItem.Put)
+	}
+	if pathItem.Post != nil {
+		p["post"] = NewOperation(pathItem.Post)
+	}
+	if pathItem.Delete != nil {
+		p["delete"] = NewOperation(pathItem.Delete)
+	}
+	if pathItem.Options != nil {
+		p["options"] = NewOperation(pathItem.Options)
+	}
+	if pathItem.Head != nil {
+		p["head"] = NewOperation(pathItem.Head)
+	}
+	if pathItem.Patch != nil {
+		p["patch"] = NewOperation(pathItem.Patch)
+	}
+	if pathItem.Trace != nil {
+		p["trace"] = NewOperation(pathItem.Trace)
+	}
+	if pathItem.Servers == nil || pathItem.Summary == "" || pathItem.Description == "" || pathItem.Parameters == nil || pathItem.SpecificationExtension == nil {
+		p["common"] = &Operation{
+			Summary:                pathItem.Summary,
+			Description:            pathItem.Description,
+			Servers:                pathItem.Servers,
+			SpecificationExtension: pathItem.SpecificationExtension,
+		}
+		if pathItem.Parameters != nil {
+			p["common"].Parameters = make([]ParameterOrReference, len(pathItem.Parameters))
+			for i, v := range pathItem.Parameters {
+				p["common"].Parameters[i] = NewParameterOrReference(v)
+			}
+		}
+	}
+
+	return p
+}
+
+type RequestBody struct {
 	Description            string
-	Get                    *Operation
-	Put                    *Operation
-	Post                   *Operation
-	Delete                 *Operation
-	Options                *Operation
-	Head                   *Operation
-	Patch                  *Operation
-	Trace                  *Operation
-	Servers                []*Server
-	Parameters             []*ParameterOrReference
-	SpecificationExtension map[string]*Any
+	Content                map[string]*MediaType
+	Required               bool
+	SpecificationExtension map[string]*hcl.Any
 }
 
-type Reference struct {
-	XRef        string
-	Summary     string
-	Description string
+func NewRequestBody(a *hcl.RequestBody) *RequestBody {
+	if a == nil {
+		return nil
+	}
+	r := &RequestBody{
+		Description:            a.Description,
+		Required:               a.Required,
+		SpecificationExtension: a.SpecificationExtension,
+	}
+	if a.Content != nil {
+		r.Content = make(map[string]*MediaType)
+		for k, v := range a.Content {
+			r.Content[k] = NewMediaType(v)
+		}
+	}
+	return r
 }
 
-type MediaTypes struct {
-	Content map[string]*SchemaOrReference
+type RequestBodyOrReference any
+
+func NewRequestBodyOrReference(a *hcl.RequestBodyOrReference) RequestBodyOrReference {
+	if a == nil {
+		return nil
+	}
+	if x := a.GetReference(); x != nil {
+		return x
+	}
+	return NewRequestBody(a.GetRequestBody())
 }
 
-type MediaTypesOrReference any
-
-type OASString struct {
-	Format    string
-	Required  bool
-	MinLength int64
-	MaxLength int64
-	Pattern   string
-	Default   string
+type Response struct {
+	Description            string
+	Headers                map[string]HeaderOrReference
+	Content                map[string]*MediaType
+	Links                  map[string]LinkOrReference
+	SpecificationExtension map[string]*hcl.Any
 }
 
-type OASNumber struct {
-	Format           string
-	Required         bool
-	Maximum          float64
-	Minimum          float64
-	MultipleOf       float64
-	ExclusiveMaximum bool
-	ExclusiveMinimum bool
-	Default          float64
+func NewReponse(a *hcl.Response) *Response {
+	if a == nil {
+		return nil
+	}
+	r := &Response{
+		Description:            a.Description,
+		SpecificationExtension: a.SpecificationExtension,
+	}
+	if a.Headers != nil {
+		r.Headers = make(map[string]HeaderOrReference)
+		for k, v := range a.Headers {
+			r.Headers[k] = NewHeaderOrReference(v)
+		}
+	}
+	if a.Content != nil {
+		r.Content = make(map[string]*MediaType)
+		for k, v := range a.Content {
+			r.Content[k] = NewMediaType(v)
+		}
+	}
+	if a.Links != nil {
+		r.Links = make(map[string]LinkOrReference)
+		for k, v := range a.Links {
+			r.Links[k] = NewLinkOrReference(v)
+		}
+	}
+	return r
 }
 
-type OASInteger struct {
-	Format           string
-	Required         bool
-	Maximum          int64
-	Minimum          int64
-	MultipleOf       int64
-	ExclusiveMaximum bool
-	ExclusiveMinimum bool
-	Default          int64
-}
+type ResponseOrReference any
 
-type OASBoolean struct {
-	Required bool
-	Default  bool
-}
-
-type OASObject struct {
-	Properties map[string]*SchemaOrReference
+func NewReponseOrReference(r *hcl.ResponseOrReference) ResponseOrReference {
+	if r == nil {
+		return nil
+	}
+	if x := r.GetReference(); x != nil {
+		return x
+	}
+	return NewReponse(r.GetResponse())
 }
 
 type OASArray struct {
-	Items []*SchemaOrReference
+	Common        *hcl.OASCommon
+	Items         []SchemaOrReference
+	MaxItems      int64
+	MinItems      int64
+	UniqueItems   bool
+	Discriminator *hcl.Discriminator
+	Not           SchemaOrReference
+}
+
+func NewOASArray(a *hcl.OASArray) *OASArray {
+	if a == nil {
+		return nil
+	}
+	arr := &OASArray{
+		Common:        a.Common,
+		MaxItems:      a.MaxItems,
+		MinItems:      a.MinItems,
+		UniqueItems:   a.UniqueItems,
+		Discriminator: a.Discriminator,
+		Not:           a.Not,
+	}
+	if a.Items != nil {
+		arr.Items = make([]SchemaOrReference, len(a.Items))
+		for i, v := range a.Items {
+			arr.Items[i] = NewSchemaOrReference(v)
+		}
+	}
+	return arr
+}
+
+type OASMap struct {
+	Common               *hcl.OASCommon
+	AdditionalProperties AdditionalPropertiesItem
+}
+
+func NewOASMap(a *hcl.OASMap) *OASMap {
+	if a == nil {
+		return nil
+	}
+	return &OASMap{
+		Common:               a.Common,
+		AdditionalProperties: NewAdditionalPropertiesItem(a.AdditionalProperties),
+	}
+}
+
+type OASObject struct {
+	Common        *hcl.OASCommon
+	Properties    map[string]SchemaOrReference
+	MaxProperties int64
+	MinProperties int64
+	Required      []string
+	ReadOnly      bool
+	WriteOnly     bool
+	Discriminator *hcl.Discriminator
+	Not           SchemaOrReference
+}
+
+func NewOASObject(a *hcl.OASObject) *OASObject {
+	if a == nil {
+		return nil
+	}
+	object := &OASObject{
+		Common:        a.Common,
+		MaxProperties: a.MaxProperties,
+		MinProperties: a.MinProperties,
+		Required:      a.Required,
+		ReadOnly:      a.ReadOnly,
+		WriteOnly:     a.WriteOnly,
+		Discriminator: a.Discriminator,
+		Not:           a.Not,
+	}
+	if a.Properties != nil {
+		object.Properties = make(map[string]SchemaOrReference)
+		for k, v := range a.Properties {
+			object.Properties[k] = NewSchemaOrReference(v)
+		}
+	}
+	return object
 }
 
 type SchemaOrReference any
 
-type SecurityRequirement struct {
-	AdditionalProperties map[string]*StringArray
+func NewSchemaOrReference(a *hcl.SchemaOrReference) SchemaOrReference {
+	if a == nil {
+		return nil
+	}
+	switch a.Oneof.(type) {
+	case *hcl.SchemaOrReference_Reference:
+		return a.GetReference()
+	case *hcl.SchemaOrReference_Array:
+		return NewOASArray(a.GetArray())
+	case *hcl.SchemaOrReference_Map:
+		return NewOASMap(a.GetMap())
+	case *hcl.SchemaOrReference_Object:
+		return NewOASObject(a.GetObject())
+	case *hcl.SchemaOrReference_OasAllof:
+		return NewOASArray(a.GetOasAllof())
+	case *hcl.SchemaOrReference_OasAnyof:
+		return NewOASArray(a.GetOasAnyof())
+	case *hcl.SchemaOrReference_OasOneof:
+		return NewOASArray(a.GetOasOneof())
+	case *hcl.SchemaOrReference_Boolean:
+		return a.GetBoolean()
+	case *hcl.SchemaOrReference_Integer:
+		return a.GetInteger()
+	case *hcl.SchemaOrReference_Number:
+		return a.GetNumber()
+	case *hcl.SchemaOrReference_String_:
+		return a.GetString_()
+	default:
+	}
+
+	return nil
 }
 
 type SecuritySchemeOrReference any
 
-type Server struct {
-	Url                    string
-	Description            string
-	Variables              map[string]*ServerVariable
-	SpecificationExtension map[string]*Any
+func NewSecuritySchemeOrReference(a *hcl.SecuritySchemeOrReference) SecuritySchemeOrReference {
+	if a == nil {
+		return nil
+	}
+	if x := a.GetReference(); x != nil {
+		return x
+	}
+	return a.GetSecurityScheme()
 }
