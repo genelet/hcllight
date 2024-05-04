@@ -303,15 +303,10 @@ message ResponseOrReference {
 }
 
 message OASCommon {
-  bool required = 1;
-  string title = 2;
-  string description = 3;
-  bool nullable = 4;
-  bool deprecated = 5;
-  Any example = 6;    
-  Xml xml = 7;
-  ExternalDocs external_docs = 8;
-  map<string,Any> specification_extension = 9;
+  bool read_only = 1;
+  bool write_only = 2;
+  bool nullable = 3;
+  bool deprecated = 4;
 }
 
 message OASString {
@@ -322,6 +317,7 @@ message OASString {
   string pattern = 5;
   string default = 6;
   repeated Any enum = 7;
+  string type = 15;
 }
 
 message OASNumber {
@@ -334,6 +330,7 @@ message OASNumber {
   bool exclusive_minimum = 7;
   double default = 8;
   repeated Any enum = 9;
+  string type = 15;
 }
 
 message OASInteger {
@@ -346,11 +343,13 @@ message OASInteger {
   bool exclusive_minimum = 7;
   int64 default = 8;
   repeated Any enum = 9;
+  string type = 15;
 }
 
 message OASBoolean {
   OASCommon common = 1;
   bool default = 2;
+  string type = 15;
 }
   
 message OASArray {
@@ -360,12 +359,14 @@ message OASArray {
   int64 min_items = 4;
   bool unique_items = 5;
   Discriminator discriminator = 6;
-  SchemaOrReference not = 7;
+  Any example = 7;
+  string type = 15;
 }
 
 message OASMap {
   OASCommon common = 1;
   AdditionalPropertiesItem additional_properties = 2;
+  string type = 15;
 }
   
 message OASObject {
@@ -374,10 +375,9 @@ message OASObject {
   int64 max_properties = 3;
   int64 min_properties = 4;
   repeated string required = 5;
-  bool read_only = 6;
-  bool write_only = 7;
-  Discriminator discriminator = 8;
-  SchemaOrReference not = 9;
+  Discriminator discriminator = 6;
+  Any example = 7;
+  string type = 15;
 }
 
 message Schema {
@@ -409,7 +409,7 @@ message Schema {
   repeated SchemaOrReference all_of = 26;
   repeated SchemaOrReference one_of = 27;
   repeated SchemaOrReference any_of = 28;
-  Schema not = 29;
+  SchemaOrReference not = 29;
   repeated SchemaOrReference items = 30;
   map<string,SchemaOrReference> properties = 31;
   AdditionalPropertiesItem additional_properties = 32;
@@ -432,6 +432,7 @@ message SchemaOrReference {
     OASArray oas_allof = 9;
     OASArray oas_anyof = 10;
     Reference reference = 11;
+    Schema schema = 12;
   }
 }
 

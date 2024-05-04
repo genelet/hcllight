@@ -1,8 +1,6 @@
 package openhcl
 
 import (
-	"fmt"
-
 	"github.com/genelet/hcllight/internal/hcl"
 )
 
@@ -189,9 +187,6 @@ func NewDocument(doc *hcl.Document) *Document {
 			pr := NewPathItemOrReference(v)
 			for k2, v2 := range pr.(map[string]*Operation) {
 				if v2 != nil {
-					if k2 == "common" {
-						fmt.Printf("11111111111111 %+v\n", v2)
-					}
 					d.Paths[[2]string{k, k2}] = v2
 				}
 			}
@@ -337,6 +332,7 @@ func NewLinkOrReference(a *hcl.LinkOrReference) LinkOrReference {
 }
 
 type MediaType struct {
+	//Description            string
 	Schema                 SchemaOrReference
 	Example                *hcl.Any
 	Examples               map[string]ExampleOrReference
@@ -344,7 +340,7 @@ type MediaType struct {
 	SpecificationExtension map[string]*hcl.Any
 }
 
-func NewMediaType(a *hcl.MediaType) *MediaType {
+func NewMediaType(a *hcl.MediaType, description ...string) *MediaType {
 	if a == nil {
 		return nil
 	}
@@ -353,6 +349,9 @@ func NewMediaType(a *hcl.MediaType) *MediaType {
 		Example:                a.Example,
 		SpecificationExtension: a.SpecificationExtension,
 	}
+	//if len(description) > 0 {
+	//	mt.Description = description[0]
+	//}
 	if a.Examples != nil {
 		mt.Examples = make(map[string]ExampleOrReference)
 		for k, v := range a.Examples {
@@ -366,6 +365,89 @@ func NewMediaType(a *hcl.MediaType) *MediaType {
 		}
 	}
 	return mt
+}
+
+type OASArray struct {
+	Type          string
+	Common        *hcl.OASCommon
+	Items         []SchemaOrReference
+	MaxItems      int64
+	MinItems      int64
+	UniqueItems   bool
+	Discriminator *hcl.Discriminator
+	Example       *hcl.Any
+}
+
+func NewOASArray(a *hcl.OASArray) *OASArray {
+	if a == nil {
+		return nil
+	}
+	arr := &OASArray{
+		Type:          a.Type,
+		Common:        a.Common,
+		MaxItems:      a.MaxItems,
+		MinItems:      a.MinItems,
+		UniqueItems:   a.UniqueItems,
+		Discriminator: a.Discriminator,
+		Example:       a.Example,
+	}
+	if a.Items != nil {
+		arr.Items = make([]SchemaOrReference, len(a.Items))
+		for i, v := range a.Items {
+			arr.Items[i] = NewSchemaOrReference(v)
+		}
+	}
+	return arr
+}
+
+type OASMap struct {
+	Type                 string
+	Common               *hcl.OASCommon
+	AdditionalProperties AdditionalPropertiesItem
+}
+
+func NewOASMap(a *hcl.OASMap) *OASMap {
+	if a == nil {
+		return nil
+	}
+	return &OASMap{
+		Type:                 a.Type,
+		Common:               a.Common,
+		AdditionalProperties: NewAdditionalPropertiesItem(a.AdditionalProperties),
+	}
+}
+
+type OASObject struct {
+	Type          string
+	Common        *hcl.OASCommon
+	Properties    map[string]SchemaOrReference
+	MaxProperties int64
+	MinProperties int64
+	Required      []string
+	Discriminator *hcl.Discriminator
+	Example       *hcl.Any
+}
+
+func NewOASObject(a *hcl.OASObject) *OASObject {
+	if a == nil {
+		return nil
+	}
+	object := &OASObject{
+		Type:          a.Type,
+		Common:        a.Common,
+		MaxProperties: a.MaxProperties,
+		MinProperties: a.MinProperties,
+		Required:      a.Required,
+		Discriminator: a.Discriminator,
+		Example:       a.Example,
+	}
+	if a.Properties != nil {
+		object.Properties = make(map[string]SchemaOrReference)
+		for k, v := range a.Properties {
+			object.Properties[k] = NewSchemaOrReference(v)
+		}
+	}
+	return object
 }
 
 type Operation struct {
@@ -572,10 +654,34 @@ func NewRequestBodyOrReference(a *hcl.RequestBodyOrReference) RequestBodyOrRefer
 	if a == nil {
 		return nil
 	}
+
 	if x := a.GetReference(); x != nil {
 		return x
 	}
 	return NewRequestBody(a.GetRequestBody())
+}
+
+func NewRequestBodyOrReferenceMap2(a *hcl.RequestBodyOrReference) map[[2]string]*MediaType {
+	if a == nil {
+		return nil
+	}
+
+	if x := a.GetReference(); x != nil {
+		return map[[2]string]*MediaType{
+			{"", x.XRef}: nil,
+		}
+	}
+	x := a.GetRequestBody()
+	description := x.GetDescription()
+	k2 := ""
+	if x.GetRequired() {
+		k2 = "required"
+	}
+	r := make(map[[2]string]*MediaType)
+	for k, v := range x.GetContent() {
+		r[[2]string{k, k2}] = NewMediaType(v, description)
+	}
+	return r
 }
 
 type Response struct {
@@ -627,93 +733,13 @@ func NewReponseOrReference(r *hcl.ResponseOrReference) ResponseOrReference {
 	return NewReponse(r.GetResponse())
 }
 
-type OASArray struct {
-	Common        *hcl.OASCommon
-	Items         []SchemaOrReference
-	MaxItems      int64
-	MinItems      int64
-	UniqueItems   bool
-	Discriminator *hcl.Discriminator
-	Not           SchemaOrReference
-}
-
-func NewOASArray(a *hcl.OASArray) *OASArray {
-	if a == nil {
-		return nil
-	}
-	arr := &OASArray{
-		Common:        a.Common,
-		MaxItems:      a.MaxItems,
-		MinItems:      a.MinItems,
-		UniqueItems:   a.UniqueItems,
-		Discriminator: a.Discriminator,
-		Not:           a.Not,
-	}
-	if a.Items != nil {
-		arr.Items = make([]SchemaOrReference, len(a.Items))
-		for i, v := range a.Items {
-			arr.Items[i] = NewSchemaOrReference(v)
-		}
-	}
-	return arr
-}
-
-type OASMap struct {
-	Common               *hcl.OASCommon
-	AdditionalProperties AdditionalPropertiesItem
-}
-
-func NewOASMap(a *hcl.OASMap) *OASMap {
-	if a == nil {
-		return nil
-	}
-	return &OASMap{
-		Common:               a.Common,
-		AdditionalProperties: NewAdditionalPropertiesItem(a.AdditionalProperties),
-	}
-}
-
-type OASObject struct {
-	Common        *hcl.OASCommon
-	Properties    map[string]SchemaOrReference
-	MaxProperties int64
-	MinProperties int64
-	Required      []string
-	ReadOnly      bool
-	WriteOnly     bool
-	Discriminator *hcl.Discriminator
-	Not           SchemaOrReference
-}
-
-func NewOASObject(a *hcl.OASObject) *OASObject {
-	if a == nil {
-		return nil
-	}
-	object := &OASObject{
-		Common:        a.Common,
-		MaxProperties: a.MaxProperties,
-		MinProperties: a.MinProperties,
-		Required:      a.Required,
-		ReadOnly:      a.ReadOnly,
-		WriteOnly:     a.WriteOnly,
-		Discriminator: a.Discriminator,
-		Not:           a.Not,
-	}
-	if a.Properties != nil {
-		object.Properties = make(map[string]SchemaOrReference)
-		for k, v := range a.Properties {
-			object.Properties[k] = NewSchemaOrReference(v)
-		}
-	}
-	return object
-}
-
 type SchemaOrReference any
 
 func NewSchemaOrReference(a *hcl.SchemaOrReference) SchemaOrReference {
 	if a == nil {
 		return nil
 	}
+
 	switch a.Oneof.(type) {
 	case *hcl.SchemaOrReference_Reference:
 		return a.GetReference()
@@ -737,6 +763,8 @@ func NewSchemaOrReference(a *hcl.SchemaOrReference) SchemaOrReference {
 		return a.GetNumber()
 	case *hcl.SchemaOrReference_String_:
 		return a.GetString_()
+	case *hcl.SchemaOrReference_Schema:
+		return a.GetSchema()
 	default:
 	}
 

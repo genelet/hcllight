@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/genelet/determined/dethcl"
 	"github.com/genelet/determined/utils"
 	"github.com/genelet/hcllight/generated"
 	"github.com/genelet/hcllight/internal/ast"
@@ -294,7 +295,7 @@ func hclCty(self *generated.CtyValue) (string, error) {
 		if err != nil {
 			return "", err
 		}
-		bs, err := utils.Encoding(v, 0)
+		bs, err := dethcl.MarshalLevel(v, 0)
 		if err != nil {
 			return "", err
 		}

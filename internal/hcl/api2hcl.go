@@ -389,226 +389,30 @@ func additionalPropertiesItemToHcl(item *openapiv3.AdditionalPropertiesItem) *Ad
 	return nil
 }
 
-func oasCommonToHcl(common *openapiv3.Schema) *OASCommon {
-	if common == nil {
+func defaultToHcl(default_ *openapiv3.DefaultType) *DefaultType {
+	if default_ == nil {
 		return nil
 	}
-	if common.Title == "" && common.Description == "" && common.Nullable == false && common.Deprecated == false && common.Example == nil && common.Xml == nil && common.ExternalDocs == nil && common.SpecificationExtension == nil {
-		return &OASCommon{
-			Title:                  common.Title,
-			Description:            common.Description,
-			Nullable:               common.Nullable,
-			Deprecated:             common.Deprecated,
-			Example:                anyToHcl(common.Example),
-			Xml:                    xmlToHcl(common.Xml),
-			ExternalDocs:           ExternalDocsToHcl(common.ExternalDocs),
-			SpecificationExtension: extensionToHcl(common.SpecificationExtension),
-		}
-	}
-	return nil
-}
-
-func SchemaOrReferenceToHcl(schema *openapiv3.SchemaOrReference) *SchemaOrReference {
-	if schema == nil {
-		return nil
-	}
-
-	if x := schema.GetReference(); x != nil {
-		return &SchemaOrReference{
-			Oneof: &SchemaOrReference_Reference{
-				Reference: ReferenceToHcl(x),
+	switch default_.Oneof.(type) {
+	case *openapiv3.DefaultType_Boolean:
+		return &DefaultType{
+			Oneof: &DefaultType_Boolean{
+				Boolean: default_.GetBoolean(),
 			},
 		}
-	}
-
-	s := schema.GetSchema()
-	common := oasCommonToHcl(s)
-
-	/*
-		if s.Enum != nil {
-			items := make([]*Any, 0)
-			for _, v := range s.Enum {
-				items = append(items, &Any{Value: v.Value})
-			}
-			return &SchemaOrReference{
-				Oneof: &SchemaOrReference_Enum{
-					Enum: &AnyArray{
-						Anies: items,
-					},
-				},
-			}
-		} else
-	*/
-	if s.AllOf != nil {
-		var items []*SchemaOrReference
-		for _, v := range s.AllOf {
-			items = append(items, SchemaOrReferenceToHcl(v))
-		}
-		return &SchemaOrReference{
-			Oneof: &SchemaOrReference_OasAllof{
-				OasAllof: &OASArray{
-					Items: items,
-				},
+	case *openapiv3.DefaultType_Number:
+		return &DefaultType{
+			Oneof: &DefaultType_Number{
+				Number: default_.GetNumber(),
 			},
 		}
-	} else if s.OneOf != nil {
-		var items []*SchemaOrReference
-		for _, v := range s.OneOf {
-			items = append(items, SchemaOrReferenceToHcl(v))
-		}
-		return &SchemaOrReference{
-			Oneof: &SchemaOrReference_OasOneof{
-				OasOneof: &OASArray{
-					Items: items,
-				},
-			},
-		}
-	} else if s.AnyOf != nil {
-		var items []*SchemaOrReference
-		for _, v := range s.AnyOf {
-			items = append(items, SchemaOrReferenceToHcl(v))
-		}
-		return &SchemaOrReference{
-			Oneof: &SchemaOrReference_OasAnyof{
-				OasAnyof: &OASArray{
-					Items: items,
-				},
-			},
-		}
-	}
-
-	switch s.Type {
-	case "array":
-		var items []*SchemaOrReference
-		for _, v := range s.Items.SchemaOrReference {
-			items = append(items, SchemaOrReferenceToHcl(v))
-		}
-		return &SchemaOrReference{
-			Oneof: &SchemaOrReference_Array{
-				Array: &OASArray{
-					Common:        common,
-					MaxItems:      s.MaxItems,
-					MinItems:      s.MinItems,
-					UniqueItems:   s.UniqueItems,
-					Not:           schemaToHcl(s.Not),
-					Discriminator: DiscriminatorToHcl(s.Discriminator),
-					Items:         items,
-				},
-			},
-		}
-	case "object":
-		if s.AdditionalProperties != nil {
-			return &SchemaOrReference{
-				Oneof: &SchemaOrReference_Map{
-					Map: &OASMap{
-						Common:               common,
-						AdditionalProperties: additionalPropertiesItemToHcl(s.AdditionalProperties),
-					},
-				},
-			}
-		}
-
-		var properties map[string]*SchemaOrReference
-		if s.Properties != nil {
-			properties = make(map[string]*SchemaOrReference)
-			for _, v := range s.Properties.AdditionalProperties {
-				properties[v.Name] = SchemaOrReferenceToHcl(v.Value)
-			}
-		}
-		return &SchemaOrReference{
-			Oneof: &SchemaOrReference_Object{
-				Object: &OASObject{
-					Properties:    properties,
-					Common:        common,
-					MaxProperties: s.MaxProperties,
-					MinProperties: s.MinProperties,
-					Required:      s.Required,
-					ReadOnly:      s.ReadOnly,
-					WriteOnly:     s.WriteOnly,
-					Not:           schemaToHcl(s.Not),
-					Discriminator: DiscriminatorToHcl(s.Discriminator),
-				},
-			},
-		}
-	case "string":
-		str := &OASString{
-			Format: s.Format,
-			//Required:  s.Required,
-			MinLength: s.MinLength,
-			MaxLength: s.MaxLength,
-			Pattern:   s.Pattern,
-		}
-		if s.Default != nil {
-			if x := s.Default.GetString_(); x != "" {
-				str.Default = x
-			}
-		}
-		return &SchemaOrReference{
-			Oneof: &SchemaOrReference_String_{String_: str},
-		}
-	case "number":
-		num := &OASNumber{
-			Common:           common,
-			Format:           s.Format,
-			MultipleOf:       s.MultipleOf,
-			Minimum:          s.Minimum,
-			Maximum:          s.Maximum,
-			ExclusiveMinimum: s.ExclusiveMinimum,
-			ExclusiveMaximum: s.ExclusiveMaximum,
-		}
-		if s.Enum != nil {
-			for _, v := range s.Enum {
-				num.Enum = append(num.Enum, &Any{Value: v.Value})
-			}
-		}
-		if s.Default != nil {
-			if x := s.Default.GetNumber(); x != 0 {
-				num.Default = x
-			}
-		}
-		return &SchemaOrReference{
-			Oneof: &SchemaOrReference_Number{Number: num},
-		}
-	case "integer":
-		integer := &OASInteger{
-			Format:           s.Format,
-			Common:           common,
-			MultipleOf:       int64(s.MultipleOf),
-			Minimum:          int64(s.Minimum),
-			Maximum:          int64(s.Maximum),
-			ExclusiveMinimum: s.ExclusiveMinimum,
-			ExclusiveMaximum: s.ExclusiveMaximum,
-			Default:          int64(s.Default.GetNumber()),
-		}
-		if s.Enum != nil {
-			for _, v := range s.Enum {
-				integer.Enum = append(integer.Enum, &Any{Value: v.Value})
-			}
-		}
-		if s.Default != nil {
-			if x := s.Default.GetNumber(); x != 0 {
-				integer.Default = int64(x)
-			}
-		}
-		return &SchemaOrReference{
-			Oneof: &SchemaOrReference_Integer{Integer: integer},
+	case *openapiv3.DefaultType_String_:
+		return &DefaultType{
+			Oneof: &DefaultType_String_{String_: default_.GetString_()},
 		}
 	default:
 	}
 	return nil
-}
-
-// convert v3.Schema to v3.SchemaOrReference first
-func schemaToHcl(schema *openapiv3.Schema) *SchemaOrReference {
-	if schema == nil {
-		return nil
-	}
-	sr := &openapiv3.SchemaOrReference{
-		Oneof: &openapiv3.SchemaOrReference_Schema{
-			Schema: schema,
-		},
-	}
-	return SchemaOrReferenceToHcl(sr)
 }
 
 func ExampleOrReferenceToHcl(example *openapiv3.ExampleOrReference) *ExampleOrReference {

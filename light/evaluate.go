@@ -8,6 +8,7 @@ import (
 	"github.com/genelet/hcllight/generated"
 	"github.com/genelet/hcllight/internal/ast"
 
+	"github.com/genelet/determined/dethcl"
 	"github.com/genelet/determined/utils"
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
@@ -55,7 +56,7 @@ func evaluateBodyNode(self *generated.Body, ref map[string]interface{}, node *ut
 		syntaxAttr.Expr = utils.CtyToExpression(cv, syntaxAttr.Range())
 		node.AddItem(name, cv)
 
-		bs, err := utils.Encoding(v, level+1)
+		bs, err := dethcl.MarshalLevel(v, level+1)
 		if err != nil {
 			return "", err
 		}
