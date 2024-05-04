@@ -7,7 +7,6 @@ import (
 	"os"
 	"strings"
 
-	"github.com/genelet/hcllight/generated"
 	"github.com/genelet/hcllight/light"
 
 	"github.com/pb33f/libopenapi"
@@ -20,8 +19,8 @@ type Loa struct {
 	doc     *libopenapi.DocumentModel[v3.Document]
 	model   v3.Document
 	address *url.URL
-	ref     map[string]*generated.Body
-	extra   map[string]*generated.Body
+	ref     map[string]*light.Body
+	extra   map[string]*light.Body
 }
 
 // NewLoa creates a new Loa object from a byte slice of an OpenAPI 3.0 document.
@@ -49,25 +48,25 @@ func NewLoa(bs []byte) (*Loa, error) {
 		doc:     doc,
 		model:   model,
 		address: address,
-		ref:     make(map[string]*generated.Body),
+		ref:     make(map[string]*light.Body),
 	}, nil
 }
 
-func stringToCtyValue(val string) *generated.CtyValue {
-	return &generated.CtyValue{
-		CtyValueClause: &generated.CtyValue_StringValue{StringValue: val},
+func stringToCtyValue(val string) *light.CtyValue {
+	return &light.CtyValue{
+		CtyValueClause: &light.CtyValue_StringValue{StringValue: val},
 	}
 }
 
-func stringToExpression(val string) *generated.Expression {
-	return &generated.Expression{
-		ExpressionClause: &generated.Expression_Lvexpr{
-			Lvexpr: &generated.LiteralValueExpr{Val: stringToCtyValue(val)},
+func stringToExpression(val string) *light.Expression {
+	return &light.Expression{
+		ExpressionClause: &light.Expression_Lvexpr{
+			Lvexpr: &light.LiteralValueExpr{Val: stringToCtyValue(val)},
 		},
 	}
 }
 
-func (self *Loa) schemaToBody(key string, schema *highbase.Schema) (*generated.Body, *highbase.Schema, error) {
+func (self *Loa) schemaToBody(key string, schema *highbase.Schema) (*light.Body, *highbase.Schema, error) {
 	switch schema.SchemaTypeRef {
 	case "string", "number", "integer", "boolean":
 		return nil, schema, nil
@@ -81,7 +80,7 @@ func (self *Loa) schemaToBody(key string, schema *highbase.Schema) (*generated.B
 			return nil, schema, nil
 		}
 		if self.extra == nil {
-			self.extra = make(map[string]*generated.Body)
+			self.extra = make(map[string]*light.Body)
 		}
 		self.extra[key] = bdy
 		schema.SchemaTypeRef = "list(" + key + ")"
@@ -110,7 +109,7 @@ func (self *Loa) schemaToBody(key string, schema *highbase.Schema) (*generated.B
 		return nil, schema, nil
 	}
 
-	var body = &generated.Body{}
+	var body = &light.Body{}
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	c := orderedmap.Iterate(ctx, schema.Properties)
@@ -124,14 +123,14 @@ func (self *Loa) schemaToBody(key string, schema *highbase.Schema) (*generated.B
 		}
 		if bdy == nil {
 			if body.Attributes == nil {
-				body.Attributes = make(map[string]*generated.Attribute)
+				body.Attributes = make(map[string]*light.Attribute)
 			}
-			body.Attributes[k] = &generated.Attribute{
+			body.Attributes[k] = &light.Attribute{
 				Name: k,
 				Expr: stringToExpression(s.SchemaTypeRef),
 			}
 		} else {
-			block := &generated.Block{
+			block := &light.Block{
 				Type: k,
 				Bdy:  bdy,
 			}
@@ -142,7 +141,7 @@ func (self *Loa) schemaToBody(key string, schema *highbase.Schema) (*generated.B
 	return body, nil, nil
 }
 
-func (self *Loa) schemaRefToBody(key string, v *highbase.SchemaProxy) (*generated.Body, *highbase.Schema, error) {
+func (self *Loa) schemaRefToBody(key string, v *highbase.SchemaProxy) (*light.Body, *highbase.Schema, error) {
 	if ref := v.GetReference(); ref != "" {
 		rel, err := getStructName(ref)
 		return nil, &highbase.Schema{SchemaTypeRef: rel}, err
@@ -202,7 +201,7 @@ func (self *Loa) Build() error {
 		}
 		if body != nil {
 			self.ref[key] = body
-			hcl, err := light.Hcl(body)
+			hcl, err := body.Hcl()
 			if err != nil {
 				return err
 			}
@@ -271,7 +270,7 @@ func twoSpace(s []byte) string {
 
 func (self *Loa) getRR(op *v3.Operation) ([]byte, []byte, error) {
 	var bsRequest, bsResponse []byte
-	var bdy *generated.Body
+	var bdy *light.Body
 	var s *highbase.Schema
 	var err error
 
@@ -285,7 +284,7 @@ func (self *Loa) getRR(op *v3.Operation) ([]byte, []byte, error) {
 			if bdy == nil {
 				bsRequest = []byte(s.SchemaTypeRef)
 			} else {
-				bsRequest, err = light.Hcl(bdy)
+				bsRequest, err = bdy.Hcl()
 			}
 		}
 	}
@@ -299,7 +298,7 @@ func (self *Loa) getRR(op *v3.Operation) ([]byte, []byte, error) {
 			if bdy == nil {
 				bsResponse = []byte(s.SchemaTypeRef)
 			} else {
-				bsResponse, err = light.Hcl(bdy)
+				bsResponse, err = bdy.Hcl()
 			}
 		}
 	}

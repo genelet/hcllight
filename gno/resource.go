@@ -3,7 +3,7 @@
 package gno
 
 import (
-	"github.com/genelet/hcllight/generated"
+	"github.com/genelet/hcllight/light"
 	openapiv3 "github.com/google/gnostic-models/openapiv3"
 )
 
@@ -43,15 +43,15 @@ func NewGnoResource(r *Resource, doc *openapiv3.Document) (*GnoResource, error) 
 	return gr, nil
 }
 
-func (self *GnoResource) blockResource(name string, c *GnoConfig) ([]*generated.Block, error) {
-	var blocks []*generated.Block
+func (self *GnoResource) blockResource(name string, c *GnoConfig) ([]*light.Block, error) {
+	var blocks []*light.Block
 
 	if self.ReadOp != nil {
 		body, err := c.bodyOperation(self.ReadOp, self.SchemaOptions)
 		if err != nil {
 			return nil, err
 		}
-		blocks = append(blocks, &generated.Block{
+		blocks = append(blocks, &light.Block{
 			Type:   "resource",
 			Labels: []string{name, "read_op"},
 			Bdy:    body,
@@ -63,7 +63,7 @@ func (self *GnoResource) blockResource(name string, c *GnoConfig) ([]*generated.
 		if err != nil {
 			return nil, err
 		}
-		blocks = append(blocks, &generated.Block{
+		blocks = append(blocks, &light.Block{
 			Type:   "resource",
 			Labels: []string{name, "create_op"},
 			Bdy:    body,
@@ -74,7 +74,7 @@ func (self *GnoResource) blockResource(name string, c *GnoConfig) ([]*generated.
 		if err != nil {
 			return nil, err
 		}
-		blocks = append(blocks, &generated.Block{
+		blocks = append(blocks, &light.Block{
 			Type:   "resource",
 			Labels: []string{name, "update_op"},
 			Bdy:    body,
@@ -85,7 +85,7 @@ func (self *GnoResource) blockResource(name string, c *GnoConfig) ([]*generated.
 		if err != nil {
 			return nil, err
 		}
-		blocks = append(blocks, &generated.Block{
+		blocks = append(blocks, &light.Block{
 			Type:   "resource",
 			Labels: []string{name, "delete_op"},
 			Bdy:    body,
@@ -96,7 +96,7 @@ func (self *GnoResource) blockResource(name string, c *GnoConfig) ([]*generated.
 		if err != nil {
 			return nil, err
 		}
-		blocks = append(blocks, &generated.Block{
+		blocks = append(blocks, &light.Block{
 			Type:   "resource",
 			Labels: []string{name, "common_parameters"},
 			Bdy:    body,

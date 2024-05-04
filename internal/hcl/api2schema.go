@@ -363,11 +363,13 @@ func schemaToHcl(schema *openapiv3.Schema) *Schema {
 		WriteOnly:              schema.WriteOnly,
 		Xml:                    xmlToHcl(schema.Xml),
 		ExternalDocs:           ExternalDocsToHcl(schema.ExternalDocs),
-		Example:                anyToHcl(schema.Example),
 		Deprecated:             schema.Deprecated,
 		Discriminator:          DiscriminatorToHcl(schema.Discriminator),
 		Nullable:               schema.Nullable,
 		SpecificationExtension: extensionToHcl(schema.SpecificationExtension),
+	}
+	if schema.Example != nil {
+		s.Example = anyToHcl(schema.Example)
 	}
 	if schema.Not != nil {
 		n := &openapiv3.SchemaOrReference{

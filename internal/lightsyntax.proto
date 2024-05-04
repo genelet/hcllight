@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package kinet;
 
-option go_package = "./generated";
+option go_package = "./light";
 
 message CtyList {
 	repeated CtyValue values = 1;

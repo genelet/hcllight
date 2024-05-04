@@ -7,7 +7,7 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/genelet/hcllight/generated"
+	"github.com/genelet/hcllight/light"
 	openapiv3 "github.com/google/gnostic-models/openapiv3"
 )
 
@@ -87,8 +87,8 @@ func NewGnoConfig(c *Config, doc *openapiv3.Document) (*GnoConfig, error) {
 	return gc, nil
 }
 
-func (self *GnoConfig) BuildHCL() (*generated.Body, error) {
-	var blocks []*generated.Block
+func (self *GnoConfig) BuildHCL() (*light.Body, error) {
+	var blocks []*light.Block
 
 	provider, err := self.GnoProvider.blockProvider(self)
 	if err != nil {
@@ -130,14 +130,14 @@ func (self *GnoConfig) BuildHCL() (*generated.Body, error) {
 		blocks = append(blocks, blks...)
 	}
 
-	return &generated.Body{
+	return &light.Body{
 		Blocks: blocks,
 	}, nil
 }
 
-func (self *GnoConfig) blockSchemas() (*generated.Block, error) {
-	var attributes map[string]*generated.Attribute
-	var blocks []*generated.Block
+func (self *GnoConfig) blockSchemas() (*light.Block, error) {
+	var attributes map[string]*light.Attribute
+	var blocks []*light.Block
 	for name, schema := range self.Schemas {
 		expr, err := self.exprSchemaOrReference(schema)
 		if err != nil {
@@ -145,37 +145,37 @@ func (self *GnoConfig) blockSchemas() (*generated.Block, error) {
 		}
 
 		if attributes == nil {
-			attributes = make(map[string]*generated.Attribute)
+			attributes = make(map[string]*light.Attribute)
 		}
-		attributes[name] = &generated.Attribute{
+		attributes[name] = &light.Attribute{
 			Name: name,
 			Expr: expr,
 		}
 
 	}
 
-	return &generated.Block{
+	return &light.Block{
 		Type:   "variables",
 		Labels: []string{"schemas"},
-		Bdy: &generated.Body{
+		Bdy: &light.Body{
 			Attributes: attributes,
 			Blocks:     blocks,
 		},
 	}, nil
 }
 
-func (self *GnoConfig) blockParameters() (*generated.Block, error) {
-	//	var attributes map[string]*generated.Attribute
-	var blocks []*generated.Block
+func (self *GnoConfig) blockParameters() (*light.Block, error) {
+	//	var attributes map[string]*light.Attribute
+	var blocks []*light.Block
 	for name, parameter := range self.Parameters {
 		str, expr, err := self.nameExprParameterOrReference(parameter)
 		if err != nil {
 			return nil, err
 		}
-		blocks = append(blocks, &generated.Block{
+		blocks = append(blocks, &light.Block{
 			Type: name,
-			Bdy: &generated.Body{
-				Attributes: map[string]*generated.Attribute{
+			Bdy: &light.Body{
+				Attributes: map[string]*light.Attribute{
 					name: {
 						Name: str,
 						Expr: expr,
@@ -185,36 +185,36 @@ func (self *GnoConfig) blockParameters() (*generated.Block, error) {
 		})
 	}
 
-	return &generated.Block{
+	return &light.Block{
 		Type:   "variables",
 		Labels: []string{"parameters"},
-		Bdy: &generated.Body{
+		Bdy: &light.Body{
 			Blocks: blocks,
 		},
 	}, nil
 }
 
-func (self *GnoConfig) blockRequestBodies() (*generated.Block, error) {
-	var attributes map[string]*generated.Attribute
-	var blocks []*generated.Block
+func (self *GnoConfig) blockRequestBodies() (*light.Block, error) {
+	var attributes map[string]*light.Attribute
+	var blocks []*light.Block
 	for name, requestBody := range self.RequestBodies {
 		expr, err := self.exprRequestBodyOrReference(requestBody)
 		if err != nil {
 			return nil, err
 		}
 		if attributes == nil {
-			attributes = make(map[string]*generated.Attribute)
+			attributes = make(map[string]*light.Attribute)
 		}
-		attributes[name] = &generated.Attribute{
+		attributes[name] = &light.Attribute{
 			Name: name,
 			Expr: expr,
 		}
 	}
 
-	return &generated.Block{
+	return &light.Block{
 		Type:   "variables",
 		Labels: []string{"request_bodies"},
-		Bdy: &generated.Body{
+		Bdy: &light.Body{
 			Attributes: attributes,
 			Blocks:     blocks,
 		},
@@ -277,42 +277,42 @@ func getLastName(name string) string {
 	return items[len(items)-1]
 }
 
-func refToScopeTraversalExpr(ref string) (*generated.ScopeTraversalExpr, error) {
+func refToScopeTraversalExpr(ref string) (*light.ScopeTraversalExpr, error) {
 	u, err := url.Parse(ref)
 	if err != nil {
 		return nil, err
 	}
 
-	root := &generated.Traverser{
-		TraverserClause: &generated.Traverser_TRoot{
-			TRoot: &generated.TraverseRoot{Name: "var"},
+	root := &light.Traverser{
+		TraverserClause: &light.Traverser_TRoot{
+			TRoot: &light.TraverseRoot{Name: "var"},
 		},
 	}
-	traversal := []*generated.Traverser{root}
+	traversal := []*light.Traverser{root}
 
 	if u.Host == "" && u.Path == "" && u.Fragment != "" {
 		for _, item := range strings.SplitN(u.Fragment, "/", -1) {
 			if item == "" || strings.ToLower(item) == "components" {
 				continue
 			}
-			traversal = append(traversal, &generated.Traverser{
-				TraverserClause: &generated.Traverser_TAttr{
-					TAttr: &generated.TraverseAttr{Name: item},
+			traversal = append(traversal, &light.Traverser{
+				TraverserClause: &light.Traverser_TAttr{
+					TAttr: &light.TraverseAttr{Name: item},
 				},
 			})
 		}
 	}
-	return &generated.ScopeTraversalExpr{
+	return &light.ScopeTraversalExpr{
 		Traversal: traversal,
 	}, nil
 }
 
-func stringToLiteralValueExpr(s string) *generated.Expression {
-	return &generated.Expression{
-		ExpressionClause: &generated.Expression_Lvexpr{
-			Lvexpr: &generated.LiteralValueExpr{
-				Val: &generated.CtyValue{
-					CtyValueClause: &generated.CtyValue_StringValue{
+func stringToLiteralValueExpr(s string) *light.Expression {
+	return &light.Expression{
+		ExpressionClause: &light.Expression_Lvexpr{
+			Lvexpr: &light.LiteralValueExpr{
+				Val: &light.CtyValue{
+					CtyValueClause: &light.CtyValue_StringValue{
 						StringValue: s,
 					},
 				},
@@ -337,26 +337,26 @@ func schemaMediaTypes(m *openapiv3.MediaTypes) *openapiv3.SchemaOrReference {
 	return m.AdditionalProperties[0].Value.GetSchema()
 }
 
-func bodyExpr(expr *generated.Expression) (*generated.Body, error) {
+func bodyExpr(expr *light.Expression) (*light.Body, error) {
 	ocexpr := expr.GetOcexpr()
 	if ocexpr == nil {
 		return nil, fmt.Errorf("expression is not ocexpr")
 	}
 
-	attributes := make(map[string]*generated.Attribute)
+	attributes := make(map[string]*light.Attribute)
 	for _, item := range ocexpr.Items {
 		k := item.KeyExpr.GetLvexpr().Val.GetStringValue()
-		attributes[k] = &generated.Attribute{
+		attributes[k] = &light.Attribute{
 			Name: k,
 			Expr: item.ValueExpr,
 		}
 	}
-	return &generated.Body{
+	return &light.Body{
 		Attributes: attributes,
 	}, nil
 }
 
-func (self *GnoConfig) exprSchemaOrReference(v *openapiv3.SchemaOrReference) (*generated.Expression, error) {
+func (self *GnoConfig) exprSchemaOrReference(v *openapiv3.SchemaOrReference) (*light.Expression, error) {
 	schema, err := self.expandSchemaOrReference(v)
 	if err != nil {
 		return nil, err
@@ -364,20 +364,20 @@ func (self *GnoConfig) exprSchemaOrReference(v *openapiv3.SchemaOrReference) (*g
 	return self.exprSchema(schema)
 }
 
-func (self *GnoConfig) exprSchema(v *openapiv3.Schema) (*generated.Expression, error) {
+func (self *GnoConfig) exprSchema(v *openapiv3.Schema) (*light.Expression, error) {
 	switch v.Type {
 	case "string", "number", "integer", "boolean":
-		fcexpr := &generated.FunctionCallExpr{Name: v.Type}
+		fcexpr := &light.FunctionCallExpr{Name: v.Type}
 		if v.Format != "" {
 			fcexpr.Args = append(fcexpr.Args, stringToLiteralValueExpr(v.Format))
 		}
-		return &generated.Expression{
-			ExpressionClause: &generated.Expression_Fcexpr{
+		return &light.Expression{
+			ExpressionClause: &light.Expression_Fcexpr{
 				Fcexpr: fcexpr,
 			},
 		}, nil
 	case "array":
-		tcexpr := &generated.TupleConsExpr{}
+		tcexpr := &light.TupleConsExpr{}
 		for _, item := range v.Items.SchemaOrReference {
 			expr, err := self.exprSchemaOrReference(item)
 			if err != nil {
@@ -385,8 +385,8 @@ func (self *GnoConfig) exprSchema(v *openapiv3.Schema) (*generated.Expression, e
 			}
 			tcexpr.Exprs = append(tcexpr.Exprs, expr)
 		}
-		return &generated.Expression{
-			ExpressionClause: &generated.Expression_Tcexpr{
+		return &light.Expression{
+			ExpressionClause: &light.Expression_Tcexpr{
 				Tcexpr: tcexpr,
 			},
 		}, nil
@@ -394,21 +394,21 @@ func (self *GnoConfig) exprSchema(v *openapiv3.Schema) (*generated.Expression, e
 	}
 
 	if v.Properties != nil {
-		ocexpr := &generated.ObjectConsExpr{}
-		var items []*generated.ObjectConsItem
+		ocexpr := &light.ObjectConsExpr{}
+		var items []*light.ObjectConsItem
 		for _, item := range v.Properties.AdditionalProperties {
 			expr, err := self.exprSchemaOrReference(item.Value)
 			if err != nil {
 				return nil, err
 			}
-			items = append(items, &generated.ObjectConsItem{
+			items = append(items, &light.ObjectConsItem{
 				KeyExpr:   stringToLiteralValueExpr(item.Name),
 				ValueExpr: expr,
 			})
 		}
 		ocexpr.Items = items
-		return &generated.Expression{
-			ExpressionClause: &generated.Expression_Ocexpr{
+		return &light.Expression{
+			ExpressionClause: &light.Expression_Ocexpr{
 				Ocexpr: ocexpr,
 			},
 		}, nil
@@ -423,7 +423,7 @@ func (self *GnoConfig) exprSchema(v *openapiv3.Schema) (*generated.Expression, e
 	return nil, nil
 }
 
-func (self *GnoConfig) nameExprParameterOrReference(v *openapiv3.ParameterOrReference) (string, *generated.Expression, error) {
+func (self *GnoConfig) nameExprParameterOrReference(v *openapiv3.ParameterOrReference) (string, *light.Expression, error) {
 	parameter, err := self.expandParameterOrReference(v)
 	if err != nil {
 		return "", nil, err
@@ -433,7 +433,7 @@ func (self *GnoConfig) nameExprParameterOrReference(v *openapiv3.ParameterOrRefe
 }
 
 // parameter always return body, different bodies could be added
-func (self *GnoConfig) exprParameter(p *openapiv3.Parameter) (*generated.Expression, error) {
+func (self *GnoConfig) exprParameter(p *openapiv3.Parameter) (*light.Expression, error) {
 	if p.GetSchema() != nil {
 		return self.exprSchemaOrReference(p.GetSchema())
 	}
@@ -443,26 +443,26 @@ func (self *GnoConfig) exprParameter(p *openapiv3.Parameter) (*generated.Express
 	return self.exprSchemaOrReference(schemaOrReference)
 }
 
-func (self *GnoConfig) bodyArrayParameterOrReference(v []*openapiv3.ParameterOrReference) (*generated.Body, error) {
-	attributes := make(map[string]*generated.Attribute)
+func (self *GnoConfig) bodyArrayParameterOrReference(v []*openapiv3.ParameterOrReference) (*light.Body, error) {
+	attributes := make(map[string]*light.Attribute)
 	for _, item := range v {
 		name, expr, err := self.nameExprParameterOrReference(item)
 		if err != nil {
 			return nil, err
 		}
-		attributes[name] = &generated.Attribute{
+		attributes[name] = &light.Attribute{
 			Name: name,
 			Expr: expr,
 		}
 	}
 
-	return &generated.Body{
+	return &light.Body{
 		Attributes: attributes,
 	}, nil
 }
 
 // return request body as ocexpr
-func (self *GnoConfig) exprRequestBodyOrReference(v *openapiv3.RequestBodyOrReference) (*generated.Expression, error) {
+func (self *GnoConfig) exprRequestBodyOrReference(v *openapiv3.RequestBodyOrReference) (*light.Expression, error) {
 	rb, err := self.expandRequestBodyOrReference(v)
 	if err != nil {
 		return nil, err
@@ -470,13 +470,13 @@ func (self *GnoConfig) exprRequestBodyOrReference(v *openapiv3.RequestBodyOrRefe
 	return self.exprRequestBody(rb)
 }
 
-func (self *GnoConfig) exprRequestBody(v *openapiv3.RequestBody) (*generated.Expression, error) {
+func (self *GnoConfig) exprRequestBody(v *openapiv3.RequestBody) (*light.Expression, error) {
 	schemaOrReference := schemaMediaTypes(v.Content)
 	return self.exprSchemaOrReference(schemaOrReference)
 }
 
 // return request body as body
-func (self *GnoConfig) bodyRequestBodyOrReference(v *openapiv3.RequestBodyOrReference) (*generated.Body, error) {
+func (self *GnoConfig) bodyRequestBodyOrReference(v *openapiv3.RequestBodyOrReference) (*light.Body, error) {
 	expr, err := self.exprRequestBodyOrReference(v)
 	if err != nil {
 		return nil, err

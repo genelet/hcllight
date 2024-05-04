@@ -4,7 +4,6 @@ import (
 	"os"
 	"testing"
 
-	"github.com/genelet/hcllight/light"
 	openapiv3 "github.com/google/gnostic-models/openapiv3"
 )
 
@@ -38,7 +37,7 @@ func TestGnoConfigGenerator(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	bs, err = light.Hcl(body)
+	bs, err = body.Hcl()
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -3,7 +3,7 @@
 package gno
 
 import (
-	"github.com/genelet/hcllight/generated"
+	"github.com/genelet/hcllight/light"
 	openapiv3 "github.com/google/gnostic-models/openapiv3"
 )
 
@@ -45,15 +45,15 @@ func NewGnoDataSource(ds *DataSource, doc *openapiv3.Document) (*GnoDataSource, 
 	return gds, nil
 }
 
-func (self *GnoDataSource) blockDataSource(name string, c *GnoConfig) ([]*generated.Block, error) {
-	var blocks []*generated.Block
+func (self *GnoDataSource) blockDataSource(name string, c *GnoConfig) ([]*light.Block, error) {
+	var blocks []*light.Block
 
 	if self.ReadOp != nil {
 		body, err := c.bodyOperation(self.ReadOp, self.SchemaOptions)
 		if err != nil {
 			return nil, err
 		}
-		blocks = append(blocks, &generated.Block{
+		blocks = append(blocks, &light.Block{
 			Type:   "data_source",
 			Labels: []string{name, "read_op"},
 			Bdy:    body,
@@ -64,7 +64,7 @@ func (self *GnoDataSource) blockDataSource(name string, c *GnoConfig) ([]*genera
 		if err != nil {
 			return nil, err
 		}
-		blocks = append(blocks, &generated.Block{
+		blocks = append(blocks, &light.Block{
 			Type:   "data_source",
 			Labels: []string{name, "common_parameters"},
 			Bdy:    body,
@@ -74,12 +74,12 @@ func (self *GnoDataSource) blockDataSource(name string, c *GnoConfig) ([]*genera
 	return blocks, nil
 }
 
-func (self *GnoConfig) bodyOperation(op *openapiv3.Operation, so *SchemaOptions) (*generated.Body, error) {
+func (self *GnoConfig) bodyOperation(op *openapiv3.Operation, so *SchemaOptions) (*light.Body, error) {
 	if op == nil {
 		return nil, nil
 	}
 
-	var body *generated.Body
+	var body *light.Body
 	var err error
 	if op.Parameters == nil {
 		body, err = self.bodyRequestBodyOrReference(op.RequestBody)

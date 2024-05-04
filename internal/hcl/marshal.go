@@ -1,15 +1,18 @@
 package hcl
 
 import (
-	"github.com/genelet/hcllight/generated"
+	"fmt"
+
+	"github.com/genelet/determined/dethcl"
+	"github.com/genelet/hcllight/light"
 )
 
-func stringToLiteralValueExpr(s string) *generated.Expression {
-	return &generated.Expression{
-		ExpressionClause: &generated.Expression_Lvexpr{
-			Lvexpr: &generated.LiteralValueExpr{
-				Val: &generated.CtyValue{
-					CtyValueClause: &generated.CtyValue_StringValue{
+func stringToLiteralValueExpr(s string) *light.Expression {
+	return &light.Expression{
+		ExpressionClause: &light.Expression_Lvexpr{
+			Lvexpr: &light.LiteralValueExpr{
+				Val: &light.CtyValue{
+					CtyValueClause: &light.CtyValue_StringValue{
 						StringValue: s,
 					},
 				},
@@ -18,12 +21,12 @@ func stringToLiteralValueExpr(s string) *generated.Expression {
 	}
 }
 
-func int64ToLiteralValueExpr(i int64) *generated.Expression {
-	return &generated.Expression{
-		ExpressionClause: &generated.Expression_Lvexpr{
-			Lvexpr: &generated.LiteralValueExpr{
-				Val: &generated.CtyValue{
-					CtyValueClause: &generated.CtyValue_NumberValue{
+func int64ToLiteralValueExpr(i int64) *light.Expression {
+	return &light.Expression{
+		ExpressionClause: &light.Expression_Lvexpr{
+			Lvexpr: &light.LiteralValueExpr{
+				Val: &light.CtyValue{
+					CtyValueClause: &light.CtyValue_NumberValue{
 						NumberValue: float64(i),
 					},
 				},
@@ -32,12 +35,12 @@ func int64ToLiteralValueExpr(i int64) *generated.Expression {
 	}
 }
 
-func doubleToLiteralValueExpr(f float64) *generated.Expression {
-	return &generated.Expression{
-		ExpressionClause: &generated.Expression_Lvexpr{
-			Lvexpr: &generated.LiteralValueExpr{
-				Val: &generated.CtyValue{
-					CtyValueClause: &generated.CtyValue_NumberValue{
+func doubleToLiteralValueExpr(f float64) *light.Expression {
+	return &light.Expression{
+		ExpressionClause: &light.Expression_Lvexpr{
+			Lvexpr: &light.LiteralValueExpr{
+				Val: &light.CtyValue{
+					CtyValueClause: &light.CtyValue_NumberValue{
 						NumberValue: f,
 					},
 				},
@@ -46,12 +49,12 @@ func doubleToLiteralValueExpr(f float64) *generated.Expression {
 	}
 }
 
-func booleanToLiteralValueExpr(b bool) *generated.Expression {
-	return &generated.Expression{
-		ExpressionClause: &generated.Expression_Lvexpr{
-			Lvexpr: &generated.LiteralValueExpr{
-				Val: &generated.CtyValue{
-					CtyValueClause: &generated.CtyValue_BoolValue{
+func booleanToLiteralValueExpr(b bool) *light.Expression {
+	return &light.Expression{
+		ExpressionClause: &light.Expression_Lvexpr{
+			Lvexpr: &light.LiteralValueExpr{
+				Val: &light.CtyValue{
+					CtyValueClause: &light.CtyValue_BoolValue{
 						BoolValue: b,
 					},
 				},
@@ -60,76 +63,82 @@ func booleanToLiteralValueExpr(b bool) *generated.Expression {
 	}
 }
 
-func stringsToTupleConsExpr(items []string) *generated.Expression {
-	tcexpr := &generated.TupleConsExpr{}
+func stringsToTupleConsExpr(items []string) *light.Expression {
+	tcexpr := &light.TupleConsExpr{}
 	for _, item := range items {
 		tcexpr.Exprs = append(tcexpr.Exprs, stringToLiteralValueExpr(item))
 	}
-	return &generated.Expression{
-		ExpressionClause: &generated.Expression_Tcexpr{
+	return &light.Expression{
+		ExpressionClause: &light.Expression_Tcexpr{
 			Tcexpr: tcexpr,
 		},
 	}
 }
 
-func itemsToTupleConsExpr(items []*SchemaOrReference) *generated.Expression {
-	tcexpr := &generated.TupleConsExpr{}
+func itemsToTupleConsExpr(items []*SchemaOrReference) *light.Expression {
+	tcexpr := &light.TupleConsExpr{}
 	for _, item := range items {
 		expr := exprSchemaOrReference(item)
 		tcexpr.Exprs = append(tcexpr.Exprs, expr)
 	}
-	return &generated.Expression{
-		ExpressionClause: &generated.Expression_Tcexpr{
+	return &light.Expression{
+		ExpressionClause: &light.Expression_Tcexpr{
 			Tcexpr: tcexpr,
 		},
 	}
 }
 
-func hashToObjectConsExpr(hash map[string]*SchemaOrReference) *generated.Expression {
-	ocexpr := &generated.ObjectConsExpr{}
-	var items []*generated.ObjectConsItem
+func hashToObjectConsExpr(hash map[string]*SchemaOrReference) *light.Expression {
+	ocexpr := &light.ObjectConsExpr{}
+	var items []*light.ObjectConsItem
 	for name, item := range hash {
 		expr := exprSchemaOrReference(item)
-		items = append(items, &generated.ObjectConsItem{
+		items = append(items, &light.ObjectConsItem{
 			KeyExpr:   stringToLiteralValueExpr(name),
 			ValueExpr: expr,
 		})
 	}
 	ocexpr.Items = items
-	return &generated.Expression{
-		ExpressionClause: &generated.Expression_Ocexpr{
+	return &light.Expression{
+		ExpressionClause: &light.Expression_Ocexpr{
 			Ocexpr: ocexpr,
 		},
 	}
 }
 
-func exprSchemaOrReference(s *SchemaOrReference) *generated.Expression {
+func (self *SchemaOrReference) MarshalHCL() ([]byte, error) {
+	expr := exprSchemaOrReference(self)
+	if expr == nil {
+		return nil, nil
+	}
+	str, err := expr.HclExpression()
+	return []byte(str), err
+}
+
+func exprSchemaOrReference(s *SchemaOrReference) *light.Expression {
 	if s == nil {
 		return nil
 	}
 
 	var name string
-	var args []*generated.Expression
+	var args []*light.Expression
 
 	switch s.Oneof.(type) {
 	case *SchemaOrReference_Reference:
 		t := s.GetReference()
 		name = "reference"
-		args = []*generated.Expression{stringToLiteralValueExpr(t.XRef)}
+		args = []*light.Expression{stringToLiteralValueExpr(t.XRef)}
 		if t.Summary != "" {
 			args = append(args, stringToLiteralValueExpr(t.Summary))
 		}
 		if t.Description != "" {
 			args = append(args, stringToLiteralValueExpr(t.Description))
 		}
-	case *SchemaOrReference_Schema:
-		t := s.GetSchema()
-		return exprSchema(t)
 	case *SchemaOrReference_Array:
 		t := s.GetArray()
 		name = t.Type
 		items := itemsToTupleConsExpr(t.Items)
-		args = []*generated.Expression{items}
+		args = []*light.Expression{items}
 		if name != "array" {
 			break
 		}
@@ -163,7 +172,7 @@ func exprSchemaOrReference(s *SchemaOrReference) *generated.Expression {
 		t := s.GetObject()
 		name = t.Type
 		properties := hashToObjectConsExpr(t.Properties)
-		args = []*generated.Expression{properties}
+		args = []*light.Expression{properties}
 		if t.MinProperties != 0 || t.MaxProperties != 0 {
 			args = append(args, int64ToLiteralValueExpr(t.MinProperties))
 			args = append(args, int64ToLiteralValueExpr(t.MaxProperties))
@@ -215,12 +224,19 @@ func exprSchemaOrReference(s *SchemaOrReference) *generated.Expression {
 		if t.Default {
 			args = append(args, booleanToLiteralValueExpr(t.Default))
 		}
+	case *SchemaOrReference_Schema:
+		expr, err := exprSchema(s.GetSchema())
+		if err != nil {
+			panic(err)
+		}
+		fmt.Printf("%#v\n", expr)
+		return expr
 	default:
 	}
 
-	return &generated.Expression{
-		ExpressionClause: &generated.Expression_Fcexpr{
-			Fcexpr: &generated.FunctionCallExpr{
+	return &light.Expression{
+		ExpressionClause: &light.Expression_Fcexpr{
+			Fcexpr: &light.FunctionCallExpr{
 				Name: name,
 				Args: args,
 			},
@@ -228,12 +244,116 @@ func exprSchemaOrReference(s *SchemaOrReference) *generated.Expression {
 	}
 }
 
-func exprSchema(schema *Schema) *generated.Expression {
+func exprSchema(schema *Schema) (*light.Expression, error) {
 	if schema == nil {
-		return nil
+		return nil, nil
 	}
-	s := &Schema{
-		Nullable: schema.Nullable,
+	newSchema := &Schema{
+		Nullable:               schema.Nullable,
+		Discriminator:          schema.Discriminator,
+		ReadOnly:               schema.ReadOnly,
+		WriteOnly:              schema.WriteOnly,
+		Xml:                    schema.Xml,
+		ExternalDocs:           schema.ExternalDocs,
+		Example:                schema.Example,
+		Deprecated:             schema.Deprecated,
+		Title:                  schema.Title,
+		MultipleOf:             schema.MultipleOf,
+		Maximum:                schema.Maximum,
+		ExclusiveMaximum:       schema.ExclusiveMaximum,
+		Minimum:                schema.Minimum,
+		ExclusiveMinimum:       schema.ExclusiveMinimum,
+		MaxLength:              schema.MaxLength,
+		MinLength:              schema.MinLength,
+		Pattern:                schema.Pattern,
+		MaxItems:               schema.MaxItems,
+		MinItems:               schema.MinItems,
+		UniqueItems:            schema.UniqueItems,
+		MaxProperties:          schema.MaxProperties,
+		MinProperties:          schema.MinProperties,
+		Required:               schema.Required,
+		Enum:                   schema.Enum,
+		Type:                   schema.Type,
+		Default:                schema.Default,
+		Description:            schema.Description,
+		Format:                 schema.Format,
+		SpecificationExtension: schema.SpecificationExtension,
 	}
-	return s
+	bs, err := dethcl.Marshal(newSchema)
+	if err != nil {
+		return nil, err
+	}
+	body, err := light.Parse(bs)
+	if err != nil {
+		return nil, err
+	}
+	if body.Attributes == nil {
+		body.Attributes = make(map[string]*light.Attribute)
+	}
+	if schema.Not != nil {
+		expr := exprSchemaOrReference(schema.Not)
+		body.Attributes["not"] = &light.Attribute{
+			Name: "not",
+			Expr: expr,
+		}
+	}
+	if schema.AllOf != nil {
+		expr := itemsToTupleConsExpr(schema.AllOf)
+		body.Attributes["allOf"] = &light.Attribute{
+			Name: "allOf",
+			Expr: expr,
+		}
+	}
+	if schema.AnyOf != nil {
+		expr := itemsToTupleConsExpr(schema.AnyOf)
+		body.Attributes["anyOf"] = &light.Attribute{
+			Name: "anyOf",
+			Expr: expr,
+		}
+	}
+	if schema.OneOf != nil {
+		expr := itemsToTupleConsExpr(schema.OneOf)
+		body.Attributes["oneOf"] = &light.Attribute{
+			Name: "oneOf",
+			Expr: expr,
+		}
+	}
+	if schema.Items != nil {
+		expr := itemsToTupleConsExpr(schema.Items)
+		body.Attributes["items"] = &light.Attribute{
+			Name: "items",
+			Expr: expr,
+		}
+	}
+	if schema.Properties != nil {
+		expr := hashToObjectConsExpr(schema.Properties)
+		body.Blocks = append(body.Blocks, &light.Block{
+			Type: "properties",
+			Bdy:  expr.GetOcexpr().ToBody(),
+		})
+	}
+	if schema.AdditionalProperties != nil {
+		switch schema.AdditionalProperties.Oneof.(type) {
+		case *AdditionalPropertiesItem_SchemaOrReference:
+			expr := exprSchemaOrReference(schema.AdditionalProperties.GetSchemaOrReference())
+			body.Attributes["additionalProperties"] = &light.Attribute{
+				Name: "additionalProperties",
+				Expr: expr,
+			}
+		case *AdditionalPropertiesItem_Boolean:
+			expr := booleanToLiteralValueExpr(schema.AdditionalProperties.GetBoolean())
+			body.Attributes["additionalProperties"] = &light.Attribute{
+				Name: "additionalProperties",
+				Expr: expr,
+			}
+		default:
+			return nil, fmt.Errorf("%s", "no a datatype")
+		}
+	}
+
+	return &light.Expression{
+		ExpressionClause: &light.Expression_Ocexpr{
+			Ocexpr: body.ToObjectConsExpr(),
+		},
+	}, nil
 }

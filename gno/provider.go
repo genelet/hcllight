@@ -3,7 +3,7 @@
 package gno
 
 import (
-	"github.com/genelet/hcllight/generated"
+	"github.com/genelet/hcllight/light"
 	openapiv3 "github.com/google/gnostic-models/openapiv3"
 )
 
@@ -31,11 +31,11 @@ func NewGnoProvider(p *Provider, doc *openapiv3.Document) (*GnoProvider, error) 
 	return gp, nil
 }
 
-func (self *GnoProvider) blockProvider(c *GnoConfig) (*generated.Block, error) {
-	block := &generated.Block{
+func (self *GnoProvider) blockProvider(c *GnoConfig) (*light.Block, error) {
+	block := &light.Block{
 		Type:   "provider",
 		Labels: []string{self.Name},
-		Bdy:    new(generated.Body),
+		Bdy:    new(light.Body),
 	}
 
 	if self.SchemaProxy != nil {
@@ -44,8 +44,8 @@ func (self *GnoProvider) blockProvider(c *GnoConfig) (*generated.Block, error) {
 			return nil, err
 		}
 
-		block.Bdy = &generated.Body{
-			Attributes: map[string]*generated.Attribute{
+		block.Bdy = &light.Body{
+			Attributes: map[string]*light.Attribute{
 				"schema_proxy": {
 					Expr: expr,
 				},

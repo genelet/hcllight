@@ -7,7 +7,6 @@ import (
 	"os"
 	"strings"
 
-	"github.com/genelet/hcllight/generated"
 	"github.com/genelet/hcllight/light"
 
 	"github.com/getkin/kin-openapi/openapi3"
@@ -16,8 +15,8 @@ import (
 type Kin struct {
 	doc     *openapi3.T
 	address *url.URL
-	ref     map[string]*generated.Body
-	extra   map[string]*generated.Body
+	ref     map[string]*light.Body
+	extra   map[string]*light.Body
 }
 
 // NewKin creates a new Kin object from a byte slice of an OpenAPI 3.0 document.
@@ -41,25 +40,25 @@ func NewKin(bs []byte) (*Kin, error) {
 	return &Kin{
 		doc:     doc,
 		address: address,
-		ref:     make(map[string]*generated.Body),
+		ref:     make(map[string]*light.Body),
 	}, nil
 }
 
-func stringToCtyValue(val string) *generated.CtyValue {
-	return &generated.CtyValue{
-		CtyValueClause: &generated.CtyValue_StringValue{StringValue: val},
+func stringToCtyValue(val string) *light.CtyValue {
+	return &light.CtyValue{
+		CtyValueClause: &light.CtyValue_StringValue{StringValue: val},
 	}
 }
 
-func stringToExpression(val string) *generated.Expression {
-	return &generated.Expression{
-		ExpressionClause: &generated.Expression_Lvexpr{
-			Lvexpr: &generated.LiteralValueExpr{Val: stringToCtyValue(val)},
+func stringToExpression(val string) *light.Expression {
+	return &light.Expression{
+		ExpressionClause: &light.Expression_Lvexpr{
+			Lvexpr: &light.LiteralValueExpr{Val: stringToCtyValue(val)},
 		},
 	}
 }
 
-func (self *Kin) schemaToBody(key string, schema *openapi3.Schema) (*generated.Body, *openapi3.Schema, error) {
+func (self *Kin) schemaToBody(key string, schema *openapi3.Schema) (*light.Body, *openapi3.Schema, error) {
 	switch schema.Type {
 	case "string", "number", "integer", "boolean":
 		return nil, schema, nil
@@ -73,7 +72,7 @@ func (self *Kin) schemaToBody(key string, schema *openapi3.Schema) (*generated.B
 			return nil, schema, nil
 		}
 		if self.extra == nil {
-			self.extra = make(map[string]*generated.Body)
+			self.extra = make(map[string]*light.Body)
 		}
 		self.extra[key] = bdy
 		schema.Type = "list(" + key + ")"
@@ -100,7 +99,7 @@ func (self *Kin) schemaToBody(key string, schema *openapi3.Schema) (*generated.B
 		return nil, schema, nil
 	}
 
-	var body = &generated.Body{}
+	var body = &light.Body{}
 	for k, v := range schema.Properties {
 		bdy, s, err := self.schemaRefToBody(k, v)
 		if err != nil {
@@ -108,14 +107,14 @@ func (self *Kin) schemaToBody(key string, schema *openapi3.Schema) (*generated.B
 		}
 		if bdy == nil {
 			if body.Attributes == nil {
-				body.Attributes = make(map[string]*generated.Attribute)
+				body.Attributes = make(map[string]*light.Attribute)
 			}
-			body.Attributes[k] = &generated.Attribute{
+			body.Attributes[k] = &light.Attribute{
 				Name: k,
 				Expr: stringToExpression(s.Type),
 			}
 		} else {
-			block := &generated.Block{
+			block := &light.Block{
 				Type: k,
 				Bdy:  bdy,
 			}
@@ -126,7 +125,7 @@ func (self *Kin) schemaToBody(key string, schema *openapi3.Schema) (*generated.B
 	return body, nil, nil
 }
 
-func (self *Kin) schemaRefToBody(key string, v *openapi3.SchemaRef) (*generated.Body, *openapi3.Schema, error) {
+func (self *Kin) schemaRefToBody(key string, v *openapi3.SchemaRef) (*light.Body, *openapi3.Schema, error) {
 	if v.Ref != "" {
 		rel, err := getStructName(v.Ref)
 		return nil, &openapi3.Schema{Type: rel}, err
@@ -178,7 +177,7 @@ func (self *Kin) Build() error {
 		}
 		if body != nil {
 			self.ref[key] = body
-			hcl, err := light.Hcl(body)
+			hcl, err := body.Hcl()
 			if err != nil {
 				return err
 			}
@@ -244,7 +243,7 @@ func twoSpace(s []byte) string {
 
 func (self *Kin) getRR(op *openapi3.Operation) ([]byte, []byte, error) {
 	var bsRequest, bsResponse []byte
-	var bdy *generated.Body
+	var bdy *light.Body
 	var s *openapi3.Schema
 	var err error
 
@@ -254,7 +253,7 @@ func (self *Kin) getRR(op *openapi3.Operation) ([]byte, []byte, error) {
 			if bdy == nil {
 				bsRequest = []byte(s.Type)
 			} else {
-				bsRequest, err = light.Hcl(bdy)
+				bsRequest, err = bdy.Hcl()
 			}
 		}
 	}
@@ -264,7 +263,7 @@ func (self *Kin) getRR(op *openapi3.Operation) ([]byte, []byte, error) {
 			if bdy == nil {
 				bsResponse = []byte(s.Type)
 			} else {
-				bsResponse, err = light.Hcl(bdy)
+				bsResponse, err = bdy.Hcl()
 			}
 		}
 	}
