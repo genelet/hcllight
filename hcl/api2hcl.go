@@ -313,7 +313,7 @@ func ComponentsToHcl(components *openapiv3.Components) *Components {
 	if components.Schemas != nil {
 		c.Schemas = make(map[string]*SchemaOrReference)
 		for _, v := range components.Schemas.AdditionalProperties {
-			c.Schemas[v.Name] = SchemaOrReferenceToHcl(v.Value)
+			c.Schemas[v.Name] = SchemaOrReferenceToHcl(v.Value, true)
 		}
 	}
 	if components.Parameters != nil {

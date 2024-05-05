@@ -1,77 +1,8 @@
 package hcl
 
 import (
-	"github.com/genelet/determined/dethcl"
 	"github.com/genelet/hcllight/light"
 )
-
-func stringToLiteralValueExpr(s string) *light.Expression {
-	return &light.Expression{
-		ExpressionClause: &light.Expression_Lvexpr{
-			Lvexpr: &light.LiteralValueExpr{
-				Val: &light.CtyValue{
-					CtyValueClause: &light.CtyValue_StringValue{
-						StringValue: s,
-					},
-				},
-			},
-		},
-	}
-}
-
-func int64ToLiteralValueExpr(i int64) *light.Expression {
-	return &light.Expression{
-		ExpressionClause: &light.Expression_Lvexpr{
-			Lvexpr: &light.LiteralValueExpr{
-				Val: &light.CtyValue{
-					CtyValueClause: &light.CtyValue_NumberValue{
-						NumberValue: float64(i),
-					},
-				},
-			},
-		},
-	}
-}
-
-func doubleToLiteralValueExpr(f float64) *light.Expression {
-	return &light.Expression{
-		ExpressionClause: &light.Expression_Lvexpr{
-			Lvexpr: &light.LiteralValueExpr{
-				Val: &light.CtyValue{
-					CtyValueClause: &light.CtyValue_NumberValue{
-						NumberValue: f,
-					},
-				},
-			},
-		},
-	}
-}
-
-func booleanToLiteralValueExpr(b bool) *light.Expression {
-	return &light.Expression{
-		ExpressionClause: &light.Expression_Lvexpr{
-			Lvexpr: &light.LiteralValueExpr{
-				Val: &light.CtyValue{
-					CtyValueClause: &light.CtyValue_BoolValue{
-						BoolValue: b,
-					},
-				},
-			},
-		},
-	}
-}
-
-func stringsToTupleConsExpr(items []string) *light.Expression {
-	tcexpr := &light.TupleConsExpr{}
-	for _, item := range items {
-		tcexpr.Exprs = append(tcexpr.Exprs, stringToLiteralValueExpr(item))
-	}
-	return &light.Expression{
-		ExpressionClause: &light.Expression_Tcexpr{
-			Tcexpr: tcexpr,
-		},
-	}
-}
 
 func itemsToTupleConsExpr(items []*SchemaOrReference) *light.Expression {
 	tcexpr := &light.TupleConsExpr{}
@@ -99,7 +30,23 @@ func enumToTupleConsExpr(enum []*Any) *light.Expression {
 	}
 }
 
-func hashToObjectConsExpr(hash map[string]*SchemaOrReference) *light.Expression {
+func anyMapToBody(content map[string]*Any) *light.Body {
+	if content == nil {
+		return nil
+	}
+	body := &light.Body{
+		Attributes: make(map[string]*light.Attribute),
+	}
+	for k, v := range content {
+		body.Attributes[k] = &light.Attribute{
+			Name: k,
+			Expr: v.toExpression(),
+		}
+	}
+	return body
+}
+
+func schemaOrReferenceToObjectConsExpr(hash map[string]*SchemaOrReference) *light.Expression {
 	ocexpr := &light.ObjectConsExpr{}
 	var items []*light.ObjectConsItem
 	for name, item := range hash {
@@ -117,217 +64,19 @@ func hashToObjectConsExpr(hash map[string]*SchemaOrReference) *light.Expression 
 	}
 }
 
-func anyMapToBody(content map[string]*Any) *light.Body {
-	if content == nil {
-		return nil
-	}
-	body := &light.Body{
-		Attributes: make(map[string]*light.Attribute),
-	}
-	for k, v := range content {
-		body.Attributes[k] = &light.Attribute{
-			Name: k,
-			Expr: v.toExpression(),
-		}
-	}
-	return body
-}
-
-func encodingMapToBlocks(encodings map[string]*Encoding) ([]*light.Block, error) {
-	if encodings == nil {
+func (s *SchemaOrReference) toHCL() (*light.Body, error) {
+	if s == nil {
 		return nil, nil
 	}
-	var blocks []*light.Block
-	for k, v := range encodings {
-		bdy, err := v.toHCL()
-		if err != nil {
-			return nil, err
-		}
-		blocks = append(blocks, &light.Block{
-			Type:   "encoding",
-			Labels: []string{k},
-			Bdy:    bdy,
-		})
+	switch s.Oneof.(type) {
+	case *SchemaOrReference_Reference:
+		t := s.GetReference()
+		return t.toBody(), nil
+	case *SchemaOrReference_Schema:
+		return s.GetSchema().toHCL()
+	default: // we ignore all other types, meaning we have to assign type Schema when parsing Components.Schemas
 	}
-	return blocks, nil
-}
-
-func exampleOrReferenceMapToBlocks(examples map[string]*ExampleOrReference) ([]*light.Block, error) {
-	if examples == nil {
-		return nil, nil
-	}
-	var blocks []*light.Block
-	for k, v := range examples {
-		bdy, err := v.toHCL()
-		if err != nil {
-			return nil, err
-		}
-		blocks = append(blocks, &light.Block{
-			Type:   "example",
-			Labels: []string{k},
-			Bdy:    bdy,
-		})
-	}
-	return blocks, nil
-}
-
-func headerOrReferenceMapToBlocks(headers map[string]*HeaderOrReference) ([]*light.Block, error) {
-	if headers == nil {
-		return nil, nil
-	}
-	var blocks []*light.Block
-	for k, v := range headers {
-		bdy, err := v.toHCL()
-		if err != nil {
-			return nil, err
-		}
-		blocks = append(blocks, &light.Block{
-			Type:   "header",
-			Labels: []string{k},
-			Bdy:    bdy,
-		})
-	}
-	return blocks, nil
-}
-
-func linkOrReferenceMapToBlocks(links map[string]*LinkOrReference) ([]*light.Block, error) {
-	if links == nil {
-		return nil, nil
-	}
-	var blocks []*light.Block
-	for k, v := range links {
-		bdy, err := v.toHCL()
-		if err != nil {
-			return nil, err
-		}
-		blocks = append(blocks, &light.Block{
-			Type:   "link",
-			Labels: []string{k},
-			Bdy:    bdy,
-		})
-	}
-	return blocks, nil
-}
-
-func mediaTypeMapToBlocks(content map[string]*MediaType) ([]*light.Block, error) {
-	if content == nil {
-		return nil, nil
-	}
-	var blocks []*light.Block
-	for k, v := range content {
-		bdy, err := v.toHCL()
-		if err != nil {
-			return nil, err
-		}
-		blocks = append(blocks, &light.Block{
-			Type:   "content",
-			Labels: []string{k},
-			Bdy:    bdy,
-		})
-	}
-	return blocks, nil
-}
-
-func parameterOrReferenceMapToBlocks(parameters map[string]*ParameterOrReference) ([]*light.Block, error) {
-	if parameters == nil {
-		return nil, nil
-	}
-	var blocks []*light.Block
-	for k, v := range parameters {
-		bdy, err := v.toHCL()
-		if err != nil {
-			return nil, err
-		}
-		blocks = append(blocks, &light.Block{
-			Type:   "parameter",
-			Labels: []string{k},
-			Bdy:    bdy,
-		})
-	}
-	return blocks, nil
-}
-
-func requestBodyOrReferenceMapToBlocks(requestBodies map[string]*RequestBodyOrReference) ([]*light.Block, error) {
-	if requestBodies == nil {
-		return nil, nil
-	}
-	var blocks []*light.Block
-	for k, v := range requestBodies {
-		bdy, err := v.toHCL()
-		if err != nil {
-			return nil, err
-		}
-		blocks = append(blocks, &light.Block{
-			Type:   "requestBody",
-			Labels: []string{k},
-			Bdy:    bdy,
-		})
-	}
-	return blocks, nil
-}
-
-func responseOrReferenceMapToBlocks(responses map[string]*ResponseOrReference) ([]*light.Block, error) {
-	if responses == nil {
-		return nil, nil
-	}
-	var blocks []*light.Block
-	for k, v := range responses {
-		bdy, err := v.toHCL()
-		if err != nil {
-			return nil, err
-		}
-		blocks = append(blocks, &light.Block{
-			Type:   "response",
-			Labels: []string{k},
-			Bdy:    bdy,
-		})
-	}
-	return blocks, nil
-}
-
-func schemaOrReferenceMapToBody(schemas map[string]*SchemaOrReference) *light.Body {
-	if schemas == nil {
-		return nil
-	}
-	body := &light.Body{
-		Attributes: make(map[string]*light.Attribute),
-	}
-	for k, v := range schemas {
-		expr := v.toExpression()
-		body.Attributes[k] = &light.Attribute{
-			Name: k,
-			Expr: expr,
-		}
-	}
-	return body
-}
-
-func toBody(x interface{}) (*light.Body, error) {
-	bs, err := dethcl.Marshal(x)
-	if err != nil {
-		return nil, err
-	}
-	return light.Parse(bs)
-}
-
-func toBlock(x interface{}, t string) (*light.Block, error) {
-	body, err := toBody(x)
-	if err != nil {
-		return nil, err
-	}
-	return &light.Block{
-		Type: t,
-		Bdy:  body,
-	}, nil
-}
-
-func (self *SchemaOrReference) MarshalHCL() ([]byte, error) {
-	expr := self.toExpression()
-	if expr == nil {
-		return nil, nil
-	}
-	str, err := expr.HclExpression()
-	return []byte(str), err
+	return nil, nil
 }
 
 func (s *SchemaOrReference) toExpression() *light.Expression {
@@ -379,7 +128,7 @@ func (s *SchemaOrReference) toExpression() *light.Expression {
 	case *SchemaOrReference_Object:
 		t := s.GetObject()
 		name = t.Type
-		properties := hashToObjectConsExpr(t.Properties)
+		properties := schemaOrReferenceToObjectConsExpr(t.Properties)
 		args = []*light.Expression{properties}
 		if t.MinProperties != 0 || t.MaxProperties != 0 {
 			args = append(args, int64ToLiteralValueExpr(t.MinProperties))
@@ -453,14 +202,6 @@ func (s *SchemaOrReference) toExpression() *light.Expression {
 			},
 		},
 	}
-}
-
-func (self *Schema) MarshalHCL() ([]byte, error) {
-	body, err := self.toHCL()
-	if err != nil {
-		return nil, err
-	}
-	return body.Hcl()
 }
 
 func (self *Schema) toHCL() (*light.Body, error) {
@@ -565,25 +306,34 @@ func (self *Schema) toHCL() (*light.Body, error) {
 		}
 	}
 	if self.Discriminator != nil {
-		block, err := toBlock(self.Discriminator, "discriminator")
+		bdy, err := self.Discriminator.toHCL()
 		if err != nil {
 			return nil, err
 		}
-		blocks = append(blocks, block)
+		blocks = append(blocks, &light.Block{
+			Type: "discriminator",
+			Bdy:  bdy,
+		})
 	}
 	if self.ExternalDocs != nil {
-		block, err := toBlock(self.ExternalDocs, "externalDocs")
+		bdy, err := self.ExternalDocs.toHCL()
 		if err != nil {
 			return nil, err
 		}
-		blocks = append(blocks, block)
+		blocks = append(blocks, &light.Block{
+			Type: "externalDocs",
+			Bdy:  bdy,
+		})
 	}
 	if self.Xml != nil {
-		block, err := toBlock(self.Xml, "xml")
+		bdy, err := self.Xml.toHCL()
 		if err != nil {
 			return nil, err
 		}
-		blocks = append(blocks, block)
+		blocks = append(blocks, &light.Block{
+			Type: "xml",
+			Bdy:  bdy,
+		})
 	}
 
 	if self.Not != nil {
@@ -595,7 +345,7 @@ func (self *Schema) toHCL() (*light.Body, error) {
 	}
 
 	if self.Properties != nil {
-		expr := hashToObjectConsExpr(self.Properties)
+		expr := schemaOrReferenceToObjectConsExpr(self.Properties)
 		blocks = append(blocks, &light.Block{
 			Type: "properties",
 			Bdy:  expr.GetOcexpr().ToBody(),

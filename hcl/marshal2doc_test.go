@@ -1,30 +1,29 @@
-package openhcl
+package hcl
 
 import (
 	"os"
 	"testing"
 
-	"github.com/genelet/determined/dethcl"
-	"github.com/genelet/hcllight/hcl"
 	openapiv3 "github.com/google/gnostic-models/openapiv3"
-	//"github.com/k0kubun/pp/v3"
 )
 
-func TestOpenHcl(t *testing.T) {
+func TestApi2Hcl(t *testing.T) {
 	data, err := os.ReadFile("openapi.json")
 	doc, err := openapiv3.ParseDocument(data)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	inter := hcl.DocumentToHcl(doc)
-	api := NewDocument(inter)
-	//pp.Println(api)
-	bs, err := dethcl.Marshal(api)
+	api := DocumentToHcl(doc)
+
+	bs, err := api.MarshalHCL()
 	if err != nil {
 		t.Fatal(err)
 	}
-
+	err = os.WriteFile("openapi.hcl", bs, 0644)
+	if err != nil {
+		t.Fatal(err)
+	}
 	t.Errorf("%d=>%s", len(string(bs)), bs)
 
 }

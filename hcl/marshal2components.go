@@ -6,8 +6,93 @@ import (
 	"github.com/genelet/hcllight/light"
 )
 
-func (self *Reference) MarshalHCL() ([]byte, error) {
-	return self.toBody().Hcl()
+func (self *Components) toHCL() (*light.Body, error) {
+	body := new(light.Body)
+	attrs := make(map[string]*light.Attribute)
+	blocks := make([]*light.Block, 0)
+	if self.Schemas != nil {
+		blks, err := schemaOrReferenceMapToBlocks(self.Schemas)
+		if err != nil {
+			return nil, err
+		}
+		blocks = append(blocks, blks...)
+	}
+	if self.Responses != nil {
+		blks, err := responseOrReferenceMapToBlocks(self.Responses)
+		if err != nil {
+			return nil, err
+		}
+		blocks = append(blocks, blks...)
+	}
+	if self.Parameters != nil {
+		blks, err := parameterOrReferenceMapToBlocks(self.Parameters)
+		if err != nil {
+			return nil, err
+		}
+		blocks = append(blocks, blks...)
+	}
+	if self.Examples != nil {
+		blks, err := exampleOrReferenceMapToBlocks(self.Examples)
+		if err != nil {
+			return nil, err
+		}
+		blocks = append(blocks, blks...)
+	}
+	if self.RequestBodies != nil {
+		blks, err := requestBodyOrReferenceMapToBlocks(self.RequestBodies)
+		if err != nil {
+			return nil, err
+		}
+		blocks = append(blocks, blks...)
+	}
+	if self.Headers != nil {
+		blks, err := headerOrReferenceMapToBlocks(self.Headers)
+		if err != nil {
+			return nil, err
+		}
+		blocks = append(blocks, blks...)
+	}
+	if self.SecuritySchemes != nil {
+		blks, err := securitySchemeOrReferenceMapToBlocks(self.SecuritySchemes)
+		if err != nil {
+			return nil, err
+		}
+		blocks = append(blocks, blks...)
+	}
+	if self.Links != nil {
+		blks, err := linkOrReferenceMapToBlocks(self.Links)
+		if err != nil {
+			return nil, err
+		}
+		blocks = append(blocks, blks...)
+	}
+	if self.Callbacks != nil && len(self.Callbacks) > 0 {
+		for k, v := range self.Callbacks {
+			bdy, err := v.toHCL()
+			if err != nil {
+				return nil, err
+			}
+			blocks = append(blocks, &light.Block{
+				Type:   "callbacks",
+				Labels: []string{k},
+				Bdy:    bdy,
+			})
+		}
+	}
+	if self.SpecificationExtension != nil && len(self.SpecificationExtension) > 0 {
+		expr := anyMapToBody(self.SpecificationExtension)
+		blocks = append(blocks, &light.Block{
+			Type: "specificationExtension",
+			Bdy:  expr,
+		})
+	}
+	if len(attrs) > 0 {
+		body.Attributes = attrs
+	}
+	if len(blocks) > 0 {
+		body.Blocks = blocks
+	}
+	return body, nil
 }
 
 func (self *Reference) toBody() *light.Body {
@@ -68,199 +153,11 @@ func (self *DefaultType) toExpression() *light.Expression {
 	return nil
 }
 
-func (self *Components) MarshalHCL() ([]byte, error) {
-	body, err := self.toHCL()
-	if err != nil {
-		return nil, err
-	}
-	return body.Hcl()
-}
-
-func (self *Components) toHCL() (*light.Body, error) {
-	body := new(light.Body)
-	attrs := make(map[string]*light.Attribute)
-	blocks := make([]*light.Block, 0)
-	if self.Schemas != nil {
-		bdy := schemaOrReferenceMapToBody(self.Schemas)
-		blocks = append(blocks, &light.Block{
-			Type: "schemas",
-			Bdy:  bdy,
-		})
-	}
-	if self.Responses != nil {
-		blks, err := responseOrReferenceMapToBlocks(self.Responses)
-		if err != nil {
-			return nil, err
-		}
-		blocks = append(blocks, blks...)
-	}
-	if self.Parameters != nil {
-		blks, err := parameterOrReferenceMapToBlocks(self.Parameters)
-		if err != nil {
-			return nil, err
-		}
-		blocks = append(blocks, blks...)
-	}
-	if self.Examples != nil {
-		blks, err := exampleOrReferenceMapToBlocks(self.Examples)
-		if err != nil {
-			return nil, err
-		}
-		blocks = append(blocks, blks...)
-	}
-	if self.RequestBodies != nil {
-		blks, err := requestBodyOrReferenceMapToBlocks(self.RequestBodies)
-		if err != nil {
-			return nil, err
-		}
-		blocks = append(blocks, blks...)
-	}
-	if self.Headers != nil {
-		blks, err := headerOrReferenceMapToBlocks(self.Headers)
-		if err != nil {
-			return nil, err
-		}
-		blocks = append(blocks, blks...)
-	}
-	if self.SecuritySchemes != nil {
-		blk, err := toBlock(self.SecuritySchemes, "securitySchemes")
-		if err != nil {
-			return nil, err
-		}
-		blocks = append(blocks, blk)
-	}
-	if self.Links != nil {
-		blks, err := linkOrReferenceMapToBlocks(self.Links)
-		if err != nil {
-			return nil, err
-		}
-		blocks = append(blocks, blks...)
-	}
-	if self.Callbacks != nil {
-		blk, err := toBlock(self.Callbacks, "callbacks")
-		if err != nil {
-			return nil, err
-		}
-		blocks = append(blocks, blk)
-	}
-	if self.SpecificationExtension != nil && len(self.SpecificationExtension) > 0 {
-		expr := anyMapToBody(self.SpecificationExtension)
-		blocks = append(blocks, &light.Block{
-			Type: "specificationExtension",
-			Bdy:  expr,
-		})
-	}
-	if len(attrs) > 0 {
-		body.Attributes = attrs
-	}
-	if len(blocks) > 0 {
-		body.Blocks = blocks
-	}
-	return body, nil
-}
-
-func (self *Document) MarshalHCL() ([]byte, error) {
-	body, err := self.toHCL()
-	if err != nil {
-		return nil, err
-	}
-	return body.Hcl()
-}
-
-func (self *Document) toHCL() (*light.Body, error) {
-	body := new(light.Body)
-	attrs := make(map[string]*light.Attribute)
-	blocks := make([]*light.Block, 0)
-	if self.Openapi != "" {
-		attrs["openapi"] = &light.Attribute{
-			Name: "openapi",
-			Expr: stringToLiteralValueExpr(self.Openapi),
-		}
-	}
-	if self.Info != nil {
-		block, err := toBlock(self.Info, "info")
-		if err != nil {
-			return nil, err
-		}
-		blocks = append(blocks, block)
-	}
-	if self.Servers != nil {
-		blk, err := toBlock(self.Servers, "servers")
-		if err != nil {
-			return nil, err
-		}
-		blocks = append(blocks, blk)
-	}
-	if self.Paths != nil {
-		blks, err := pathItemMapToBlocks(self.Paths)
-		if err != nil {
-			return nil, err
-		}
-		blocks = append(blocks, blks...)
-	}
-	if self.Components != nil {
-		bdy, err := self.Components.toHCL()
-		if err != nil {
-			return nil, err
-		}
-		blocks = append(blocks, &light.Block{
-			Type: "components",
-			Bdy:  bdy,
-		})
-	}
-	if self.Security != nil {
-		blk, err := toBlock(self.Security, "security")
-		if err != nil {
-			return nil, err
-		}
-		blocks = append(blocks, blk)
-	}
-	if self.Tags != nil {
-		blk, err := toBlock(self.Tags, "tags")
-		if err != nil {
-			return nil, err
-		}
-		blocks = append(blocks, blk)
-	}
-	if self.ExternalDocs != nil {
-		block, err := toBlock(self.ExternalDocs, "externalDocs")
-		if err != nil {
-			return nil, err
-		}
-		blocks = append(blocks, block)
-	}
-	if self.SpecificationExtension != nil && len(self.SpecificationExtension) > 0 {
-		expr := anyMapToBody(self.SpecificationExtension)
-		blocks = append(blocks, &light.Block{
-			Type: "specificationExtension",
-			Bdy:  expr,
-		})
-	}
-	if len(attrs) > 0 {
-		body.Attributes = attrs
-	}
-	if len(blocks) > 0 {
-		body.Blocks = blocks
-	}
-	return body, nil
-}
-
-func (self *ParameterOrReference) MarshalHCL() ([]byte, error) {
+func (self *SecuritySchemeOrReference) toHCL() (*light.Body, error) {
 	switch self.Oneof.(type) {
-	case *ParameterOrReference_Reference:
-		return self.GetReference().MarshalHCL()
-	case *ParameterOrReference_Parameter:
-		return self.GetParameter().MarshalHCL()
-	default:
-	}
-	return nil, nil
-}
-
-func (self *ParameterOrReference) toHCL() (*light.Body, error) {
-	switch self.Oneof.(type) {
-	case *ParameterOrReference_Parameter:
-		return self.GetParameter().toHCL()
-	case *ParameterOrReference_Reference:
+	case *SecuritySchemeOrReference_SecurityScheme:
+		return self.GetSecurityScheme().toHCL()
+	case *SecuritySchemeOrReference_Reference:
 		body := self.GetReference().toBody()
 		return body, nil
 	default:
@@ -268,38 +165,18 @@ func (self *ParameterOrReference) toHCL() (*light.Body, error) {
 	return nil, nil
 }
 
-func (self *Parameter) MarshalHCL() ([]byte, error) {
-	body, err := self.toHCL()
-	if err != nil {
-		return nil, err
-	}
-	return body.Hcl()
-}
-
-func (self *Parameter) toHCL() (*light.Body, error) {
+func (self *SecurityScheme) toHCL() (*light.Body, error) {
 	body := new(light.Body)
 	attrs := make(map[string]*light.Attribute)
 	blocks := make([]*light.Block, 0)
-	mapBools := map[string]bool{
-		"required":        self.Required,
-		"deprecated":      self.Deprecated,
-		"allowEmptyValue": self.AllowEmptyValue,
-		"explode":         self.Explode,
-		"allowReserved":   self.AllowReserved,
-	}
 	mapStrings := map[string]string{
-		"name":        self.Name,
-		"in":          self.In,
-		"description": self.Description,
-		"style":       self.Style,
-	}
-	for k, v := range mapBools {
-		if v {
-			attrs[k] = &light.Attribute{
-				Name: k,
-				Expr: booleanToLiteralValueExpr(v),
-			}
-		}
+		"type":             self.Type,
+		"description":      self.Description,
+		"name":             self.Name,
+		"in":               self.In,
+		"scheme":           self.Scheme,
+		"bearerFormat":     self.BearerFormat,
+		"openIdConnectUrl": self.OpenIdConnectUrl,
 	}
 	for k, v := range mapStrings {
 		if v != "" {
@@ -309,21 +186,6 @@ func (self *Parameter) toHCL() (*light.Body, error) {
 			}
 		}
 	}
-	if self.Example != nil {
-		expr := self.Example.toExpression()
-		attrs["example"] = &light.Attribute{
-			Name: "example",
-			Expr: expr,
-		}
-	}
-	if self.Examples != nil {
-		blk, err := exampleOrReferenceMapToBlocks(self.Examples)
-		if err != nil {
-			return nil, err
-		}
-		blocks = append(blocks, blk...)
-	}
-
 	if self.SpecificationExtension != nil && len(self.SpecificationExtension) > 0 {
 		expr := anyMapToBody(self.SpecificationExtension)
 		blocks = append(blocks, &light.Block{
@@ -331,19 +193,15 @@ func (self *Parameter) toHCL() (*light.Body, error) {
 			Bdy:  expr,
 		})
 	}
-
-	if self.Schema != nil {
-		attrs["schema"] = &light.Attribute{
-			Name: "schema",
-			Expr: self.Schema.toExpression(),
-		}
-	}
-	if self.Content != nil {
-		blks, err := mediaTypeMapToBlocks(self.Content)
+	if self.Flows != nil {
+		blk, err := self.Flows.toHCL()
 		if err != nil {
 			return nil, err
 		}
-		blocks = append(blocks, blks...)
+		blocks = append(blocks, &light.Block{
+			Type: "flows",
+			Bdy:  blk,
+		})
 	}
 	if len(attrs) > 0 {
 		body.Attributes = attrs
@@ -354,15 +212,108 @@ func (self *Parameter) toHCL() (*light.Body, error) {
 	return body, nil
 }
 
-func (self *RequestBodyOrReference) MarshalHCL() ([]byte, error) {
-	switch self.Oneof.(type) {
-	case *RequestBodyOrReference_Reference:
-		return self.GetReference().MarshalHCL()
-	case *RequestBodyOrReference_RequestBody:
-		return self.GetRequestBody().MarshalHCL()
-	default:
+func (self *OauthFlows) toHCL() (*light.Body, error) {
+	body := new(light.Body)
+	blocks := make([]*light.Block, 0)
+	if self.Implicit != nil {
+		blk, err := self.Implicit.toHCL()
+		if err != nil {
+			return nil, err
+		}
+		blocks = append(blocks, &light.Block{
+			Type: "implicit",
+			Bdy:  blk,
+		})
 	}
-	return nil, nil
+	if self.Password != nil {
+		blk, err := self.Password.toHCL()
+		if err != nil {
+			return nil, err
+		}
+		blocks = append(blocks, &light.Block{
+			Type: "password",
+			Bdy:  blk,
+		})
+	}
+	if self.ClientCredentials != nil {
+		blk, err := self.ClientCredentials.toHCL()
+		if err != nil {
+			return nil, err
+		}
+		blocks = append(blocks, &light.Block{
+			Type: "clientCredentials",
+			Bdy:  blk,
+		})
+	}
+	if self.AuthorizationCode != nil {
+		blk, err := self.AuthorizationCode.toHCL()
+		if err != nil {
+			return nil, err
+		}
+		blocks = append(blocks, &light.Block{
+			Type: "authorizationCode",
+			Bdy:  blk,
+		})
+	}
+	if self.SpecificationExtension != nil && len(self.SpecificationExtension) > 0 {
+		expr := anyMapToBody(self.SpecificationExtension)
+		blocks = append(blocks, &light.Block{
+			Type: "specificationExtension",
+			Bdy:  expr,
+		})
+	}
+	if len(blocks) > 0 {
+		body.Blocks = blocks
+	}
+	return body, nil
+}
+
+func (self *OauthFlow) toHCL() (*light.Body, error) {
+	body := new(light.Body)
+	attrs := make(map[string]*light.Attribute)
+	blocks := make([]*light.Block, 0)
+	mapStrings := map[string]string{
+		"authorizationUrl": self.AuthorizationUrl,
+		"tokenUrl":         self.TokenUrl,
+		"refreshUrl":       self.RefreshUrl,
+	}
+	for k, v := range mapStrings {
+		if v != "" {
+			attrs[k] = &light.Attribute{
+				Name: k,
+				Expr: stringToLiteralValueExpr(v),
+			}
+		}
+	}
+	if self.Scopes != nil {
+		bdy := &light.Body{
+			Attributes: map[string]*light.Attribute{},
+		}
+		for k, v := range self.Scopes {
+			bdy.Attributes[k] = &light.Attribute{
+				Name: k,
+				Expr: stringToLiteralValueExpr(v),
+			}
+		}
+		blocks = append(blocks, &light.Block{
+			Type: "scopes",
+			Bdy:  bdy,
+		})
+	}
+	if self.SpecificationExtension != nil && len(self.SpecificationExtension) > 0 {
+		expr := anyMapToBody(self.SpecificationExtension)
+		blocks = append(blocks, &light.Block{
+			Type: "specificationExtension",
+			Bdy:  expr,
+		})
+	}
+	if len(attrs) > 0 {
+		body.Attributes = attrs
+	}
+	if len(blocks) > 0 {
+		body.Blocks = blocks
+	}
+	return body, nil
 }
 
 func (self *RequestBodyOrReference) toHCL() (*light.Body, error) {
@@ -375,14 +326,6 @@ func (self *RequestBodyOrReference) toHCL() (*light.Body, error) {
 	default:
 	}
 	return nil, nil
-}
-
-func (self *RequestBody) MarshalHCL() ([]byte, error) {
-	body, err := self.toHCL()
-	if err != nil {
-		return nil, err
-	}
-	return body.Hcl()
 }
 
 func (self *RequestBody) toHCL() (*light.Body, error) {
@@ -427,17 +370,6 @@ func (self *RequestBody) toHCL() (*light.Body, error) {
 	return body, nil
 }
 
-func (self *ResponseOrReference) MarshalHCL() ([]byte, error) {
-	switch self.Oneof.(type) {
-	case *ResponseOrReference_Reference:
-		return self.GetReference().MarshalHCL()
-	case *ResponseOrReference_Response:
-		return self.GetResponse().MarshalHCL()
-	default:
-	}
-	return nil, nil
-}
-
 func (self *ResponseOrReference) toHCL() (*light.Body, error) {
 	switch self.Oneof.(type) {
 	case *ResponseOrReference_Response:
@@ -448,14 +380,6 @@ func (self *ResponseOrReference) toHCL() (*light.Body, error) {
 	default:
 	}
 	return nil, nil
-}
-
-func (self *Response) MarshalHCL() ([]byte, error) {
-	body, err := self.toHCL()
-	if err != nil {
-		return nil, err
-	}
-	return body.Hcl()
 }
 
 func (self *Response) toHCL() (*light.Body, error) {
@@ -509,17 +433,6 @@ func (self *Response) toHCL() (*light.Body, error) {
 	return body, nil
 }
 
-func (self *LinkOrReference) MarshalHCL() ([]byte, error) {
-	switch self.Oneof.(type) {
-	case *LinkOrReference_Reference:
-		return self.GetReference().MarshalHCL()
-	case *LinkOrReference_Link:
-		return self.GetLink().MarshalHCL()
-	default:
-	}
-	return nil, nil
-}
-
 func (self *LinkOrReference) toHCL() (*light.Body, error) {
 	switch self.Oneof.(type) {
 	case *LinkOrReference_Link:
@@ -530,14 +443,6 @@ func (self *LinkOrReference) toHCL() (*light.Body, error) {
 	default:
 	}
 	return nil, nil
-}
-
-func (self *Link) MarshalHCL() ([]byte, error) {
-	body, err := self.toHCL()
-	if err != nil {
-		return nil, err
-	}
-	return body.Hcl()
 }
 
 func (self *Link) toHCL() (*light.Body, error) {
@@ -558,11 +463,14 @@ func (self *Link) toHCL() (*light.Body, error) {
 		}
 	}
 	if self.Server != nil {
-		block, err := toBlock(self.Server, "server")
+		bdy, err := self.Server.toHCL()
 		if err != nil {
 			return nil, err
 		}
-		blocks = append(blocks, block)
+		blocks = append(blocks, &light.Block{
+			Type: "server",
+			Bdy:  bdy,
+		})
 	}
 	if self.SpecificationExtension != nil && len(self.SpecificationExtension) > 0 {
 		expr := anyMapToBody(self.SpecificationExtension)
@@ -646,17 +554,6 @@ func (self *AnyOrExpression) toExpression() *light.Expression {
 	return nil
 }
 
-func (self *ExampleOrReference) MarshalHCL() ([]byte, error) {
-	switch self.Oneof.(type) {
-	case *ExampleOrReference_Reference:
-		return self.GetReference().MarshalHCL()
-	case *ExampleOrReference_Example:
-		return self.GetExample().MarshalHCL()
-	default:
-	}
-	return nil, nil
-}
-
 func (self *ExampleOrReference) toHCL() (*light.Body, error) {
 	switch self.Oneof.(type) {
 	case *ExampleOrReference_Example:
@@ -667,14 +564,6 @@ func (self *ExampleOrReference) toHCL() (*light.Body, error) {
 	default:
 	}
 	return nil, nil
-}
-
-func (self *Example) MarshalHCL() ([]byte, error) {
-	body, err := self.toHCL()
-	if err != nil {
-		return nil, err
-	}
-	return body.Hcl()
 }
 
 func (self *Example) toHCL() (*light.Body, error) {
@@ -716,17 +605,6 @@ func (self *Example) toHCL() (*light.Body, error) {
 	return body, nil
 }
 
-func (self *HeaderOrReference) MarshalHcl() ([]byte, error) {
-	switch self.Oneof.(type) {
-	case *HeaderOrReference_Reference:
-		return self.GetReference().MarshalHCL()
-	case *HeaderOrReference_Header:
-		return self.GetHeader().MarshalHCL()
-	default:
-	}
-	return nil, nil
-}
-
 func (self *HeaderOrReference) toHCL() (*light.Body, error) {
 	switch self.Oneof.(type) {
 	case *HeaderOrReference_Header:
@@ -736,14 +614,6 @@ func (self *HeaderOrReference) toHCL() (*light.Body, error) {
 	default:
 	}
 	return nil, nil
-}
-
-func (self *Header) MarshalHCL() ([]byte, error) {
-	body, err := self.toHCL()
-	if err != nil {
-		return nil, err
-	}
-	return body.Hcl()
 }
 
 func (self *Header) toHCL() (*light.Body, error) {
@@ -819,14 +689,6 @@ func (self *Header) toHCL() (*light.Body, error) {
 	return body, nil
 }
 
-func (self *Encoding) MarshalHCL() ([]byte, error) {
-	body, err := self.toHCL()
-	if err != nil {
-		return nil, err
-	}
-	return body.Hcl()
-}
-
 func (self *Encoding) toHCL() (*light.Body, error) {
 	body := new(light.Body)
 	attrs := make(map[string]*light.Attribute)
@@ -879,14 +741,6 @@ func (self *Encoding) toHCL() (*light.Body, error) {
 	return body, nil
 }
 
-func (self *MediaType) MarshalHCL() ([]byte, error) {
-	body, err := self.toHCL()
-	if err != nil {
-		return nil, err
-	}
-	return body.Hcl()
-}
-
 func (self *MediaType) toHCL() (*light.Body, error) {
 	body := new(light.Body)
 	attrs := make(map[string]*light.Attribute)
@@ -924,5 +778,27 @@ func (self *MediaType) toHCL() (*light.Body, error) {
 	if len(blocks) > 0 {
 		body.Blocks = blocks
 	}
+	return body, nil
+}
+
+func (self *CallbackOrReference) toHCL() (*light.Body, error) {
+	switch self.Oneof.(type) {
+	case *CallbackOrReference_Callback:
+		return self.GetCallback().toHCL()
+	case *CallbackOrReference_Reference:
+		return self.GetReference().toBody(), nil
+	default:
+	}
+	return nil, nil
+}
+
+func (self *Callback) toHCL() (*light.Body, error) {
+	body := new(light.Body)
+	blocks, err := pathItemMapToBlocks(self.Path)
+	if err != nil {
+		return nil, err
+	}
+	body.Blocks = blocks
+
 	return body, nil
 }
