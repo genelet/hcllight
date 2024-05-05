@@ -2,6 +2,7 @@ package hcl
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/genelet/hcllight/light"
 )
@@ -95,48 +96,6 @@ func (self *Components) toHCL() (*light.Body, error) {
 	return body, nil
 }
 
-func (self *Reference) toBody() *light.Body {
-	body := &light.Body{
-		Attributes: map[string]*light.Attribute{
-			"XRef": {
-				Name: "XRef",
-				Expr: stringToLiteralValueExpr(self.XRef),
-			},
-		},
-	}
-	if self.Summary != "" {
-		body.Attributes["summary"] = &light.Attribute{
-			Name: "summary",
-			Expr: stringToLiteralValueExpr(self.Summary),
-		}
-	}
-	if self.Description != "" {
-		body.Attributes["description"] = &light.Attribute{
-			Name: "description",
-			Expr: stringToLiteralValueExpr(self.Description),
-		}
-	}
-	return body
-}
-
-func (self *Reference) toExpression() *light.Expression {
-	var args []*light.Expression
-	if self.Summary != "" {
-		args = append(args, stringToLiteralValueExpr(self.Summary))
-	}
-	if self.Description != "" {
-		args = append(args, stringToLiteralValueExpr(self.Description))
-	}
-	return &light.Expression{
-		ExpressionClause: &light.Expression_Fcexpr{
-			Fcexpr: &light.FunctionCallExpr{
-				Name: "reference",
-				Args: args,
-			},
-		},
-	}
-}
-
 func (self *DefaultType) toExpression() *light.Expression {
 	switch self.Oneof.(type) {
 	case *DefaultType_Boolean:
@@ -147,7 +106,7 @@ func (self *DefaultType) toExpression() *light.Expression {
 		return doubleToLiteralValueExpr(t)
 	case *DefaultType_String_:
 		t := self.GetString_()
-		return stringToLiteralValueExpr(t)
+		return stringToTextValueExpr(t)
 	default:
 	}
 	return nil
@@ -182,7 +141,7 @@ func (self *SecurityScheme) toHCL() (*light.Body, error) {
 		if v != "" {
 			attrs[k] = &light.Attribute{
 				Name: k,
-				Expr: stringToLiteralValueExpr(v),
+				Expr: stringToTextValueExpr(v),
 			}
 		}
 	}
@@ -281,7 +240,7 @@ func (self *OauthFlow) toHCL() (*light.Body, error) {
 		if v != "" {
 			attrs[k] = &light.Attribute{
 				Name: k,
-				Expr: stringToLiteralValueExpr(v),
+				Expr: stringToTextValueExpr(v),
 			}
 		}
 	}
@@ -292,7 +251,7 @@ func (self *OauthFlow) toHCL() (*light.Body, error) {
 		for k, v := range self.Scopes {
 			bdy.Attributes[k] = &light.Attribute{
 				Name: k,
-				Expr: stringToLiteralValueExpr(v),
+				Expr: stringToTextValueExpr(v),
 			}
 		}
 		blocks = append(blocks, &light.Block{
@@ -335,7 +294,7 @@ func (self *RequestBody) toHCL() (*light.Body, error) {
 	if self.Description != "" {
 		attrs["description"] = &light.Attribute{
 			Name: "description",
-			Expr: stringToLiteralValueExpr(self.Description),
+			Expr: stringToTextValueExpr(self.Description),
 		}
 	}
 	if self.Required {
@@ -390,7 +349,7 @@ func (self *Response) toHCL() (*light.Body, error) {
 		body.Attributes = map[string]*light.Attribute{
 			"description": {
 				Name: "description",
-				Expr: stringToLiteralValueExpr(self.Description),
+				Expr: stringToTextValueExpr(self.Description),
 			},
 		}
 	}
@@ -458,7 +417,7 @@ func (self *Link) toHCL() (*light.Body, error) {
 		if v != "" {
 			attrs[k] = &light.Attribute{
 				Name: k,
-				Expr: stringToLiteralValueExpr(v),
+				Expr: stringToTextValueExpr(v),
 			}
 		}
 	}
@@ -501,59 +460,6 @@ func (self *Link) toHCL() (*light.Body, error) {
 	return body, nil
 }
 
-func (self *Any) toExpression() *light.Expression {
-	args := []*light.Expression{
-		{
-			ExpressionClause: &light.Expression_Lvexpr{
-				Lvexpr: &light.LiteralValueExpr{
-					Val: &light.CtyValue{
-						CtyValueClause: &light.CtyValue_StringValue{
-							StringValue: fmt.Sprintf("%s", self.Value),
-						},
-					},
-				},
-			},
-		},
-	}
-	if self.Yaml != "" {
-		args = append(args, stringToLiteralValueExpr(self.Yaml))
-	}
-
-	return &light.Expression{
-		ExpressionClause: &light.Expression_Fcexpr{
-			Fcexpr: &light.FunctionCallExpr{
-				Name: "any",
-				Args: args,
-			},
-		},
-	}
-}
-
-func (self *Expression) toExpression() *light.Expression {
-	if self.AdditionalProperties == nil {
-		return nil
-	}
-	body := anyMapToBody(self.AdditionalProperties)
-	return &light.Expression{
-		ExpressionClause: &light.Expression_Ocexpr{
-			Ocexpr: body.ToObjectConsExpr(),
-		},
-	}
-}
-
-func (self *AnyOrExpression) toExpression() *light.Expression {
-	switch self.Oneof.(type) {
-	case *AnyOrExpression_Expression:
-		t := self.GetExpression()
-		return t.toExpression()
-	case *AnyOrExpression_Any:
-		t := self.GetAny()
-		return t.toExpression()
-	default:
-	}
-	return nil
-}
-
 func (self *ExampleOrReference) toHCL() (*light.Body, error) {
 	switch self.Oneof.(type) {
 	case *ExampleOrReference_Example:
@@ -579,7 +485,7 @@ func (self *Example) toHCL() (*light.Body, error) {
 		if v != "" {
 			attrs[k] = &light.Attribute{
 				Name: k,
-				Expr: stringToLiteralValueExpr(v),
+				Expr: stringToTextValueExpr(v),
 			}
 		}
 	}
@@ -643,7 +549,7 @@ func (self *Header) toHCL() (*light.Body, error) {
 		if v != "" {
 			attrs[k] = &light.Attribute{
 				Name: k,
-				Expr: stringToLiteralValueExpr(v),
+				Expr: stringToTextValueExpr(v),
 			}
 		}
 	}
@@ -713,7 +619,7 @@ func (self *Encoding) toHCL() (*light.Body, error) {
 		if v != "" {
 			attrs[k] = &light.Attribute{
 				Name: k,
-				Expr: stringToLiteralValueExpr(v),
+				Expr: stringToTextValueExpr(v),
 			}
 		}
 	}
@@ -801,4 +707,56 @@ func (self *Callback) toHCL() (*light.Body, error) {
 	body.Blocks = blocks
 
 	return body, nil
+}
+
+func (self *Any) toExpression(how ...bool) *light.Expression {
+	if how != nil && len(how) > 0 {
+		x := self.Yaml
+		if x == "" && self.Value != nil {
+			x = fmt.Sprintf("%v", self.Value.GetValue())
+		}
+		return stringToTextValueExpr(strings.TrimSpace(x))
+	}
+
+	var args []*light.Expression
+
+	if self.Yaml != "" {
+		args = append(args, stringToTextValueExpr(strings.TrimSpace(self.Yaml)))
+	} else if self.Value != nil {
+		args = append(args, stringToLiteralValueExpr(fmt.Sprintf("%v", self.Value)))
+	}
+
+	return &light.Expression{
+		ExpressionClause: &light.Expression_Fcexpr{
+			Fcexpr: &light.FunctionCallExpr{
+				Name: "any",
+				Args: args,
+			},
+		},
+	}
+}
+
+func (self *Expression) toExpression() *light.Expression {
+	if self.AdditionalProperties == nil {
+		return nil
+	}
+	body := anyMapToBody(self.AdditionalProperties)
+	return &light.Expression{
+		ExpressionClause: &light.Expression_Ocexpr{
+			Ocexpr: body.ToObjectConsExpr(),
+		},
+	}
+}
+
+func (self *AnyOrExpression) toExpression() *light.Expression {
+	switch self.Oneof.(type) {
+	case *AnyOrExpression_Expression:
+		t := self.GetExpression()
+		return t.toExpression()
+	case *AnyOrExpression_Any:
+		t := self.GetAny()
+		return t.toExpression()
+	default:
+	}
+	return nil
 }

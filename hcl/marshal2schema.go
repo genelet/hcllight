@@ -1,65 +1,79 @@
 package hcl
 
 import (
+	"strings"
+
 	"github.com/genelet/hcllight/light"
 )
 
-func itemsToTupleConsExpr(items []*SchemaOrReference) *light.Expression {
-	tcexpr := &light.TupleConsExpr{}
-	for _, item := range items {
-		expr := item.toExpression()
-		tcexpr.Exprs = append(tcexpr.Exprs, expr)
-	}
-	return &light.Expression{
-		ExpressionClause: &light.Expression_Tcexpr{
-			Tcexpr: tcexpr,
-		},
-	}
-}
-
-func enumToTupleConsExpr(enum []*Any) *light.Expression {
-	tcexpr := &light.TupleConsExpr{}
-	for _, item := range enum {
-		expr := item.toExpression()
-		tcexpr.Exprs = append(tcexpr.Exprs, expr)
-	}
-	return &light.Expression{
-		ExpressionClause: &light.Expression_Tcexpr{
-			Tcexpr: tcexpr,
-		},
-	}
-}
-
-func anyMapToBody(content map[string]*Any) *light.Body {
-	if content == nil {
-		return nil
-	}
+func (self *Reference) toBody() *light.Body {
 	body := &light.Body{
-		Attributes: make(map[string]*light.Attribute),
+		Attributes: map[string]*light.Attribute{
+			"XRef": {
+				Name: "XRef",
+				Expr: stringToTextValueExpr(self.XRef),
+			},
+		},
 	}
-	for k, v := range content {
-		body.Attributes[k] = &light.Attribute{
-			Name: k,
-			Expr: v.toExpression(),
+	if self.Summary != "" {
+		body.Attributes["summary"] = &light.Attribute{
+			Name: "summary",
+			Expr: stringToTextValueExpr(self.Summary),
+		}
+	}
+	if self.Description != "" {
+		body.Attributes["description"] = &light.Attribute{
+			Name: "description",
+			Expr: stringToTextValueExpr(self.Description),
 		}
 	}
 	return body
 }
-
-func schemaOrReferenceToObjectConsExpr(hash map[string]*SchemaOrReference) *light.Expression {
-	ocexpr := &light.ObjectConsExpr{}
-	var items []*light.ObjectConsItem
-	for name, item := range hash {
-		expr := item.toExpression()
-		items = append(items, &light.ObjectConsItem{
-			KeyExpr:   stringToLiteralValueExpr(name),
-			ValueExpr: expr,
-		})
+func (self *Reference) toTraversal() *light.Expression {
+	parts := strings.SplitN(self.XRef[2:], "/", -1)
+	args := []*light.Traverser{
+		{TraverserClause: &light.Traverser_TRoot{
+			TRoot: &light.TraverseRoot{Name: parts[0]},
+		}},
 	}
-	ocexpr.Items = items
+	if len(parts) > 1 {
+		for _, part := range parts[1:] {
+			args = append(args, &light.Traverser{
+				TraverserClause: &light.Traverser_TAttr{
+					TAttr: &light.TraverseAttr{Name: part},
+				},
+			})
+		}
+	}
 	return &light.Expression{
-		ExpressionClause: &light.Expression_Ocexpr{
-			Ocexpr: ocexpr,
+		ExpressionClause: &light.Expression_Stexpr{
+			Stexpr: &light.ScopeTraversalExpr{
+				Traversal: args,
+			},
+		},
+	}
+}
+
+func (self *Reference) toExpression() *light.Expression {
+	if self.Summary == "" && self.Description == "" && (self.XRef)[:2] == "#/" {
+		return self.toTraversal()
+	}
+
+	args := []*light.Expression{
+		stringToLiteralValueExpr(self.XRef),
+	}
+	if self.Summary != "" {
+		args = append(args, stringToTextValueExpr(self.Summary))
+	}
+	if self.Description != "" {
+		args = append(args, stringToTextValueExpr(self.Description))
+	}
+	return &light.Expression{
+		ExpressionClause: &light.Expression_Fcexpr{
+			Fcexpr: &light.FunctionCallExpr{
+				Name: "reference",
+				Args: args,
+			},
 		},
 	}
 }
@@ -120,9 +134,7 @@ func (s *SchemaOrReference) toExpression() *light.Expression {
 				if x {
 					args = append(args, booleanToLiteralValueExpr(x))
 				}
-
 			default:
-				panic("no a datatype")
 			}
 		}
 	case *SchemaOrReference_Object:
@@ -141,18 +153,24 @@ func (s *SchemaOrReference) toExpression() *light.Expression {
 	case *SchemaOrReference_String_:
 		t := s.GetString_()
 		name = t.Type
-		args = append(args, stringToLiteralValueExpr(t.Format))
+		args = append(args, stringToTextValueExpr(t.Format))
 		if t.MinLength != 0 || t.MaxLength != 0 {
 			args = append(args, int64ToLiteralValueExpr(t.MinLength))
 			args = append(args, int64ToLiteralValueExpr(t.MaxLength))
 		}
 		if t.Pattern != "" {
-			args = append(args, stringToLiteralValueExpr(t.Pattern))
+			args = append(args, stringToTextValueExpr(t.Pattern))
+		}
+		if t.Default != "" {
+			args = append(args, stringToTextValueExpr(t.Default))
+		}
+		if t.Enum != nil {
+			args = append(args, enumToTupleConsExpr(t.Enum))
 		}
 	case *SchemaOrReference_Number:
 		t := s.GetNumber()
 		name = t.Type
-		args = append(args, stringToLiteralValueExpr(t.Format))
+		args = append(args, stringToTextValueExpr(t.Format))
 		if t.Minimum != 0 || t.Maximum != 0 || t.ExclusiveMinimum || t.ExclusiveMaximum {
 			args = append(args, doubleToLiteralValueExpr(t.Minimum))
 			args = append(args, doubleToLiteralValueExpr(t.Maximum))
@@ -165,7 +183,7 @@ func (s *SchemaOrReference) toExpression() *light.Expression {
 	case *SchemaOrReference_Integer:
 		t := s.GetInteger()
 		name = t.Type
-		args = append(args, stringToLiteralValueExpr(t.Format))
+		args = append(args, stringToTextValueExpr(t.Format))
 		if t.Minimum != 0 || t.Maximum != 0 || t.ExclusiveMinimum || t.ExclusiveMaximum {
 			args = append(args, int64ToLiteralValueExpr(t.Minimum))
 			args = append(args, int64ToLiteralValueExpr(t.Maximum))
@@ -255,7 +273,7 @@ func (self *Schema) toHCL() (*light.Body, error) {
 		if v != "" {
 			attrs[k] = &light.Attribute{
 				Name: k,
-				Expr: stringToLiteralValueExpr(v),
+				Expr: stringToTextValueExpr(v),
 			}
 		}
 	}

@@ -4,6 +4,19 @@ import (
 	"github.com/genelet/hcllight/light"
 )
 
+func stringToTextValueExpr(s string) *light.Expression {
+	if s == "" {
+		return nil
+	}
+	return &light.Expression{
+		ExpressionClause: &light.Expression_Texpr{
+			Texpr: &light.TemplateExpr{
+				Parts: []*light.Expression{stringToLiteralValueExpr(s)},
+			},
+		},
+	}
+}
+
 func stringToLiteralValueExpr(s string) *light.Expression {
 	return &light.Expression{
 		ExpressionClause: &light.Expression_Lvexpr{
@@ -63,11 +76,71 @@ func booleanToLiteralValueExpr(b bool) *light.Expression {
 func stringsToTupleConsExpr(items []string) *light.Expression {
 	tcexpr := &light.TupleConsExpr{}
 	for _, item := range items {
-		tcexpr.Exprs = append(tcexpr.Exprs, stringToLiteralValueExpr(item))
+		tcexpr.Exprs = append(tcexpr.Exprs, stringToTextValueExpr(item))
 	}
 	return &light.Expression{
 		ExpressionClause: &light.Expression_Tcexpr{
 			Tcexpr: tcexpr,
+		},
+	}
+}
+
+func itemsToTupleConsExpr(items []*SchemaOrReference) *light.Expression {
+	tcexpr := &light.TupleConsExpr{}
+	for _, item := range items {
+		expr := item.toExpression()
+		tcexpr.Exprs = append(tcexpr.Exprs, expr)
+	}
+	return &light.Expression{
+		ExpressionClause: &light.Expression_Tcexpr{
+			Tcexpr: tcexpr,
+		},
+	}
+}
+
+func enumToTupleConsExpr(enum []*Any) *light.Expression {
+	tcexpr := &light.TupleConsExpr{}
+	for _, item := range enum {
+		expr := item.toExpression(true)
+		tcexpr.Exprs = append(tcexpr.Exprs, expr)
+	}
+	return &light.Expression{
+		ExpressionClause: &light.Expression_Tcexpr{
+			Tcexpr: tcexpr,
+		},
+	}
+}
+
+func anyMapToBody(content map[string]*Any) *light.Body {
+	if content == nil {
+		return nil
+	}
+	body := &light.Body{
+		Attributes: make(map[string]*light.Attribute),
+	}
+	for k, v := range content {
+		body.Attributes[k] = &light.Attribute{
+			Name: k,
+			Expr: v.toExpression(),
+		}
+	}
+	return body
+}
+
+func schemaOrReferenceToObjectConsExpr(hash map[string]*SchemaOrReference) *light.Expression {
+	ocexpr := &light.ObjectConsExpr{}
+	var items []*light.ObjectConsItem
+	for name, item := range hash {
+		expr := item.toExpression()
+		items = append(items, &light.ObjectConsItem{
+			KeyExpr:   stringToLiteralValueExpr(name),
+			ValueExpr: expr,
+		})
+	}
+	ocexpr.Items = items
+	return &light.Expression{
+		ExpressionClause: &light.Expression_Ocexpr{
+			Ocexpr: ocexpr,
 		},
 	}
 }

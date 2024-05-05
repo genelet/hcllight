@@ -1,6 +1,8 @@
 package hcl
 
 import (
+	"log"
+
 	openapiv3 "github.com/google/gnostic-models/openapiv3"
 )
 
@@ -264,10 +266,17 @@ func SchemaOrReferenceToHcl(schema *openapiv3.SchemaOrReference, force ...bool) 
 			Pattern:   s.Pattern,
 		}
 		if s.Default != nil {
+			log.Printf("22222 %#v", s.Default.GetString_())
 			if x := s.Default.GetString_(); x != "" {
 				str.Default = x
 			}
 		}
+		if s.Enum != nil {
+			for _, v := range s.Enum {
+				str.Enum = append(str.Enum, &Any{Value: v.Value, Yaml: v.Yaml})
+			}
+		}
+		log.Printf("3333 %#v=>%#v", str.String(), s.Enum)
 		return &SchemaOrReference{
 			Oneof: &SchemaOrReference_String_{String_: str},
 		}

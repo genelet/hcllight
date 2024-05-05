@@ -19,7 +19,7 @@ func (self *Document) toHCL() (*light.Body, error) {
 	if self.Openapi != "" {
 		attrs["openapi"] = &light.Attribute{
 			Name: "openapi",
-			Expr: stringToLiteralValueExpr(self.Openapi),
+			Expr: stringToTextValueExpr(self.Openapi),
 		}
 	}
 	if self.Info != nil {
@@ -117,7 +117,7 @@ func (self *Tag) toHCL() (*light.Body, error) {
 		if v != "" {
 			attrs[k] = &light.Attribute{
 				Name: k,
-				Expr: stringToLiteralValueExpr(v),
+				Expr: stringToTextValueExpr(v),
 			}
 		}
 	}
@@ -149,7 +149,7 @@ func (self *ExternalDocs) toHCL() (*light.Body, error) {
 		if v != "" {
 			attrs[k] = &light.Attribute{
 				Name: k,
-				Expr: stringToLiteralValueExpr(v),
+				Expr: stringToTextValueExpr(v),
 			}
 		}
 	}
@@ -181,7 +181,7 @@ func (self *Server) toHCL() (*light.Body, error) {
 		if v != "" {
 			attrs[k] = &light.Attribute{
 				Name: k,
-				Expr: stringToLiteralValueExpr(v),
+				Expr: stringToTextValueExpr(v),
 			}
 		}
 	}
@@ -259,7 +259,7 @@ func pathItemMapToBlocks(paths map[string]*PathItem) ([]*light.Block, error) {
 					Attributes: map[string]*light.Attribute{
 						"$ref": {
 							Name: "$ref",
-							Expr: stringToLiteralValueExpr(v.XRef),
+							Expr: stringToTextValueExpr(v.XRef),
 						},
 					},
 				},
@@ -338,7 +338,7 @@ func (self *Operation) toHCL() (*light.Body, error) {
 		if v != "" {
 			attrs[k] = &light.Attribute{
 				Name: k,
-				Expr: stringToLiteralValueExpr(v),
+				Expr: stringToTextValueExpr(v),
 			}
 		}
 	}
@@ -458,7 +458,7 @@ func (self *Parameter) toHCL() (*light.Body, error) {
 		if v != "" {
 			attrs[k] = &light.Attribute{
 				Name: k,
-				Expr: stringToLiteralValueExpr(v),
+				Expr: stringToTextValueExpr(v),
 			}
 		}
 	}
@@ -518,7 +518,7 @@ func (self *ServerVariable) toHCL() (*light.Body, error) {
 		if v != "" {
 			attrs[k] = &light.Attribute{
 				Name: k,
-				Expr: stringToLiteralValueExpr(v),
+				Expr: stringToTextValueExpr(v),
 			}
 		}
 	}
@@ -556,7 +556,7 @@ func (self *Info) toHCL() (*light.Body, error) {
 		if v != "" {
 			attrs[k] = &light.Attribute{
 				Name: k,
-				Expr: stringToLiteralValueExpr(v),
+				Expr: stringToTextValueExpr(v),
 			}
 		}
 	}
@@ -606,7 +606,7 @@ func (self *Contact) toHCL() (*light.Body, error) {
 		if v != "" {
 			attrs[k] = &light.Attribute{
 				Name: k,
-				Expr: stringToLiteralValueExpr(v),
+				Expr: stringToTextValueExpr(v),
 			}
 		}
 	}
@@ -628,7 +628,7 @@ func (self *License) toHCL() (*light.Body, error) {
 		if v != "" {
 			attrs[k] = &light.Attribute{
 				Name: k,
-				Expr: stringToLiteralValueExpr(v),
+				Expr: stringToTextValueExpr(v),
 			}
 		}
 	}
@@ -655,7 +655,7 @@ func (self *Xml) toHCL() (*light.Body, error) {
 		if v != "" {
 			attrs[k] = &light.Attribute{
 				Name: k,
-				Expr: stringToLiteralValueExpr(v),
+				Expr: stringToTextValueExpr(v),
 			}
 		}
 	}
@@ -691,7 +691,7 @@ func (self *Discriminator) toHCL() (*light.Body, error) {
 		if v != "" {
 			attrs[k] = &light.Attribute{
 				Name: k,
-				Expr: stringToLiteralValueExpr(v),
+				Expr: stringToTextValueExpr(v),
 			}
 		}
 	}
@@ -702,7 +702,7 @@ func (self *Discriminator) toHCL() (*light.Body, error) {
 		for k, v := range self.Mapping {
 			bdy.Attributes[k] = &light.Attribute{
 				Name: k,
-				Expr: stringToLiteralValueExpr(v),
+				Expr: stringToTextValueExpr(v),
 			}
 		}
 		body.Blocks = append(body.Blocks, &light.Block{

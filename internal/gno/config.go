@@ -369,7 +369,7 @@ func (self *GnoConfig) exprSchema(v *openapiv3.Schema) (*light.Expression, error
 	case "string", "number", "integer", "boolean":
 		fcexpr := &light.FunctionCallExpr{Name: v.Type}
 		if v.Format != "" {
-			fcexpr.Args = append(fcexpr.Args, stringToLiteralValueExpr(v.Format))
+			fcexpr.Args = append(fcexpr.Args, stringToTextValueExpr(v.Format))
 		}
 		return &light.Expression{
 			ExpressionClause: &light.Expression_Fcexpr{
