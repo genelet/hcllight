@@ -42,6 +42,27 @@ func (self *Document) toHCL() (*light.Body, error) {
 			Expr: expr,
 		}
 	}
+	if self.Tags != nil && len(self.Tags) > 0 {
+		hash := make(map[string]AbleHCL)
+		for _, tag := range self.Tags {
+			hash[tag.Name] = tag
+		}
+		blks, err := ableMapToBlocks(hash, "tags")
+		if err != nil {
+			return nil, err
+		}
+		blocks = append(blocks, blks...)
+	}
+	if self.ExternalDocs != nil {
+		bdy, err := self.ExternalDocs.toHCL()
+		if err != nil {
+			return nil, err
+		}
+		blocks = append(blocks, &light.Block{
+			Type: "externalDocs",
+			Bdy:  bdy,
+		})
+	}
 	if self.Paths != nil {
 		blks, err := pathItemMapToBlocks(self.Paths)
 		if err != nil {
@@ -68,27 +89,6 @@ func (self *Document) toHCL() (*light.Body, error) {
 			Name: "security",
 			Expr: expr,
 		}
-	}
-	if self.Tags != nil && len(self.Tags) > 0 {
-		hash := make(map[string]AbleHCL)
-		for _, tag := range self.Tags {
-			hash[tag.Name] = tag
-		}
-		blks, err := ableMapToBlocks(hash, "tags")
-		if err != nil {
-			return nil, err
-		}
-		blocks = append(blocks, blks...)
-	}
-	if self.ExternalDocs != nil {
-		bdy, err := self.ExternalDocs.toHCL()
-		if err != nil {
-			return nil, err
-		}
-		blocks = append(blocks, &light.Block{
-			Type: "externalDocs",
-			Bdy:  bdy,
-		})
 	}
 	if self.SpecificationExtension != nil && len(self.SpecificationExtension) > 0 {
 		expr := anyMapToBody(self.SpecificationExtension)
