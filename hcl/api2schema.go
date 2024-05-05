@@ -1,6 +1,8 @@
 package hcl
 
 import (
+	"log"
+
 	openapiv3 "github.com/google/gnostic-models/openapiv3"
 )
 
@@ -24,8 +26,26 @@ func oasSchemaCheck(s *openapiv3.Schema) bool {
 		return false
 	}
 
-	if s.Title != "" || s.Description != "" || s.Xml != nil || s.ExternalDocs != nil || s.Not != nil || s.SpecificationExtension != nil {
+	if s.Title != "" || s.Description != "" || s.Xml != nil || s.ExternalDocs != nil || s.Not != nil || (s.SpecificationExtension != nil && len(s.SpecificationExtension) > 0) {
 		return true
+	}
+	if s.Type == "string" {
+		log.Printf("%s", s.String())
+		log.Printf("%v", s.MultipleOf != 0)
+		log.Printf("%v", s.Maximum != 0)
+		log.Printf("%v", s.Minimum != 0)
+		log.Printf("%v", s.ExclusiveMaximum)
+		log.Printf("%v", s.ExclusiveMinimum)
+		log.Printf("%v", s.MaxProperties != 0)
+		log.Printf("%v", s.MinProperties != 0)
+		log.Printf("%v", s.Properties != nil && len(s.Properties.AdditionalProperties) > 0)
+		log.Printf("%v", s.Required != nil && len(s.Required) > 0)
+		log.Printf("%v", s.AdditionalProperties != nil)
+		log.Printf("%v", s.Items != nil && len(s.Items.SchemaOrReference) > 0)
+		log.Printf("%v", s.MaxItems != 0)
+		log.Printf("%v", s.MinItems != 0)
+		log.Printf("%v", s.UniqueItems)
+		log.Printf("%v", s.Discriminator != nil)
 	}
 
 	switch s.Type {
@@ -35,14 +55,12 @@ func oasSchemaCheck(s *openapiv3.Schema) bool {
 			s.Maximum != 0 ||
 			s.ExclusiveMinimum ||
 			s.ExclusiveMaximum ||
-			s.Enum != nil ||
-			len(s.Enum) == 0 ||
+			(s.Enum != nil && len(s.Enum) > 0) ||
 			s.Default != nil ||
 			s.Format != "" ||
 			s.MaxProperties != 0 ||
 			s.MinProperties != 0 ||
-			s.Properties != nil ||
-			len(s.Properties.AdditionalProperties) != 0 ||
+			(s.Properties != nil && len(s.Properties.AdditionalProperties) > 0) ||
 			s.Required != nil ||
 			s.AdditionalProperties != nil {
 			return true
@@ -53,12 +71,10 @@ func oasSchemaCheck(s *openapiv3.Schema) bool {
 			s.Maximum != 0 ||
 			s.ExclusiveMinimum ||
 			s.ExclusiveMaximum ||
-			s.Enum != nil ||
-			len(s.Enum) != 0 ||
+			(s.Enum != nil && len(s.Enum) > 0) ||
 			s.Default != nil ||
 			s.Format != "" ||
-			s.Items != nil ||
-			len(s.Items.SchemaOrReference) != 0 ||
+			(s.Items != nil && len(s.Items.SchemaOrReference) > 0) ||
 			s.MaxItems != 0 ||
 			s.MinItems != 0 ||
 			s.UniqueItems {
@@ -66,8 +82,7 @@ func oasSchemaCheck(s *openapiv3.Schema) bool {
 		}
 		if s.AdditionalProperties != nil {
 			if s.Discriminator != nil ||
-				s.Properties != nil ||
-				len(s.Properties.AdditionalProperties) != 0 ||
+				(s.Properties != nil && len(s.Properties.AdditionalProperties) > 0) ||
 				s.MaxProperties != 0 ||
 				s.MinProperties != 0 ||
 				s.Required != nil {
@@ -82,12 +97,10 @@ func oasSchemaCheck(s *openapiv3.Schema) bool {
 			s.ExclusiveMinimum ||
 			s.MaxProperties != 0 ||
 			s.MinProperties != 0 ||
-			s.Properties != nil ||
-			len(s.Properties.AdditionalProperties) != 0 ||
-			s.Required != nil ||
+			(s.Properties != nil && len(s.Properties.AdditionalProperties) > 0) ||
+			(s.Required != nil && len(s.Required) > 0) ||
 			s.AdditionalProperties != nil ||
-			s.Items != nil ||
-			len(s.Items.SchemaOrReference) != 0 ||
+			(s.Items != nil && len(s.Items.SchemaOrReference) > 0) ||
 			s.MaxItems != 0 ||
 			s.MinItems != 0 ||
 			s.UniqueItems ||
@@ -100,12 +113,10 @@ func oasSchemaCheck(s *openapiv3.Schema) bool {
 			s.Pattern != "" ||
 			s.MaxProperties != 0 ||
 			s.MinProperties != 0 ||
-			s.Properties != nil ||
-			len(s.Properties.AdditionalProperties) != 0 ||
-			s.Required != nil ||
+			(s.Properties != nil && len(s.Properties.AdditionalProperties) > 0) ||
+			(s.Required != nil && len(s.Required) > 0) ||
 			s.AdditionalProperties != nil ||
-			s.Items != nil ||
-			len(s.Items.SchemaOrReference) != 0 ||
+			(s.Items != nil && len(s.Items.SchemaOrReference) > 0) ||
 			s.MaxItems != 0 ||
 			s.MinItems != 0 ||
 			s.UniqueItems ||
@@ -123,12 +134,10 @@ func oasSchemaCheck(s *openapiv3.Schema) bool {
 			s.ExclusiveMinimum ||
 			s.MaxProperties != 0 ||
 			s.MinProperties != 0 ||
-			s.Properties != nil ||
-			len(s.Properties.AdditionalProperties) != 0 ||
-			s.Required != nil ||
+			(s.Properties != nil && len(s.Properties.AdditionalProperties) > 0) ||
+			(s.Required != nil && len(s.Required) > 0) ||
 			s.AdditionalProperties != nil ||
-			s.Items != nil ||
-			len(s.Items.SchemaOrReference) != 0 ||
+			(s.Items != nil && len(s.Items.SchemaOrReference) > 0) ||
 			s.MaxItems != 0 ||
 			s.MinItems != 0 ||
 			s.UniqueItems ||
@@ -203,6 +212,9 @@ func SchemaOrReferenceToHcl(schema *openapiv3.SchemaOrReference) *SchemaOrRefere
 				Schema: schemaToHcl(s),
 			},
 		}
+	}
+	if s.Type == "string" {
+		log.Printf("FOUND!! %s", s.String())
 	}
 
 	switch s.Type {

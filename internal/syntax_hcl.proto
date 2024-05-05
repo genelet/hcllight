@@ -5,7 +5,7 @@ option java_multiple_files = true;
 option java_outer_classname = "OpenAPIProto";
 option java_package = "org.openapi_v3";
 option objc_class_prefix = "OAS";
-option go_package = "./internal/hcl";
+option go_package = "./hcl";
 
 message AdditionalPropertiesItem {
   oneof oneof {

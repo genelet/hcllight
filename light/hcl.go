@@ -15,6 +15,10 @@ import (
 
 // Parse parses HCL data into Body proto.
 func Parse(dat []byte) (*Body, error) {
+	if dat == nil {
+		return nil, nil
+	}
+
 	f := fmt.Sprintf("%d.hcl", rand.Int())
 	file, diags := hclsyntax.ParseConfig(dat, f, hcl.Pos{Line: 1, Column: 1})
 	if diags.HasErrors() {

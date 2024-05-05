@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/genelet/determined/dethcl"
-	"github.com/genelet/hcllight/internal/hcl"
+	"github.com/genelet/hcllight/hcl"
 	openapiv3 "github.com/google/gnostic-models/openapiv3"
 	//"github.com/k0kubun/pp/v3"
 )

@@ -1,7 +1,7 @@
 package openhcl
 
 import (
-	"github.com/genelet/hcllight/internal/hcl"
+	"github.com/genelet/hcllight/hcl"
 )
 
 type AnyOrExpression any
@@ -53,7 +53,7 @@ type Components struct {
 	Parameters             map[string]ParameterOrReference
 	Examples               map[string]ExampleOrReference
 	RequestBodies          map[string]RequestBodyOrReference
-	Headers                map[string]HeaderOrReference
+	Headers                map[string]*hcl.HeaderOrReference
 	SecuritySchemes        map[string]SecuritySchemeOrReference
 	Links                  map[string]LinkOrReference
 	Callbacks              map[string]CallbackOrReference
@@ -98,9 +98,9 @@ func NewComponents(c *hcl.Components) *Components {
 		}
 	}
 	if c.Headers != nil {
-		comp.Headers = make(map[string]HeaderOrReference)
+		comp.Headers = make(map[string]*hcl.HeaderOrReference)
 		for k, v := range c.Headers {
-			comp.Headers[k] = NewHeaderOrReference(v)
+			comp.Headers[k] = v
 		}
 	}
 	if c.SecuritySchemes != nil {
@@ -180,35 +180,36 @@ func NewDocument(doc *hcl.Document) *Document {
 	return d
 }
 
-type Encoding struct {
-	ContentType            string
-	Headers                map[string]HeaderOrReference
-	Style                  string
-	Explode                bool
-	AllowReserved          bool
-	SpecificationExtension map[string]*hcl.Any
-}
+/*
+	type Encoding struct {
+		ContentType            string
+		Headers                map[string]HeaderOrReference
+		Style                  string
+		Explode                bool
+		AllowReserved          bool
+		SpecificationExtension map[string]*hcl.Any
+	}
 
-func NewEncoding(a *hcl.Encoding) *Encoding {
-	if a == nil {
-		return nil
-	}
-	e := &Encoding{
-		ContentType:            a.ContentType,
-		Style:                  a.Style,
-		Explode:                a.Explode,
-		AllowReserved:          a.AllowReserved,
-		SpecificationExtension: a.SpecificationExtension,
-	}
-	if a.Headers != nil {
-		e.Headers = make(map[string]HeaderOrReference)
-		for k, v := range a.Headers {
-			e.Headers[k] = v
+	func NewEncoding(a *hcl.Encoding) *Encoding {
+		if a == nil {
+			return nil
 		}
+		e := &Encoding{
+			ContentType:            a.ContentType,
+			Style:                  a.Style,
+			Explode:                a.Explode,
+			AllowReserved:          a.AllowReserved,
+			SpecificationExtension: a.SpecificationExtension,
+		}
+		if a.Headers != nil {
+			e.Headers = make(map[string]HeaderOrReference)
+			for k, v := range a.Headers {
+				e.Headers[k] = v
+			}
+		}
+		return e
 	}
-	return e
-}
-
+*/
 type ExampleOrReference any
 
 func NewExampleOrReference(a *hcl.ExampleOrReference) ExampleOrReference {
@@ -221,64 +222,65 @@ func NewExampleOrReference(a *hcl.ExampleOrReference) ExampleOrReference {
 	return a.GetExample()
 }
 
-type Header struct {
-	Description            string
-	Required               bool
-	Deprecated             bool
-	AllowEmptyValue        bool
-	Style                  string
-	Explode                bool
-	AllowReserved          bool
-	Schema                 *hcl.SchemaOrReference
-	Example                *hcl.Any
-	Examples               map[string]ExampleOrReference
-	Content                map[string]*MediaType
-	SpecificationExtension map[string]*hcl.Any
-}
+/*
+	type Header struct {
+		Description            string
+		Required               bool
+		Deprecated             bool
+		AllowEmptyValue        bool
+		Style                  string
+		Explode                bool
+		AllowReserved          bool
+		Schema                 *hcl.SchemaOrReference
+		Example                *hcl.Any
+		Examples               map[string]ExampleOrReference
+		Content                map[string]*MediaType
+		SpecificationExtension map[string]*hcl.Any
+	}
 
-func NewHeader(a *hcl.Header) *Header {
-	if a == nil {
-		return nil
-	}
-	h := &Header{
-		Description:            a.Description,
-		Required:               a.Required,
-		Deprecated:             a.Deprecated,
-		AllowEmptyValue:        a.AllowEmptyValue,
-		Style:                  a.Style,
-		Explode:                a.Explode,
-		AllowReserved:          a.AllowReserved,
-		Schema:                 a.Schema,
-		Example:                a.Example,
-		SpecificationExtension: a.SpecificationExtension,
-	}
-	if a.Examples != nil {
-		h.Examples = make(map[string]ExampleOrReference)
-		for k, v := range a.Examples {
-			h.Examples[k] = NewExampleOrReference(v)
+	func NewHeader(a *hcl.Header) *Header {
+		if a == nil {
+			return nil
 		}
-	}
-	if a.Content != nil {
-		h.Content = make(map[string]*MediaType)
-		for k, v := range a.Content {
-			h.Content[k] = NewMediaType(v)
+		h := &Header{
+			Description:            a.Description,
+			Required:               a.Required,
+			Deprecated:             a.Deprecated,
+			AllowEmptyValue:        a.AllowEmptyValue,
+			Style:                  a.Style,
+			Explode:                a.Explode,
+			AllowReserved:          a.AllowReserved,
+			Schema:                 a.Schema,
+			Example:                a.Example,
+			SpecificationExtension: a.SpecificationExtension,
 		}
+		if a.Examples != nil {
+			h.Examples = make(map[string]ExampleOrReference)
+			for k, v := range a.Examples {
+				h.Examples[k] = NewExampleOrReference(v)
+			}
+		}
+		if a.Content != nil {
+			h.Content = make(map[string]*MediaType)
+			for k, v := range a.Content {
+				h.Content[k] = NewMediaType(v)
+			}
+		}
+		return h
 	}
-	return h
-}
 
 type HeaderOrReference any
 
-func NewHeaderOrReference(a *hcl.HeaderOrReference) HeaderOrReference {
-	if a == nil {
-		return nil
+	func NewHeaderOrReference(a *hcl.HeaderOrReference) HeaderOrReference {
+		if a == nil {
+			return nil
+		}
+		if x := a.GetReference(); x != nil {
+			return x
+		}
+		return NewHeader(a.GetHeader())
 	}
-	if x := a.GetReference(); x != nil {
-		return x
-	}
-	return NewHeader(a.GetHeader())
-}
-
+*/
 type Link struct {
 	OperationRef           string
 	OperationId            string
@@ -316,42 +318,43 @@ func NewLinkOrReference(a *hcl.LinkOrReference) LinkOrReference {
 	return NewLink(a.GetLink())
 }
 
-type MediaType struct {
-	//Description            string
-	Schema                 *hcl.SchemaOrReference
-	Example                *hcl.Any
-	Examples               map[string]ExampleOrReference
-	Encoding               map[string]*Encoding
-	SpecificationExtension map[string]*hcl.Any
-}
+/*
+	type MediaType struct {
+		//Description            string
+		Schema                 *hcl.SchemaOrReference
+		Example                *hcl.Any
+		Examples               map[string]ExampleOrReference
+		Encoding               map[string]*Encoding
+		SpecificationExtension map[string]*hcl.Any
+	}
 
-func NewMediaType(a *hcl.MediaType, description ...string) *MediaType {
-	if a == nil {
-		return nil
-	}
-	mt := &MediaType{
-		Schema:                 a.Schema,
-		Example:                a.Example,
-		SpecificationExtension: a.SpecificationExtension,
-	}
-	//if len(description) > 0 {
-	//	mt.Description = description[0]
-	//}
-	if a.Examples != nil {
-		mt.Examples = make(map[string]ExampleOrReference)
-		for k, v := range a.Examples {
-			mt.Examples[k] = v
+	func NewMediaType(a *hcl.MediaType, description ...string) *MediaType {
+		if a == nil {
+			return nil
 		}
-	}
-	if a.Encoding != nil {
-		mt.Encoding = make(map[string]*Encoding)
-		for k, v := range a.Encoding {
-			mt.Encoding[k] = NewEncoding(v)
+		mt := &MediaType{
+			Schema:                 a.Schema,
+			Example:                a.Example,
+			SpecificationExtension: a.SpecificationExtension,
 		}
+		//if len(description) > 0 {
+		//	mt.Description = description[0]
+		//}
+		if a.Examples != nil {
+			mt.Examples = make(map[string]ExampleOrReference)
+			for k, v := range a.Examples {
+				mt.Examples[k] = v
+			}
+		}
+		if a.Encoding != nil {
+			mt.Encoding = make(map[string]*Encoding)
+			for k, v := range a.Encoding {
+				mt.Encoding[k] = NewEncoding(v)
+			}
+		}
+		return mt
 	}
-	return mt
-}
-
+*/
 type Operation struct {
 	Tags                   []string
 	Summary                string
@@ -418,7 +421,7 @@ type Parameter struct {
 	Schema                 *hcl.SchemaOrReference
 	Example                *hcl.Any
 	Examples               map[string]ExampleOrReference
-	Content                map[string]*MediaType
+	Content                map[string]*hcl.MediaType
 	SpecificationExtension map[string]*hcl.Any
 }
 
@@ -447,9 +450,9 @@ func NewParameter(param *hcl.Parameter) *Parameter {
 		}
 	}
 	if param.Content != nil {
-		p.Content = make(map[string]*MediaType)
+		p.Content = make(map[string]*hcl.MediaType)
 		for k, v := range param.Content {
-			p.Content[k] = NewMediaType(v)
+			p.Content[k] = v
 		}
 	}
 	return p
@@ -525,31 +528,32 @@ func NewPathItemOrReference(pathItem *hcl.PathItem) PathItemOrReference {
 	return p
 }
 
-type RequestBody struct {
-	Description            string
-	Content                map[string]*MediaType
-	Required               bool
-	SpecificationExtension map[string]*hcl.Any
-}
+/*
+	type RequestBody struct {
+		Description            string
+		Content                map[string]*hcl.MediaType
+		Required               bool
+		SpecificationExtension map[string]*hcl.Any
+	}
 
-func NewRequestBody(a *hcl.RequestBody) *RequestBody {
-	if a == nil {
-		return nil
-	}
-	r := &RequestBody{
-		Description:            a.Description,
-		Required:               a.Required,
-		SpecificationExtension: a.SpecificationExtension,
-	}
-	if a.Content != nil {
-		r.Content = make(map[string]*MediaType)
-		for k, v := range a.Content {
-			r.Content[k] = NewMediaType(v)
+	func NewRequestBody(a *hcl.RequestBody) *RequestBody {
+		if a == nil {
+			return nil
 		}
+		r := &RequestBody{
+			Description:            a.Description,
+			Required:               a.Required,
+			SpecificationExtension: a.SpecificationExtension,
+		}
+		if a.Content != nil {
+			r.Content = make(map[string]*MediaType)
+			for k, v := range a.Content {
+				r.Content[k] = NewMediaType(v)
+			}
+		}
+		return r
 	}
-	return r
-}
-
+*/
 type RequestBodyOrReference any
 
 func NewRequestBodyOrReference(a *hcl.RequestBodyOrReference) RequestBodyOrReference {
