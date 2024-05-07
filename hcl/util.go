@@ -1,6 +1,8 @@
 package hcl
 
 import (
+	"strings"
+
 	"github.com/genelet/hcllight/light"
 )
 
@@ -81,6 +83,31 @@ func stringsToTupleConsExpr(items []string) *light.Expression {
 	return &light.Expression{
 		ExpressionClause: &light.Expression_Tcexpr{
 			Tcexpr: tcexpr,
+		},
+	}
+}
+
+func stringToTraversal(str string) *light.Expression {
+	parts := strings.SplitN(str, "/", -1)
+	args := []*light.Traverser{
+		{TraverserClause: &light.Traverser_TRoot{
+			TRoot: &light.TraverseRoot{Name: parts[0]},
+		}},
+	}
+	if len(parts) > 1 {
+		for _, part := range parts[1:] {
+			args = append(args, &light.Traverser{
+				TraverserClause: &light.Traverser_TAttr{
+					TAttr: &light.TraverseAttr{Name: part},
+				},
+			})
+		}
+	}
+	return &light.Expression{
+		ExpressionClause: &light.Expression_Stexpr{
+			Stexpr: &light.ScopeTraversalExpr{
+				Traversal: args,
+			},
 		},
 	}
 }

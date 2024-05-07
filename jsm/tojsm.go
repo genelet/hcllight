@@ -9,17 +9,12 @@ func ToJSM(s *Schema) *jsonschema.Schema {
 		return nil
 	}
 	if s.Reference != nil {
-		return &jsonschema.Schema{
-			Ref: s.Reference.Ref,
-		}
+		return referenceToJSM(s.Reference)
 	}
 
-	schema := commonToJSM(s.Common)
-	if schema == nil {
-		schema = &jsonschema.Schema{}
-	}
+	schema := commonToJSM(s)
 
-	if s.SchemaBoolean != nil {
+	if schema.Type != nil && schema.Type.String != nil && *schema.Type.String == "boolean" {
 		return schema
 	}
 	if s.SchemaString != nil {
@@ -41,15 +36,6 @@ func ToJSM(s *Schema) *jsonschema.Schema {
 		return mapToJSM(schema, s.SchemaMap)
 	}
 	return schemaFullToJSM(s)
-}
-
-func referenceToJSM(r *Reference) *jsonschema.Schema {
-	if r == nil {
-		return nil
-	}
-	return &jsonschema.Schema{
-		Ref: r.Ref,
-	}
 }
 
 func mapToNamedSchemaArray(s map[string]*Schema) *[]*jsonschema.NamedSchema {
@@ -106,11 +92,16 @@ func sliceToJSM(allof []*Schema) *[]*jsonschema.Schema {
 	return &arr
 }
 
-func commonToJSM(c *Common) *jsonschema.Schema {
-	if c.Type == nil && c.Format == nil && c.Default == nil && c.Enumeration == nil {
+func referenceToJSM(r *Reference) *jsonschema.Schema {
+	if r == nil {
 		return nil
 	}
+	return &jsonschema.Schema{
+		Ref: r.Ref,
+	}
+}
 
+func commonToJSM(c *Schema) *jsonschema.Schema {
 	jsm := &jsonschema.Schema{}
 	jsm.Type = c.Type
 	jsm.Format = c.Format
@@ -125,8 +116,10 @@ func stringToJSM(jsm *jsonschema.Schema, s *SchemaString) *jsonschema.Schema {
 	if s == nil {
 		return jsm
 	}
+	if jsm == nil {
+		jsm = &jsonschema.Schema{}
+	}
 
-	jsm = &jsonschema.Schema{}
 	jsm.MaxLength = s.MaxLength
 	jsm.MinLength = s.MinLength
 	jsm.Pattern = s.Pattern
@@ -137,10 +130,10 @@ func numberToJSM(jsm *jsonschema.Schema, n *SchemaNumber) *jsonschema.Schema {
 	if n == nil {
 		return jsm
 	}
-
 	if jsm == nil {
 		jsm = &jsonschema.Schema{}
 	}
+
 	jsm.MultipleOf = n.MultipleOf
 	jsm.Maximum = n.Maximum
 	jsm.ExclusiveMaximum = n.ExclusiveMaximum
@@ -154,10 +147,10 @@ func integerToJSM(jsm *jsonschema.Schema, i *SchemaInteger) *jsonschema.Schema {
 	if i == nil {
 		return jsm
 	}
-
 	if jsm == nil {
 		jsm = &jsonschema.Schema{}
 	}
+
 	if i.MultipleOf != nil {
 		jsm.MultipleOf = &jsonschema.SchemaNumber{
 			Integer: i.MultipleOf,
@@ -183,10 +176,10 @@ func arrayToJSM(jsm *jsonschema.Schema, a *SchemaArray) *jsonschema.Schema {
 	if a == nil {
 		return jsm
 	}
-
 	if jsm == nil {
 		jsm = &jsonschema.Schema{}
 	}
+
 	if a.Items != nil {
 		if a.Items.Schema != nil {
 			jsm.Items.Schema = ToJSM(a.Items.Schema)
@@ -205,10 +198,10 @@ func objectToJSM(jsm *jsonschema.Schema, o *SchemaObject) *jsonschema.Schema {
 	if o == nil {
 		return jsm
 	}
-
 	if jsm == nil {
 		jsm = &jsonschema.Schema{}
 	}
+
 	jsm.Properties = mapToNamedSchemaArray(o.Properties)
 	jsm.MaxProperties = o.MaxProperties
 	jsm.MinProperties = o.MinProperties
@@ -222,10 +215,10 @@ func mapToJSM(jsm *jsonschema.Schema, m *SchemaMap) *jsonschema.Schema {
 	if m == nil {
 		return jsm
 	}
-
 	if jsm == nil {
 		jsm = &jsonschema.Schema{}
 	}
+
 	if m.AdditionalProperties != nil {
 		if m.AdditionalProperties.Schema != nil {
 			jsm.AdditionalProperties.Schema = ToJSM(m.AdditionalProperties.Schema)
@@ -237,28 +230,17 @@ func mapToJSM(jsm *jsonschema.Schema, m *SchemaMap) *jsonschema.Schema {
 }
 
 func schemaFullToJSM(s *Schema) *jsonschema.Schema {
-	jsm := &jsonschema.Schema{}
-	if s.Common != nil {
-		jsm = commonToJSM(s.Common)
+	jsm := commonToJSM(s)
+	if s.Reference != nil {
+		jsm.Ref = s.Reference.Ref
 	}
-	if s.SchemaString != nil {
-		jsm = stringToJSM(jsm, s.SchemaString)
-	}
-	if s.SchemaNumber != nil {
-		jsm = numberToJSM(jsm, s.SchemaNumber)
-	}
-	if s.SchemaInteger != nil {
-		jsm = integerToJSM(jsm, s.SchemaInteger)
-	}
-	if s.SchemaArray != nil {
-		jsm = arrayToJSM(jsm, s.SchemaArray)
-	}
-	if s.SchemaObject != nil {
-		jsm = objectToJSM(jsm, s.SchemaObject)
-	}
-	if s.SchemaMap != nil {
-		jsm = mapToJSM(jsm, s.SchemaMap)
-	}
+	jsm = stringToJSM(jsm, s.SchemaString)
+	jsm = numberToJSM(jsm, s.SchemaNumber)
+	jsm = integerToJSM(jsm, s.SchemaInteger)
+	jsm = arrayToJSM(jsm, s.SchemaArray)
+	jsm = objectToJSM(jsm, s.SchemaObject)
+	jsm = mapToJSM(jsm, s.SchemaMap)
+
 	if s.AdditionalItems != nil {
 		if s.AdditionalItems.Schema != nil {
 			jsm.AdditionalItems.Schema = ToJSM(s.AdditionalItems.Schema)

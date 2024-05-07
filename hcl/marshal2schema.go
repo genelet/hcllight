@@ -1,8 +1,6 @@
 package hcl
 
 import (
-	"strings"
-
 	"github.com/genelet/hcllight/light"
 )
 
@@ -29,34 +27,10 @@ func (self *Reference) toBody() *light.Body {
 	}
 	return body
 }
-func (self *Reference) toTraversal() *light.Expression {
-	parts := strings.SplitN(self.XRef[2:], "/", -1)
-	args := []*light.Traverser{
-		{TraverserClause: &light.Traverser_TRoot{
-			TRoot: &light.TraverseRoot{Name: parts[0]},
-		}},
-	}
-	if len(parts) > 1 {
-		for _, part := range parts[1:] {
-			args = append(args, &light.Traverser{
-				TraverserClause: &light.Traverser_TAttr{
-					TAttr: &light.TraverseAttr{Name: part},
-				},
-			})
-		}
-	}
-	return &light.Expression{
-		ExpressionClause: &light.Expression_Stexpr{
-			Stexpr: &light.ScopeTraversalExpr{
-				Traversal: args,
-			},
-		},
-	}
-}
 
 func (self *Reference) toExpression() *light.Expression {
 	if self.Summary == "" && self.Description == "" && (self.XRef)[:2] == "#/" {
-		return self.toTraversal()
+		return stringToTraversal((self.XRef)[:2])
 	}
 
 	args := []*light.Expression{

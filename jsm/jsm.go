@@ -74,16 +74,17 @@ type SchemaObject struct {
 type SchemaFull struct {
 	Schema *string
 	ID     *string
-	Reference
+	*Reference
 	ReadOnly  *bool
 	WriteOnly *bool
 
-	SchemaNumber
-	SchemaString
-	SchemaArray
+	*Common
+	*SchemaNumber
+	*SchemaString
+	*SchemaArray
 	AdditionalItems *SchemaOrBoolean
-	SchemaMap
-	SchemaObject
+	*SchemaMap
+	*SchemaObject
 	PatternProperties map[string]*Schema
 	Dependencies      map[string]*SchemaOrStringArray
 
@@ -98,7 +99,6 @@ type SchemaFull struct {
 }
 
 type Schema struct {
-	SchemaBoolean *Common
 	*Common
 	*Reference
 	*SchemaNumber

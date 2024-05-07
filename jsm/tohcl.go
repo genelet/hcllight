@@ -10,18 +10,16 @@ func ToHcl(s *jsonschema.Schema) *Schema {
 	}
 
 	if check(s) {
-		return schemaFull2Hcl(s)
+		return schemaFullToHcl(s)
 	}
 
 	if s.Ref != nil {
 		return &Schema{
-			Reference: &Reference{
-				Ref: s.Ref,
-			},
+			Reference: referenceToHcl(s),
 		}
 	}
 
-	common := common2Hcl(s)
+	common := commonToHcl(s)
 
 	switch *s.Type.String {
 	case "boolean":
@@ -30,83 +28,37 @@ func ToHcl(s *jsonschema.Schema) *Schema {
 		}
 	case "number":
 		return &Schema{
-			Common: common,
-			SchemaNumber: &SchemaNumber{
-				MultipleOf:       s.MultipleOf,
-				Maximum:          s.Maximum,
-				ExclusiveMaximum: s.ExclusiveMaximum,
-				Minimum:          s.Minimum,
-				ExclusiveMinimum: s.ExclusiveMinimum,
-			},
+			Common:       common,
+			SchemaNumber: numberToHcl(s),
 		}
 	case "integer":
 		return &Schema{
-			Common: common,
-			SchemaInteger: &SchemaInteger{
-				MultipleOf:       s.MultipleOf.Integer,
-				Maximum:          s.Maximum.Integer,
-				ExclusiveMaximum: s.ExclusiveMaximum,
-				Minimum:          s.Minimum.Integer,
-				ExclusiveMinimum: s.ExclusiveMinimum,
-			},
+			Common:        common,
+			SchemaInteger: integerToHcl(s),
 		}
 	case "string":
 		return &Schema{
-			Common: common,
-			SchemaString: &SchemaString{
-				MaxLength: s.MaxLength,
-				MinLength: s.MinLength,
-				Pattern:   s.Pattern,
-			},
+			Common:       common,
+			SchemaString: stringToHcl(s),
 		}
 	case "array":
-		var items *SchemaOrSchemaArray
-		if s.Items.Schema != nil {
-			items = &SchemaOrSchemaArray{
-				Schema: ToHcl(s.Items.Schema),
-			}
-		} else {
-			for _, v := range *s.Items.SchemaArray {
-				items.SchemaArray = append(items.SchemaArray, ToHcl(v))
-			}
-		}
 		return &Schema{
-			SchemaArray: &SchemaArray{
-				Items:       items,
-				MaxItems:    s.MaxItems,
-				MinItems:    s.MinItems,
-				UniqueItems: s.UniqueItems,
-			},
+			SchemaArray: arrayToHcl(s),
 		}
 	case "object":
-		if s.Properties == nil && s.AdditionalProperties != nil {
+		if s.Properties == nil {
 			return &Schema{
-				SchemaMap: &SchemaMap{
-					AdditionalProperties: &SchemaOrBoolean{
-						Schema:  ToHcl(s.AdditionalProperties.Schema),
-						Boolean: s.AdditionalProperties.Boolean,
-					},
-				},
+				SchemaMap: mapToHcl(s),
 			}
-		} else if s.Properties == nil {
-			return nil
 		}
 
-		object := &SchemaObject{
-			MaxProperties: s.MaxProperties,
-			MinProperties: s.MinProperties,
-			Properties:    namedSchemaArrayToMap(s.Properties),
-		}
-		if s.Required != nil {
-			object.Required = *s.Required
-		}
 		return &Schema{
-			SchemaObject: object,
+			SchemaObject: objectToHcl(s),
 		}
 	default:
 	}
 
-	return schemaFull2Hcl(s)
+	return schemaFullToHcl(s)
 }
 
 func namedSchemaArrayToMap(s *[]*jsonschema.NamedSchema) map[string]*Schema {
@@ -143,6 +95,17 @@ func namedSchemaOrStringArrayArrayToMap(s *[]*jsonschema.NamedSchemaOrStringArra
 	return m
 }
 
+func sliceToHcl(allof *[]*jsonschema.Schema) []*Schema {
+	if allof == nil {
+		return nil
+	}
+	var arr []*Schema
+	for _, v := range *allof {
+		arr = append(arr, ToHcl(v))
+	}
+	return arr
+}
+
 func referenceToHcl(s *jsonschema.Schema) *Reference {
 	if s == nil || !isReference(s) {
 		return nil
@@ -151,7 +114,8 @@ func referenceToHcl(s *jsonschema.Schema) *Reference {
 		Ref: s.Ref,
 	}
 }
-func common2Hcl(s *jsonschema.Schema) *Common {
+
+func commonToHcl(s *jsonschema.Schema) *Common {
 	if s == nil || !isCommon(s) {
 		return nil
 	}
@@ -192,19 +156,38 @@ func numberToHcl(s *jsonschema.Schema) *SchemaNumber {
 	}
 }
 
+func integerToHcl(s *jsonschema.Schema) *SchemaInteger {
+	if s == nil || !isNumber(s) {
+		return nil
+	}
+
+	integer := &SchemaInteger{
+		ExclusiveMaximum: s.ExclusiveMaximum,
+		ExclusiveMinimum: s.ExclusiveMinimum,
+	}
+	if s.MultipleOf != nil {
+		integer.MultipleOf = s.MultipleOf.Integer
+	}
+	if s.Maximum != nil {
+		integer.Maximum = s.Maximum.Integer
+	}
+	if s.Minimum != nil {
+		integer.Minimum = s.Minimum.Integer
+	}
+	return integer
+}
+
 func arrayToHcl(s *jsonschema.Schema) *SchemaArray {
 	if s == nil || !isArray(s) {
 		return nil
 	}
 
 	var items *SchemaOrSchemaArray
-	if s.Items.Schema != nil {
-		items = &SchemaOrSchemaArray{
-			Schema: ToHcl(s.Items.Schema),
-		}
-	} else {
-		for _, v := range *s.Items.SchemaArray {
-			items.SchemaArray = append(items.SchemaArray, ToHcl(v))
+	if s.Items == nil {
+		if s.Items.Schema != nil {
+			items.Schema = ToHcl(s.Items.Schema)
+		} else {
+			items.SchemaArray = sliceToHcl(s.Items.SchemaArray)
 		}
 	}
 
@@ -245,23 +228,7 @@ func objectToHcl(s *jsonschema.Schema) *SchemaObject {
 	return object
 }
 
-func schemaFull2Hcl(s *jsonschema.Schema) *Schema {
-	var allOf []*Schema
-	for _, v := range *s.AllOf {
-		allOf = append(allOf, ToHcl(v))
-	}
-	var anyOf []*Schema
-	for _, v := range *s.AnyOf {
-		anyOf = append(anyOf, ToHcl(v))
-	}
-	var oneOf []*Schema
-	for _, v := range *s.OneOf {
-		oneOf = append(oneOf, ToHcl(v))
-	}
-	var definitions map[string]*Schema
-	for _, v := range *s.Definitions {
-		definitions[v.Name] = ToHcl(v.Value)
-	}
+func schemaFullToHcl(s *jsonschema.Schema) *Schema {
 	full := &SchemaFull{
 		Schema:            s.Schema,
 		ID:                s.ID,
@@ -270,38 +237,22 @@ func schemaFull2Hcl(s *jsonschema.Schema) *Schema {
 		PatternProperties: namedSchemaArrayToMap(s.PatternProperties),
 		Dependencies:      namedSchemaOrStringArrayArrayToMap(s.Dependencies),
 
-		AllOf:       allOf,
-		AnyOf:       anyOf,
-		OneOf:       oneOf,
+		Reference:    referenceToHcl(s),
+		Common:       commonToHcl(s),
+		SchemaNumber: numberToHcl(s),
+		SchemaString: stringToHcl(s),
+		SchemaArray:  arrayToHcl(s),
+		SchemaMap:    mapToHcl(s),
+		SchemaObject: objectToHcl(s),
+
+		AllOf:       sliceToHcl(s.AllOf),
+		AnyOf:       sliceToHcl(s.AnyOf),
+		OneOf:       sliceToHcl(s.OneOf),
 		Not:         ToHcl(s.Not),
-		Definitions: definitions,
+		Definitions: namedSchemaArrayToMap(s.Definitions),
 
 		Title:       s.Title,
 		Description: s.Description,
-	}
-	if x := referenceToHcl(s); x != nil {
-		full.Reference = *x
-	}
-	if x := stringToHcl(s); x != nil {
-		full.SchemaString = *x
-	}
-	if x := numberToHcl(s); x != nil {
-		full.SchemaNumber = *x
-	}
-	if x := arrayToHcl(s); x != nil {
-		full.SchemaArray = *x
-	}
-	if s.AdditionalItems != nil {
-		full.AdditionalItems = &SchemaOrBoolean{
-			Schema:  ToHcl(s.AdditionalItems.Schema),
-			Boolean: s.AdditionalItems.Boolean,
-		}
-	}
-	if x := mapToHcl(s); x != nil {
-		full.SchemaMap = *x
-	}
-	if x := objectToHcl(s); x != nil {
-		full.SchemaObject = *x
 	}
 
 	return &Schema{
