@@ -175,59 +175,60 @@ func isFull(s *jsonschema.Schema) bool {
 }
 
 func (self *Schema) toExpression() (*light.Expression, error) {
+	if self.isFull {
+		body, err := self.toBody()
+		if err != nil {
+			return nil, err
+		}
+		return &light.Expression{
+			ExpressionClause: &light.Expression_Ocexpr{
+				Ocexpr: body.ToObjectConsExpr(),
+			},
+		}, nil
+	}
+
 	if self.Reference != nil {
 		return referenceToExpression(*(self.Reference.Ref))
 	}
 
-	if self.Common != nil {
-		if self.SchemaMap != nil {
-			expr, err := self.Common.toMapFcexpr()
-			if err != nil {
-				return nil, err
-			}
-			return self.SchemaMap.toExpression(expr)
-		} else if self.SchemaObject != nil {
-			expr, err := self.Common.toObjectFcexpr()
-			if err != nil {
-				return nil, err
-			}
-			return self.SchemaObject.toExpression(expr)
-		} else if self.SchemaArray != nil {
-			expr, err := self.Common.toArrayFcexpr()
-			if err != nil {
-				return nil, err
-			}
-			return self.SchemaArray.toExpression(expr)
-		} else if self.SchemaString != nil {
-			expr, err := self.Common.toStringFcexpr()
-			if err != nil {
-				return nil, err
-			}
-			return self.SchemaString.toExpression(expr)
-		} else if self.SchemaNumber != nil {
-			expr, err := self.Common.toNumberFcexpr()
-			if err != nil {
-				return nil, err
-			}
-			return self.SchemaNumber.toExpression(expr)
-		} else if self.SchemaInteger != nil {
-			expr, err := self.Common.toIntegerFcexpr()
-			if err != nil {
-				return nil, err
-			}
-			return self.SchemaInteger.toExpression(expr)
+	if self.SchemaMap != nil {
+		expr, err := self.Common.toMapFcexpr()
+		if err != nil {
+			return nil, err
 		}
-		// this is boolean
-		return self.Common.toExpression()
+		return self.SchemaMap.toExpression(expr)
+	} else if self.SchemaObject != nil {
+		expr, err := self.Common.toObjectFcexpr()
+		if err != nil {
+			return nil, err
+		}
+		return self.SchemaObject.toExpression(expr)
+	} else if self.SchemaArray != nil {
+		expr, err := self.Common.toArrayFcexpr()
+		if err != nil {
+			return nil, err
+		}
+		return self.SchemaArray.toExpression(expr)
+	} else if self.SchemaString != nil {
+		expr, err := self.Common.toStringFcexpr()
+		if err != nil {
+			return nil, err
+		}
+		return self.SchemaString.toExpression(expr)
+	} else if self.SchemaNumber != nil {
+		expr, err := self.Common.toNumberFcexpr()
+		if err != nil {
+			return nil, err
+		}
+		return self.SchemaNumber.toExpression(expr)
+	} else if self.SchemaInteger != nil {
+		expr, err := self.Common.toIntegerFcexpr()
+		if err != nil {
+			return nil, err
+		}
+		return self.SchemaInteger.toExpression(expr)
 	}
 
-	body, err := self.SchemaFull.toBody()
-	if err != nil {
-		return nil, err
-	}
-	return &light.Expression{
-		ExpressionClause: &light.Expression_Ocexpr{
-			Ocexpr: body.ToObjectConsExpr(),
-		},
-	}, nil
+	// this is boolean
+	return self.Common.toExpression()
 }
