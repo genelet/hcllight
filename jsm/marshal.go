@@ -1,8 +1,6 @@
 package jsm
 
 import (
-	"fmt"
-
 	"github.com/genelet/hcllight/light"
 )
 
@@ -83,40 +81,6 @@ func (self *SchemaNumber) toAttributes(attrs map[string]*light.Attribute) error 
 	return nil
 }
 
-func (self *SchemaInteger) toAttributes(attrs map[string]*light.Attribute) error {
-	if self.Minimum != nil {
-		attrs["minimum"] = &light.Attribute{
-			Name: "minimum",
-			Expr: int64ToLiteralValueExpr(*self.Minimum),
-		}
-	}
-	if self.Maximum != nil {
-		attrs["maximum"] = &light.Attribute{
-			Name: "maximum",
-			Expr: int64ToLiteralValueExpr(*self.Maximum),
-		}
-	}
-	if self.ExclusiveMinimum != nil {
-		attrs["exclusiveMinimum"] = &light.Attribute{
-			Name: "exclusiveMinimum",
-			Expr: booleanToLiteralValueExpr(*self.ExclusiveMinimum),
-		}
-	}
-	if self.ExclusiveMaximum != nil {
-		attrs["exclusiveMaximum"] = &light.Attribute{
-			Name: "exclusiveMaximum",
-			Expr: booleanToLiteralValueExpr(*self.ExclusiveMaximum),
-		}
-	}
-	if self.MultipleOf != nil {
-		attrs["multipleOf"] = &light.Attribute{
-			Name: "multipleOf",
-			Expr: int64ToLiteralValueExpr(*self.MultipleOf),
-		}
-	}
-	return nil
-}
-
 func (self *SchemaString) toAttributes(attrs map[string]*light.Attribute) error {
 	if self.MaxLength != nil {
 		attrs["maxLength"] = &light.Attribute{
@@ -171,7 +135,7 @@ func (self *SchemaArray) toAttributes(attrs map[string]*light.Attribute) error {
 	return nil
 }
 
-func (self *SchemaObject) toAttributes(attrs map[string]*light.Attribute) error {
+func (self *SchemaObject) toAttributesBlocks(attrs map[string]*light.Attribute, blocks *[]*light.Block) error {
 	if self.MaxProperties != nil {
 		attrs["maxProperties"] = &light.Attribute{
 			Name: "maxProperties",
@@ -191,204 +155,37 @@ func (self *SchemaObject) toAttributes(attrs map[string]*light.Attribute) error 
 		}
 	}
 	if self.Properties != nil {
-		hash, err := mapToObjectConsExpr(self.Properties)
+		bdy, err := mapToBody(self.Properties)
 		if err != nil {
 			return err
 		}
-		attrs["properties"] = &light.Attribute{
-			Name: "properties",
-			Expr: &light.Expression{
-				ExpressionClause: &light.Expression_Ocexpr{
-					Ocexpr: hash,
-				},
-			},
-		}
+		*blocks = append(*blocks, &light.Block{
+			Type: "properties",
+			Bdy:  bdy,
+		})
 	}
+
 	return nil
 }
 
 func (self *SchemaMap) toAttributes(attrs map[string]*light.Attribute) error {
-	if self.AdditionalProperties != nil {
-		if self.AdditionalProperties.Schema != nil {
-			ex, err := self.AdditionalProperties.Schema.toExpression()
-			if err != nil {
-				return err
-			}
-			attrs["additionalProperties"] = &light.Attribute{
-				Name: "additionalProperties",
-				Expr: ex,
-			}
-		} else {
-			attrs["additionalProperties"] = &light.Attribute{
-				Name: "additionalProperties",
-				Expr: booleanToLiteralValueExpr(*self.AdditionalProperties.Boolean),
-			}
+	if self.AdditionalProperties.Schema != nil {
+		expr, err := self.AdditionalProperties.Schema.toExpression()
+		if err != nil {
+			return err
+		}
+		attrs["additionalProperties"] = &light.Attribute{
+			Name: "additionalProperties",
+			Expr: expr,
+		}
+	} else {
+		attrs["additionalProperties"] = &light.Attribute{
+			Name: "additionalProperties",
+			Expr: booleanToLiteralValueExpr(*self.AdditionalProperties.Boolean),
 		}
 	}
+
 	return nil
-}
-
-func (self *Reference) toExpression() (*light.Expression, error) {
-	if self == nil {
-		return nil, nil
-	}
-	if *self.Ref != "#/" {
-		return nil, fmt.Errorf("invalid reference: %s", *self.Ref)
-	}
-	return stringToTraversal((*self.Ref)[:2]), nil
-}
-
-func (self *Schema) toBoolExpression() (*light.Expression, error) {
-	if self.Common == nil {
-		return nil, nil
-	}
-
-	expr, err := self.Common.toBoolFcexpr()
-	if err != nil {
-		return nil, err
-	}
-	return &light.Expression{
-		ExpressionClause: &light.Expression_Fcexpr{
-			Fcexpr: expr,
-		},
-	}, nil
-}
-
-// because of order in function, we can't loop attribute map
-func (self *SchemaNumber) toNumberExpression(expr *light.FunctionCallExpr) (*light.Expression, error) {
-	if self.Minimum != nil {
-		expr.Args = append(expr.Args, doubleToLiteralValueExpr(*self.Minimum.Float))
-	}
-	if self.Maximum != nil {
-		expr.Args = append(expr.Args, doubleToLiteralValueExpr(*self.Maximum.Float))
-	}
-	if self.ExclusiveMinimum != nil {
-		expr.Args = append(expr.Args, booleanToLiteralValueExpr(*self.ExclusiveMinimum))
-	}
-	if self.ExclusiveMaximum != nil {
-		expr.Args = append(expr.Args, booleanToLiteralValueExpr(*self.ExclusiveMaximum))
-	}
-	if self.MultipleOf != nil {
-		expr.Args = append(expr.Args, doubleToLiteralValueExpr(*self.MultipleOf.Float))
-	}
-	return &light.Expression{
-		ExpressionClause: &light.Expression_Fcexpr{
-			Fcexpr: expr,
-		},
-	}, nil
-}
-
-func (self *SchemaInteger) toIntegerExpression(expr *light.FunctionCallExpr) (*light.Expression, error) {
-	if self.Minimum != nil {
-		expr.Args = append(expr.Args, int64ToLiteralValueExpr(*self.Minimum))
-	}
-	if self.Maximum != nil {
-		expr.Args = append(expr.Args, int64ToLiteralValueExpr(*self.Maximum))
-	}
-	if self.ExclusiveMinimum != nil {
-		expr.Args = append(expr.Args, booleanToLiteralValueExpr(*self.ExclusiveMinimum))
-	}
-	if self.ExclusiveMaximum != nil {
-		expr.Args = append(expr.Args, booleanToLiteralValueExpr(*self.ExclusiveMaximum))
-	}
-	if self.MultipleOf != nil {
-		expr.Args = append(expr.Args, int64ToLiteralValueExpr(*self.MultipleOf))
-	}
-	return &light.Expression{
-		ExpressionClause: &light.Expression_Fcexpr{
-			Fcexpr: expr,
-		},
-	}, nil
-}
-
-func (self *SchemaString) toStringExpression(expr *light.FunctionCallExpr) (*light.Expression, error) {
-	if self.MaxLength != nil {
-		expr.Args = append(expr.Args, int64ToLiteralValueExpr(*self.MaxLength))
-	}
-	if self.MinLength != nil {
-		expr.Args = append(expr.Args, int64ToLiteralValueExpr(*self.MinLength))
-	}
-	if self.Pattern != nil {
-		expr.Args = append(expr.Args, stringToTextValueExpr(*self.Pattern))
-	}
-	return &light.Expression{
-		ExpressionClause: &light.Expression_Fcexpr{
-			Fcexpr: expr,
-		},
-	}, nil
-}
-
-func (self *SchemaArray) toArrayExpression(expr *light.FunctionCallExpr) (*light.Expression, error) {
-	if self.Items != nil {
-		ex, err := itemsToExpression(self.Items)
-		if err != nil {
-			return nil, err
-		}
-		expr.Args = append(expr.Args, ex)
-	}
-
-	if self.MaxItems != nil {
-		expr.Args = append(expr.Args, int64ToLiteralValueExpr(*self.MaxItems))
-	}
-	if self.MinItems != nil {
-		expr.Args = append(expr.Args, int64ToLiteralValueExpr(*self.MinItems))
-	}
-	if self.UniqueItems != nil {
-		expr.Args = append(expr.Args, booleanToLiteralValueExpr(*self.UniqueItems))
-	}
-	return &light.Expression{
-		ExpressionClause: &light.Expression_Fcexpr{
-			Fcexpr: expr,
-		},
-	}, nil
-}
-
-func (self *SchemaObject) toObjectExpression(expr *light.FunctionCallExpr) (*light.Expression, error) {
-	if self.Properties != nil {
-		ex, err := mapToObjectConsExpr(self.Properties)
-		if err != nil {
-			return nil, err
-		}
-		expr.Args = append(expr.Args, &light.Expression{
-			ExpressionClause: &light.Expression_Ocexpr{
-				Ocexpr: ex,
-			},
-		})
-	}
-
-	if self.MaxProperties != nil {
-		expr.Args = append(expr.Args, int64ToLiteralValueExpr(*self.MaxProperties))
-	}
-	if self.MinProperties != nil {
-		expr.Args = append(expr.Args, int64ToLiteralValueExpr(*self.MinProperties))
-	}
-	if self.Required != nil {
-		expr.Args = append(expr.Args, stringsToTupleConsExpr(self.Required))
-	}
-	return &light.Expression{
-		ExpressionClause: &light.Expression_Fcexpr{
-			Fcexpr: expr,
-		},
-	}, nil
-}
-
-func (self *SchemaMap) toMapExpression(expr *light.FunctionCallExpr) (*light.Expression, error) {
-	if self.AdditionalProperties != nil {
-		if self.AdditionalProperties.Schema != nil {
-			ex, err := self.AdditionalProperties.Schema.toExpression()
-			if err != nil {
-				return nil, err
-			}
-			expr.Args = append(expr.Args, ex)
-		} else {
-			expr.Args = append(expr.Args, booleanToLiteralValueExpr(*self.AdditionalProperties.Boolean))
-		}
-	}
-	return &light.Expression{
-		ExpressionClause: &light.Expression_Fcexpr{
-			Fcexpr: expr,
-		},
-	}, nil
 }
 
 func (self *SchemaFull) toBody() (*light.Body, error) {
@@ -396,6 +193,14 @@ func (self *SchemaFull) toBody() (*light.Body, error) {
 	attrs := make(map[string]*light.Attribute)
 	blocks := make([]*light.Block, 0)
 
+	if self.Ref != nil {
+		if ex, err := referenceToExpression(*self.Ref); err != nil {
+			attrs["$ref"] = &light.Attribute{
+				Name: "$ref",
+				Expr: ex,
+			}
+		}
+	}
 	if self.Common != nil {
 		if err := self.Common.toAttributes(attrs); err != nil {
 			return nil, err
@@ -417,7 +222,7 @@ func (self *SchemaFull) toBody() (*light.Body, error) {
 		}
 	}
 	if self.SchemaObject != nil {
-		if err := self.SchemaObject.toAttributes(attrs); err != nil {
+		if err := self.SchemaObject.toAttributesBlocks(attrs, &blocks); err != nil {
 			return nil, err
 		}
 	}
@@ -426,14 +231,134 @@ func (self *SchemaFull) toBody() (*light.Body, error) {
 			return nil, err
 		}
 	}
-	if self.Reference != nil {
-		if ex, err := self.Reference.toExpression(); err != nil {
-			return nil, err
+	if self.AdditionalItems != nil {
+		if self.AdditionalItems.Schema != nil {
+			ex, err := self.AdditionalItems.Schema.toExpression()
+			if err != nil {
+				return nil, err
+			}
+			attrs["additionalItems"] = &light.Attribute{
+				Name: "additionalItems",
+				Expr: ex,
+			}
 		} else {
-			attrs["$ref"] = ex
+			attrs["additionalItems"] = &light.Attribute{
+				Name: "additionalItems",
+				Expr: booleanToLiteralValueExpr(*self.AdditionalItems.Boolean),
+			}
 		}
 	}
-
+	if self.PatternProperties != nil {
+		bdy, err := mapToBody(self.PatternProperties)
+		if err != nil {
+			return nil, err
+		}
+		blocks = append(blocks, &light.Block{
+			Type: "patternProperties",
+			Bdy:  bdy,
+		})
+	}
+	if self.Definitions != nil {
+		bdy, err := mapToBody(self.Definitions)
+		if err != nil {
+			return nil, err
+		}
+		blocks = append(blocks, &light.Block{
+			Type: "definitions",
+			Bdy:  bdy,
+		})
+	}
+	if self.Dependencies != nil {
+		bdy, err := mapSchemaOrStringArrayToMap(self.Dependencies)
+		if err != nil {
+			return nil, err
+		}
+		blocks = append(blocks, &light.Block{
+			Type: "dependencies",
+			Bdy:  bdy,
+		})
+	}
+	if self.AllOf != nil {
+		expr, err := sliceToTupleConsExpr(self.AllOf)
+		if err != nil {
+			return nil, err
+		}
+		attrs["allOf"] = &light.Attribute{
+			Name: "allOf",
+			Expr: &light.Expression{
+				ExpressionClause: &light.Expression_Tcexpr{
+					Tcexpr: expr,
+				},
+			},
+		}
+	}
+	if self.OneOf != nil {
+		expr, err := sliceToTupleConsExpr(self.OneOf)
+		if err != nil {
+			return nil, err
+		}
+		attrs["oneOf"] = &light.Attribute{
+			Name: "oneOf",
+			Expr: &light.Expression{
+				ExpressionClause: &light.Expression_Tcexpr{
+					Tcexpr: expr,
+				},
+			},
+		}
+	}
+	if self.AnyOf != nil {
+		expr, err := sliceToTupleConsExpr(self.AnyOf)
+		if err != nil {
+			return nil, err
+		}
+		attrs["anyOf"] = &light.Attribute{
+			Name: "anyOf",
+			Expr: &light.Expression{
+				ExpressionClause: &light.Expression_Tcexpr{
+					Tcexpr: expr,
+				},
+			},
+		}
+	}
+	if self.Not != nil {
+		expr, err := self.Not.toExpression()
+		if err != nil {
+			return nil, err
+		}
+		attrs["not"] = &light.Attribute{
+			Name: "not",
+			Expr: expr,
+		}
+	}
+	if self.Title != nil {
+		attrs["title"] = &light.Attribute{
+			Name: "title",
+			Expr: stringToTextValueExpr(*self.Title),
+		}
+	}
+	if self.Description != nil {
+		attrs["description"] = &light.Attribute{
+			Name: "description",
+			Expr: stringToTextValueExpr(*self.Description),
+		}
+	}
+	if self.Format != nil {
+		attrs["format"] = &light.Attribute{
+			Name: "format",
+			Expr: stringToTextValueExpr(*self.Format),
+		}
+	}
+	if self.Default != nil {
+		attrs["default"] = &light.Attribute{
+			Name: "default",
+			Expr: stringToLiteralValueExpr(self.Default.Value),
+		}
+	}
+	if len(attrs) > 0 {
+		body.Attributes = attrs
+	}
+	if len(blocks) > 0 {
+		body.Blocks = blocks
+	}
 	return body, nil
-
 }

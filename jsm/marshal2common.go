@@ -7,6 +7,7 @@ import (
 	"github.com/google/gnostic/jsonschema"
 )
 
+// try to use mapToBody first
 func mapToObjectConsExpr(s map[string]*Schema) (*light.ObjectConsExpr, error) {
 	if s == nil {
 		return nil, nil
@@ -25,6 +26,95 @@ func mapToObjectConsExpr(s map[string]*Schema) (*light.ObjectConsExpr, error) {
 	return &light.ObjectConsExpr{
 		Items: items,
 	}, nil
+}
+
+func mapToBody(s map[string]*Schema) (*light.Body, error) {
+	if s == nil {
+		return nil, nil
+	}
+
+	var body *light.Body
+	attrs := make(map[string]*light.Attribute)
+	blocks := make([]*light.Block, 0)
+	for k, v := range s {
+		if v.isFull {
+			bdy, err := v.SchemaFull.toBody()
+			if err != nil {
+				return nil, err
+			}
+			blocks = append(blocks, &light.Block{
+				Type: k,
+				Bdy:  bdy,
+			})
+		} else {
+			expr, err := v.toExpression()
+			if err != nil {
+				return nil, err
+			}
+			attrs[k] = &light.Attribute{
+				Name: k,
+				Expr: expr,
+			}
+		}
+	}
+
+	if len(attrs) > 0 {
+		body = &light.Body{
+			Attributes: attrs,
+		}
+	}
+	if len(blocks) > 0 {
+		if body == nil {
+			body = &light.Body{}
+		}
+		body.Blocks = blocks
+	}
+	return body, nil
+}
+
+func mapSchemaOrStringArrayToMap(s map[string]*SchemaOrStringArray) (*light.Body, error) {
+	if s == nil {
+		return nil, nil
+	}
+
+	bdy := &light.Body{}
+	attrs := make(map[string]*light.Attribute)
+	blocks := make([]*light.Block, 0)
+	for k, v := range s {
+		if v.Schema != nil {
+			if v.Schema.isFull {
+				bdy, err := v.Schema.SchemaFull.toBody()
+				if err != nil {
+					return nil, err
+				}
+				blocks = append(blocks, &light.Block{
+					Type: k,
+					Bdy:  bdy,
+				})
+			} else {
+				expr, err := v.Schema.toExpression()
+				if err != nil {
+					return nil, err
+				}
+				attrs[k] = &light.Attribute{
+					Name: k,
+					Expr: expr,
+				}
+			}
+		} else {
+			attrs[k] = &light.Attribute{
+				Name: k,
+				Expr: stringsToTupleConsExpr(v.StringArray),
+			}
+		}
+	}
+	if len(attrs) > 0 {
+		bdy.Attributes = attrs
+	}
+	if len(blocks) > 0 {
+		bdy.Blocks = blocks
+	}
+	return bdy, nil
 }
 
 func sliceToTupleConsExpr(allof []*Schema) (*light.TupleConsExpr, error) {
@@ -223,4 +313,161 @@ func (self *Common) toMapFcexpr() (*light.FunctionCallExpr, error) {
 	}
 
 	return fnc, nil
+}
+
+func referenceToExpression(ref string) (*light.Expression, error) {
+	if ref != "#/" {
+		return nil, fmt.Errorf("invalid reference: %s", ref)
+	}
+	return stringToTraversal(ref[:2]), nil
+}
+
+// this is for bool only
+func (self *Common) toExpression() (*light.Expression, error) {
+	expr, err := self.toBoolFcexpr()
+	if err != nil {
+		return nil, err
+	}
+	return &light.Expression{
+		ExpressionClause: &light.Expression_Fcexpr{
+			Fcexpr: expr,
+		},
+	}, nil
+}
+
+// because of order in function, we can't loop attribute map
+func (self *SchemaNumber) toExpression(expr *light.FunctionCallExpr) (*light.Expression, error) {
+	if self.Minimum != nil {
+		expr.Args = append(expr.Args, doubleToLiteralValueExpr(*self.Minimum.Float))
+	}
+	if self.Maximum != nil {
+		expr.Args = append(expr.Args, doubleToLiteralValueExpr(*self.Maximum.Float))
+	}
+	if self.ExclusiveMinimum != nil {
+		expr.Args = append(expr.Args, booleanToLiteralValueExpr(*self.ExclusiveMinimum))
+	}
+	if self.ExclusiveMaximum != nil {
+		expr.Args = append(expr.Args, booleanToLiteralValueExpr(*self.ExclusiveMaximum))
+	}
+	if self.MultipleOf != nil {
+		expr.Args = append(expr.Args, doubleToLiteralValueExpr(*self.MultipleOf.Float))
+	}
+	return &light.Expression{
+		ExpressionClause: &light.Expression_Fcexpr{
+			Fcexpr: expr,
+		},
+	}, nil
+}
+
+func (self *SchemaInteger) toExpression(expr *light.FunctionCallExpr) (*light.Expression, error) {
+	if self.Minimum != nil {
+		expr.Args = append(expr.Args, int64ToLiteralValueExpr(*self.Minimum))
+	}
+	if self.Maximum != nil {
+		expr.Args = append(expr.Args, int64ToLiteralValueExpr(*self.Maximum))
+	}
+	if self.ExclusiveMinimum != nil {
+		expr.Args = append(expr.Args, booleanToLiteralValueExpr(*self.ExclusiveMinimum))
+	}
+	if self.ExclusiveMaximum != nil {
+		expr.Args = append(expr.Args, booleanToLiteralValueExpr(*self.ExclusiveMaximum))
+	}
+	if self.MultipleOf != nil {
+		expr.Args = append(expr.Args, int64ToLiteralValueExpr(*self.MultipleOf))
+	}
+	return &light.Expression{
+		ExpressionClause: &light.Expression_Fcexpr{
+			Fcexpr: expr,
+		},
+	}, nil
+}
+
+func (self *SchemaString) toExpression(expr *light.FunctionCallExpr) (*light.Expression, error) {
+	if self.MaxLength != nil {
+		expr.Args = append(expr.Args, int64ToLiteralValueExpr(*self.MaxLength))
+	}
+	if self.MinLength != nil {
+		expr.Args = append(expr.Args, int64ToLiteralValueExpr(*self.MinLength))
+	}
+	if self.Pattern != nil {
+		expr.Args = append(expr.Args, stringToTextValueExpr(*self.Pattern))
+	}
+	return &light.Expression{
+		ExpressionClause: &light.Expression_Fcexpr{
+			Fcexpr: expr,
+		},
+	}, nil
+}
+
+func (self *SchemaArray) toExpression(expr *light.FunctionCallExpr) (*light.Expression, error) {
+	if self.Items != nil {
+		ex, err := itemsToExpression(self.Items)
+		if err != nil {
+			return nil, err
+		}
+		expr.Args = append(expr.Args, ex)
+	}
+
+	if self.MaxItems != nil {
+		expr.Args = append(expr.Args, int64ToLiteralValueExpr(*self.MaxItems))
+	}
+	if self.MinItems != nil {
+		expr.Args = append(expr.Args, int64ToLiteralValueExpr(*self.MinItems))
+	}
+	if self.UniqueItems != nil {
+		expr.Args = append(expr.Args, booleanToLiteralValueExpr(*self.UniqueItems))
+	}
+	return &light.Expression{
+		ExpressionClause: &light.Expression_Fcexpr{
+			Fcexpr: expr,
+		},
+	}, nil
+}
+
+func (self *SchemaObject) toExpression(expr *light.FunctionCallExpr) (*light.Expression, error) {
+	if self.Properties != nil {
+		ex, err := mapToObjectConsExpr(self.Properties)
+		if err != nil {
+			return nil, err
+		}
+		expr.Args = append(expr.Args, &light.Expression{
+			ExpressionClause: &light.Expression_Ocexpr{
+				Ocexpr: ex,
+			},
+		})
+	}
+
+	if self.MaxProperties != nil {
+		expr.Args = append(expr.Args, int64ToLiteralValueExpr(*self.MaxProperties))
+	}
+	if self.MinProperties != nil {
+		expr.Args = append(expr.Args, int64ToLiteralValueExpr(*self.MinProperties))
+	}
+	if self.Required != nil {
+		expr.Args = append(expr.Args, stringsToTupleConsExpr(self.Required))
+	}
+	return &light.Expression{
+		ExpressionClause: &light.Expression_Fcexpr{
+			Fcexpr: expr,
+		},
+	}, nil
+}
+
+func (self *SchemaMap) toExpression(expr *light.FunctionCallExpr) (*light.Expression, error) {
+	if self.AdditionalProperties != nil {
+		if self.AdditionalProperties.Schema != nil {
+			ex, err := self.AdditionalProperties.Schema.toExpression()
+			if err != nil {
+				return nil, err
+			}
+			expr.Args = append(expr.Args, ex)
+		} else {
+			expr.Args = append(expr.Args, booleanToLiteralValueExpr(*self.AdditionalProperties.Boolean))
+		}
+	}
+	return &light.Expression{
+		ExpressionClause: &light.Expression_Fcexpr{
+			Fcexpr: expr,
+		},
+	}, nil
 }

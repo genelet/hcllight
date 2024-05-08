@@ -1,6 +1,7 @@
 package jsm
 
 import (
+	"github.com/genelet/hcllight/light"
 	"github.com/google/gnostic/jsonschema"
 	"gopkg.in/yaml.v3"
 )
@@ -72,9 +73,9 @@ type SchemaObject struct {
 }
 
 type SchemaFull struct {
-	Schema *string
-	ID     *string
-	*Reference
+	Schema    *string
+	ID        *string
+	Ref       *string
 	ReadOnly  *bool
 	WriteOnly *bool
 
@@ -108,6 +109,7 @@ type Schema struct {
 	*SchemaMap
 	*SchemaObject
 	*SchemaFull
+	isFull bool
 }
 
 func isCommon(s *jsonschema.Schema) bool {
@@ -131,17 +133,21 @@ func isMap(s *jsonschema.Schema) bool {
 func isReference(s *jsonschema.Schema) bool {
 	return s.Ref != nil
 }
-func isFull(s *jsonschema.Schema) bool {
+func isOnlyReference(s *jsonschema.Schema) bool {
+	return s.Ref != nil && !isCommon(s) && !isNumber(s) && !isString(s) && !isArray(s) && !isObject(s) && !isMap(s)
+}
+
+func isRest(s *jsonschema.Schema) bool {
 	return s.Schema != nil || s.ID != nil || s.ReadOnly != nil || s.WriteOnly != nil || (s.PatternProperties != nil && len(*s.PatternProperties) > 0) || (s.Dependencies != nil && len(*s.Dependencies) > 0) || (s.AllOf != nil && len(*s.AllOf) > 0) || (s.AnyOf != nil && len(*s.AnyOf) > 0) || (s.OneOf != nil && len(*s.OneOf) > 0) || s.Not != nil || (s.Definitions != nil && len(*s.Definitions) > 0) || s.Title != nil || s.Description != nil
 }
 
-func check(s *jsonschema.Schema) bool {
-	if isFull(s) {
+func isFull(s *jsonschema.Schema) bool {
+	if isRest(s) {
 		return true
 	}
 
-	if s.Ref != nil {
-		return !isReference(s)
+	if isReference(s) {
+		return !isOnlyReference(s)
 	}
 
 	if s.Type == nil || s.Type.String == nil {
@@ -166,4 +172,62 @@ func check(s *jsonschema.Schema) bool {
 	default:
 	}
 	return true
+}
+
+func (self *Schema) toExpression() (*light.Expression, error) {
+	if self.Reference != nil {
+		return referenceToExpression(*(self.Reference.Ref))
+	}
+
+	if self.Common != nil {
+		if self.SchemaMap != nil {
+			expr, err := self.Common.toMapFcexpr()
+			if err != nil {
+				return nil, err
+			}
+			return self.SchemaMap.toExpression(expr)
+		} else if self.SchemaObject != nil {
+			expr, err := self.Common.toObjectFcexpr()
+			if err != nil {
+				return nil, err
+			}
+			return self.SchemaObject.toExpression(expr)
+		} else if self.SchemaArray != nil {
+			expr, err := self.Common.toArrayFcexpr()
+			if err != nil {
+				return nil, err
+			}
+			return self.SchemaArray.toExpression(expr)
+		} else if self.SchemaString != nil {
+			expr, err := self.Common.toStringFcexpr()
+			if err != nil {
+				return nil, err
+			}
+			return self.SchemaString.toExpression(expr)
+		} else if self.SchemaNumber != nil {
+			expr, err := self.Common.toNumberFcexpr()
+			if err != nil {
+				return nil, err
+			}
+			return self.SchemaNumber.toExpression(expr)
+		} else if self.SchemaInteger != nil {
+			expr, err := self.Common.toIntegerFcexpr()
+			if err != nil {
+				return nil, err
+			}
+			return self.SchemaInteger.toExpression(expr)
+		}
+		// this is boolean
+		return self.Common.toExpression()
+	}
+
+	body, err := self.SchemaFull.toBody()
+	if err != nil {
+		return nil, err
+	}
+	return &light.Expression{
+		ExpressionClause: &light.Expression_Ocexpr{
+			Ocexpr: body.ToObjectConsExpr(),
+		},
+	}, nil
 }

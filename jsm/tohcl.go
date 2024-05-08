@@ -9,7 +9,7 @@ func ToHcl(s *jsonschema.Schema) *Schema {
 		return nil
 	}
 
-	if check(s) {
+	if isFull(s) {
 		return schemaFullToHcl(s)
 	}
 
@@ -43,16 +43,19 @@ func ToHcl(s *jsonschema.Schema) *Schema {
 		}
 	case "array":
 		return &Schema{
+			Common:      common,
 			SchemaArray: arrayToHcl(s),
 		}
 	case "object":
 		if s.Properties == nil {
 			return &Schema{
+				Common:    common,
 				SchemaMap: mapToHcl(s),
 			}
 		}
 
 		return &Schema{
+			Common:       common,
 			SchemaObject: objectToHcl(s),
 		}
 	default:
@@ -237,7 +240,7 @@ func schemaFullToHcl(s *jsonschema.Schema) *Schema {
 		PatternProperties: namedSchemaArrayToMap(s.PatternProperties),
 		Dependencies:      namedSchemaOrStringArrayArrayToMap(s.Dependencies),
 
-		Reference:    referenceToHcl(s),
+		Ref:          s.Ref,
 		Common:       commonToHcl(s),
 		SchemaNumber: numberToHcl(s),
 		SchemaString: stringToHcl(s),
@@ -254,8 +257,19 @@ func schemaFullToHcl(s *jsonschema.Schema) *Schema {
 		Title:       s.Title,
 		Description: s.Description,
 	}
-
+	if s.AdditionalItems != nil {
+		if s.AdditionalItems.Schema != nil {
+			full.AdditionalItems = &SchemaOrBoolean{
+				Schema: ToHcl(s.AdditionalItems.Schema),
+			}
+		} else {
+			full.AdditionalItems = &SchemaOrBoolean{
+				Boolean: s.AdditionalItems.Boolean,
+			}
+		}
+	}
 	return &Schema{
 		SchemaFull: full,
+		isFull:     true,
 	}
 }
