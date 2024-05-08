@@ -88,6 +88,9 @@ func (self *Body) hclBodyNode(level int) (string, error) {
 	if level == 0 {
 		return fmt.Sprintf("\n%s\n%s", leading+strings.Join(arr, "\n"+leading), lessLeading), nil
 	}
+	if arr == nil {
+		return "{}", nil
+	}
 	return fmt.Sprintf("{\n%s\n%s}", leading+strings.Join(arr, "\n"+leading), lessLeading), nil
 }
 
@@ -240,8 +243,10 @@ func (self *Expression) HclExpression(x ...interface{}) (string, error) {
 				arr = append(arr, nextLeading+key+" = "+val)
 			}
 		}
+		if arr == nil {
+			return "{}", nil
+		}
 		return fmt.Sprintf("{\n%s\n%s}", strings.Join(arr, ",\n"), leading), nil
-		//return "{" + strings.Join(arr, ", ") + "}", nil
 	case *Expression_Ockexpr:
 		expr := self.GetOckexpr()
 		return expr.GetWrapped().HclExpression()

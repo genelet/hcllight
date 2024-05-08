@@ -170,8 +170,8 @@ func enumToTupleConsExpr(enumeration []jsonschema.SchemaEnumValue) (*light.Tuple
 }
 
 func (self *Common) toBoolFcexpr() (*light.FunctionCallExpr, error) {
-	if self.Type == nil && *self.Type.String != "boolean" {
-		return nil, fmt.Errorf("invalid type: %#v", self.Type)
+	if self.Type == nil || self.Type.String == nil || *self.Type.String != "boolean" {
+		return nil, fmt.Errorf("invalid type for bool: %#v", *self.Type.String)
 	}
 	fnc := &light.FunctionCallExpr{
 		Name: "bool",
@@ -187,8 +187,8 @@ func (self *Common) toBoolFcexpr() (*light.FunctionCallExpr, error) {
 }
 
 func (self *Common) toNumberFcexpr() (*light.FunctionCallExpr, error) {
-	if self.Type == nil && *self.Type.String != "number" {
-		return nil, fmt.Errorf("invalid type: %#v", self.Type)
+	if self.Type == nil || self.Type.String == nil || *self.Type.String != "number" {
+		return nil, fmt.Errorf("invalid type for number: %#v", *self.Type.String)
 	}
 	fnc := &light.FunctionCallExpr{
 		Name: "number",
@@ -210,8 +210,8 @@ func (self *Common) toNumberFcexpr() (*light.FunctionCallExpr, error) {
 }
 
 func (self *Common) toIntegerFcexpr() (*light.FunctionCallExpr, error) {
-	if self.Type == nil && *self.Type.String != "integer" {
-		return nil, fmt.Errorf("invalid type: %#v", self.Type)
+	if self.Type == nil || self.Type.String == nil || *self.Type.String != "integer" {
+		return nil, fmt.Errorf("invalid type for integer : %#v", self.Type)
 	}
 	fnc := &light.FunctionCallExpr{
 		Name: "integer",
@@ -233,8 +233,8 @@ func (self *Common) toIntegerFcexpr() (*light.FunctionCallExpr, error) {
 }
 
 func (self *Common) toStringFcexpr() (*light.FunctionCallExpr, error) {
-	if self.Type == nil && *self.Type.String != "string" {
-		return nil, fmt.Errorf("invalid type: %#v", self.Type)
+	if self.Type == nil || self.Type.String == nil || *self.Type.String != "string" {
+		return nil, fmt.Errorf("invalid type for string: %#v", self.Type)
 	}
 	fnc := &light.FunctionCallExpr{
 		Name: "string",
@@ -268,8 +268,8 @@ func (self *Common) toStringFcexpr() (*light.FunctionCallExpr, error) {
 }
 
 func (self *Common) toArrayFcexpr() (*light.FunctionCallExpr, error) {
-	if self.Type == nil && *self.Type.String != "array" {
-		return nil, fmt.Errorf("invalid type: %#v", self.Type)
+	if self.Type == nil || self.Type.String == nil || *self.Type.String != "array" {
+		return nil, fmt.Errorf("invalid type for array: %#v", self.Type)
 	}
 	fnc := &light.FunctionCallExpr{
 		Name: "array",
@@ -283,8 +283,8 @@ func (self *Common) toArrayFcexpr() (*light.FunctionCallExpr, error) {
 }
 
 func (self *Common) toObjectFcexpr() (*light.FunctionCallExpr, error) {
-	if self.Type == nil && *self.Type.String != "object" {
-		return nil, fmt.Errorf("invalid type: %#v", self.Type)
+	if self.Type == nil || self.Type.String == nil || *self.Type.String != "object" {
+		return nil, fmt.Errorf("invalid type for object: %#v", self.Type)
 	}
 	fnc := &light.FunctionCallExpr{
 		Name: "object",
@@ -301,8 +301,8 @@ func (self *Common) toMapFcexpr() (*light.FunctionCallExpr, error) {
 	if self == nil {
 		return nil, nil
 	}
-	if self.Type == nil && *self.Type.String != "map" {
-		return nil, fmt.Errorf("invalid type: %#v", self.Type)
+	if self.Type == nil || self.Type.String == nil || *self.Type.String != "map" {
+		return nil, fmt.Errorf("invalid type for map: %#v", self.Type)
 	}
 	fnc := &light.FunctionCallExpr{
 		Name: "map",
@@ -316,10 +316,10 @@ func (self *Common) toMapFcexpr() (*light.FunctionCallExpr, error) {
 }
 
 func referenceToExpression(ref string) (*light.Expression, error) {
-	if ref != "#/" {
+	if ref[:2] != "#/" {
 		return nil, fmt.Errorf("invalid reference: %s", ref)
 	}
-	return stringToTraversal(ref[:2]), nil
+	return stringToTraversal(ref[2:]), nil
 }
 
 // this is for bool only
@@ -338,10 +338,18 @@ func (self *Common) toExpression() (*light.Expression, error) {
 // because of order in function, we can't loop attribute map
 func (self *SchemaNumber) toExpression(expr *light.FunctionCallExpr) (*light.Expression, error) {
 	if self.Minimum != nil {
-		expr.Args = append(expr.Args, doubleToLiteralValueExpr(*self.Minimum.Float))
+		if self.Minimum.Float != nil {
+			expr.Args = append(expr.Args, doubleToLiteralValueExpr(*self.Minimum.Float))
+		} else {
+			expr.Args = append(expr.Args, int64ToLiteralValueExpr(*self.Minimum.Integer))
+		}
 	}
 	if self.Maximum != nil {
-		expr.Args = append(expr.Args, doubleToLiteralValueExpr(*self.Maximum.Float))
+		if self.Maximum.Float != nil {
+			expr.Args = append(expr.Args, doubleToLiteralValueExpr(*self.Maximum.Float))
+		} else {
+			expr.Args = append(expr.Args, int64ToLiteralValueExpr(*self.Maximum.Integer))
+		}
 	}
 	if self.ExclusiveMinimum != nil {
 		expr.Args = append(expr.Args, booleanToLiteralValueExpr(*self.ExclusiveMinimum))
@@ -350,7 +358,11 @@ func (self *SchemaNumber) toExpression(expr *light.FunctionCallExpr) (*light.Exp
 		expr.Args = append(expr.Args, booleanToLiteralValueExpr(*self.ExclusiveMaximum))
 	}
 	if self.MultipleOf != nil {
-		expr.Args = append(expr.Args, doubleToLiteralValueExpr(*self.MultipleOf.Float))
+		if self.MultipleOf.Float != nil {
+			expr.Args = append(expr.Args, doubleToLiteralValueExpr(*self.MultipleOf.Float))
+		} else {
+			expr.Args = append(expr.Args, int64ToLiteralValueExpr(*self.MultipleOf.Integer))
+		}
 	}
 	return &light.Expression{
 		ExpressionClause: &light.Expression_Fcexpr{
@@ -400,7 +412,7 @@ func (self *SchemaString) toExpression(expr *light.FunctionCallExpr) (*light.Exp
 }
 
 func (self *SchemaArray) toExpression(expr *light.FunctionCallExpr) (*light.Expression, error) {
-	if self.Items != nil {
+	if self.Items != nil && (self.Items.Schema != nil || len(self.Items.SchemaArray) > 0) {
 		ex, err := itemsToExpression(self.Items)
 		if err != nil {
 			return nil, err

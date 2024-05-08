@@ -1,6 +1,7 @@
 package jsm
 
 import (
+	"log"
 	"strings"
 
 	"github.com/genelet/hcllight/light"
@@ -63,6 +64,7 @@ func doubleToLiteralValueExpr(f float64) *light.Expression {
 }
 
 func booleanToLiteralValueExpr(b bool) *light.Expression {
+	log.Printf("1111 %v", b)
 	return &light.Expression{
 		ExpressionClause: &light.Expression_Lvexpr{
 			Lvexpr: &light.LiteralValueExpr{

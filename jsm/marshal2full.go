@@ -342,18 +342,7 @@ func (self *SchemaFull) toBody() (*light.Body, error) {
 			Expr: stringToTextValueExpr(*self.Description),
 		}
 	}
-	if self.Format != nil {
-		attrs["format"] = &light.Attribute{
-			Name: "format",
-			Expr: stringToTextValueExpr(*self.Format),
-		}
-	}
-	if self.Default != nil {
-		attrs["default"] = &light.Attribute{
-			Name: "default",
-			Expr: stringToLiteralValueExpr(self.Default.Value),
-		}
-	}
+
 	if len(attrs) > 0 {
 		body.Attributes = attrs
 	}

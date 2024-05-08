@@ -191,42 +191,86 @@ func (self *Schema) toExpression() (*light.Expression, error) {
 		return referenceToExpression(*(self.Reference.Ref))
 	}
 
-	if self.SchemaMap != nil {
+	switch *(self.Common.Type.String) {
+	case "map":
 		expr, err := self.Common.toMapFcexpr()
 		if err != nil {
 			return nil, err
 		}
+		if self.SchemaMap == nil {
+			return &light.Expression{
+				ExpressionClause: &light.Expression_Fcexpr{
+					Fcexpr: expr,
+				},
+			}, nil
+		}
 		return self.SchemaMap.toExpression(expr)
-	} else if self.SchemaObject != nil {
+	case "object":
 		expr, err := self.Common.toObjectFcexpr()
 		if err != nil {
 			return nil, err
 		}
+		if self.SchemaObject == nil {
+			return &light.Expression{
+				ExpressionClause: &light.Expression_Fcexpr{
+					Fcexpr: expr,
+				},
+			}, nil
+		}
 		return self.SchemaObject.toExpression(expr)
-	} else if self.SchemaArray != nil {
+	case "array":
 		expr, err := self.Common.toArrayFcexpr()
 		if err != nil {
 			return nil, err
 		}
+		if self.SchemaArray == nil {
+			return &light.Expression{
+				ExpressionClause: &light.Expression_Fcexpr{
+					Fcexpr: expr,
+				},
+			}, nil
+		}
 		return self.SchemaArray.toExpression(expr)
-	} else if self.SchemaString != nil {
+	case "string":
 		expr, err := self.Common.toStringFcexpr()
 		if err != nil {
 			return nil, err
 		}
+		if self.SchemaString == nil {
+			return &light.Expression{
+				ExpressionClause: &light.Expression_Fcexpr{
+					Fcexpr: expr,
+				},
+			}, nil
+		}
 		return self.SchemaString.toExpression(expr)
-	} else if self.SchemaNumber != nil {
+	case "number":
 		expr, err := self.Common.toNumberFcexpr()
 		if err != nil {
 			return nil, err
 		}
+		if self.SchemaNumber == nil {
+			return &light.Expression{
+				ExpressionClause: &light.Expression_Fcexpr{
+					Fcexpr: expr,
+				},
+			}, nil
+		}
 		return self.SchemaNumber.toExpression(expr)
-	} else if self.SchemaInteger != nil {
+	case "integer":
 		expr, err := self.Common.toIntegerFcexpr()
 		if err != nil {
 			return nil, err
 		}
+		if self.SchemaInteger == nil {
+			return &light.Expression{
+				ExpressionClause: &light.Expression_Fcexpr{
+					Fcexpr: expr,
+				},
+			}, nil
+		}
 		return self.SchemaInteger.toExpression(expr)
+	default:
 	}
 
 	// this is boolean

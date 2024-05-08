@@ -185,7 +185,7 @@ func arrayToHcl(s *jsonschema.Schema) *SchemaArray {
 		return nil
 	}
 
-	var items *SchemaOrSchemaArray
+	items := new(SchemaOrSchemaArray)
 	if s.Items == nil {
 		if s.Items.Schema != nil {
 			items.Schema = ToHcl(s.Items.Schema)
