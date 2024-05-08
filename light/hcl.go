@@ -88,9 +88,6 @@ func (self *Body) hclBodyNode(level int) (string, error) {
 	if level == 0 {
 		return fmt.Sprintf("\n%s\n%s", leading+strings.Join(arr, "\n"+leading), lessLeading), nil
 	}
-	if arr == nil {
-		return "{}", nil
-	}
 	return fmt.Sprintf("{\n%s\n%s}", leading+strings.Join(arr, "\n"+leading), lessLeading), nil
 }
 
