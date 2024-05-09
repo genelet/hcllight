@@ -4,7 +4,7 @@ import (
 	"github.com/genelet/hcllight/light"
 )
 
-func (self *Common) toAttributes(attrs map[string]*light.Attribute) error {
+func commonToAttributes(self *Common, attrs map[string]*light.Attribute) error {
 	if self.Type != nil {
 		if self.Type.String != nil {
 			attrs["type"] = &light.Attribute{
@@ -47,7 +47,7 @@ func (self *Common) toAttributes(attrs map[string]*light.Attribute) error {
 	return nil
 }
 
-func (self *SchemaNumber) toAttributes(attrs map[string]*light.Attribute) error {
+func numberToAttributes(self *SchemaNumber, attrs map[string]*light.Attribute) error {
 	if self.Minimum != nil {
 		attrs["minimum"] = &light.Attribute{
 			Name: "minimum",
@@ -81,7 +81,7 @@ func (self *SchemaNumber) toAttributes(attrs map[string]*light.Attribute) error 
 	return nil
 }
 
-func (self *SchemaString) toAttributes(attrs map[string]*light.Attribute) error {
+func stringToAttributes(self *SchemaString, attrs map[string]*light.Attribute) error {
 	if self.MaxLength != nil {
 		attrs["maxLength"] = &light.Attribute{
 			Name: "maxLength",
@@ -103,7 +103,7 @@ func (self *SchemaString) toAttributes(attrs map[string]*light.Attribute) error 
 	return nil
 }
 
-func (self *SchemaArray) toAttributes(attrs map[string]*light.Attribute) error {
+func arrayToAttributes(self *SchemaArray, attrs map[string]*light.Attribute) error {
 	if self.MaxItems != nil {
 		attrs["maxItems"] = &light.Attribute{
 			Name: "maxItems",
@@ -135,7 +135,7 @@ func (self *SchemaArray) toAttributes(attrs map[string]*light.Attribute) error {
 	return nil
 }
 
-func (self *SchemaObject) toAttributesBlocks(attrs map[string]*light.Attribute, blocks *[]*light.Block) error {
+func objectToAttributesBlocks(self *SchemaObject, attrs map[string]*light.Attribute, blocks *[]*light.Block) error {
 	if self.MaxProperties != nil {
 		attrs["maxProperties"] = &light.Attribute{
 			Name: "maxProperties",
@@ -168,7 +168,7 @@ func (self *SchemaObject) toAttributesBlocks(attrs map[string]*light.Attribute, 
 	return nil
 }
 
-func (self *SchemaMap) toAttributes(attrs map[string]*light.Attribute) error {
+func mapToAttributes(self *SchemaMap, attrs map[string]*light.Attribute) error {
 	if self.AdditionalProperties.Schema != nil {
 		expr, err := self.AdditionalProperties.Schema.toExpression()
 		if err != nil {
@@ -188,49 +188,97 @@ func (self *SchemaMap) toAttributes(attrs map[string]*light.Attribute) error {
 	return nil
 }
 
-func (self *SchemaFull) toBody() (*light.Body, error) {
-	body := &light.Body{}
+func shortsToBody(
+	reference *Reference,
+	common *Common,
+	number *SchemaNumber,
+	str *SchemaString,
+	array *SchemaArray,
+	object *SchemaObject,
+	mmap *SchemaMap,
+) (*light.Body, error) {
+	var body *light.Body
 	attrs := make(map[string]*light.Attribute)
 	blocks := make([]*light.Block, 0)
 
-	if self.Ref != nil {
-		if ex, err := referenceToExpression(*self.Ref); err != nil {
+	if reference != nil {
+		if ex, err := referenceToExpression(*reference.Ref); err != nil {
 			attrs["$ref"] = &light.Attribute{
 				Name: "$ref",
 				Expr: ex,
 			}
 		}
 	}
-	if self.Common != nil {
-		if err := self.Common.toAttributes(attrs); err != nil {
+	if common != nil {
+		if err := commonToAttributes(common, attrs); err != nil {
 			return nil, err
 		}
 	}
-	if self.SchemaNumber != nil {
-		if err := self.SchemaNumber.toAttributes(attrs); err != nil {
+	if number != nil {
+		if err := numberToAttributes(number, attrs); err != nil {
 			return nil, err
 		}
 	}
-	if self.SchemaString != nil {
-		if err := self.SchemaString.toAttributes(attrs); err != nil {
+	if str != nil {
+		if err := stringToAttributes(str, attrs); err != nil {
 			return nil, err
 		}
 	}
-	if self.SchemaArray != nil {
-		if err := self.SchemaArray.toAttributes(attrs); err != nil {
+	if array != nil {
+		if err := arrayToAttributes(array, attrs); err != nil {
 			return nil, err
 		}
 	}
-	if self.SchemaObject != nil {
-		if err := self.SchemaObject.toAttributesBlocks(attrs, &blocks); err != nil {
+	if object != nil {
+		if err := objectToAttributesBlocks(object, attrs, &blocks); err != nil {
 			return nil, err
 		}
 	}
-	if self.SchemaMap != nil {
-		if err := self.SchemaMap.toAttributes(attrs); err != nil {
+	if mmap != nil {
+		if err := mapToAttributes(mmap, attrs); err != nil {
 			return nil, err
 		}
 	}
+	if len(attrs) > 0 {
+		body = &light.Body{
+			Attributes: attrs,
+		}
+	}
+	if len(blocks) > 0 {
+		if body == nil {
+			body = &light.Body{}
+		}
+		body.Blocks = blocks
+	}
+	return body, nil
+}
+
+func (self *SchemaFull) toBody() (*light.Body, error) {
+	body, err := shortsToBody(
+		self.Reference,
+		self.Common,
+		self.SchemaNumber,
+		self.SchemaString,
+		self.SchemaArray,
+		self.SchemaObject,
+		self.SchemaMap,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	if body == nil {
+		body = &light.Body{}
+	}
+	attrs := body.Attributes
+	blocks := body.Blocks
+	if attrs == nil {
+		attrs = make(map[string]*light.Attribute)
+	}
+	if blocks == nil {
+		blocks = make([]*light.Block, 0)
+	}
+
 	if self.AdditionalItems != nil {
 		if self.AdditionalItems.Schema != nil {
 			ex, err := self.AdditionalItems.Schema.toExpression()

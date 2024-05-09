@@ -15,15 +15,15 @@ func TestParseSchema(t *testing.T) {
 	}
 	hcl := ToHcl(s)
 	//t.Errorf("Schema: %s", s.String())
-	expr, err := hcl.toExpression()
+	body, err := hcl.toBody()
 	if err != nil {
 		t.Fatalf("Error converting schema to expression: %v", err)
 	}
-	str, err := expr.HclExpression()
+	data, err := body.Hcl()
 	if err != nil {
 		t.Fatalf("Error converting expression to HCL: %v", err)
 	}
-	err = os.WriteFile("schema_v30.hcl", []byte(str), 0644)
+	err = os.WriteFile("schema_v30.hcl", data, 0644)
 	if err != nil {
 		t.Fatalf("Error writing HCL: %v", err)
 	}

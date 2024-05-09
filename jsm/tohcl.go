@@ -169,13 +169,28 @@ func integerToHcl(s *jsonschema.Schema) *SchemaInteger {
 		ExclusiveMinimum: s.ExclusiveMinimum,
 	}
 	if s.MultipleOf != nil {
-		integer.MultipleOf = s.MultipleOf.Integer
+		if s.MultipleOf.Float != nil {
+			x := int64(*s.MultipleOf.Float)
+			integer.MultipleOf = &x
+		} else {
+			integer.MultipleOf = s.MultipleOf.Integer
+		}
 	}
 	if s.Maximum != nil {
-		integer.Maximum = s.Maximum.Integer
+		if s.Maximum.Float != nil {
+			x := int64(*s.Maximum.Float)
+			integer.Maximum = &x
+		} else {
+			integer.Maximum = s.Maximum.Integer
+		}
 	}
 	if s.Minimum != nil {
-		integer.Minimum = s.Minimum.Integer
+		if s.Minimum.Float != nil {
+			x := int64(*s.Minimum.Float)
+			integer.Minimum = &x
+		} else {
+			integer.Minimum = s.Minimum.Integer
+		}
 	}
 	return integer
 }
@@ -240,7 +255,7 @@ func schemaFullToHcl(s *jsonschema.Schema) *Schema {
 		PatternProperties: namedSchemaArrayToMap(s.PatternProperties),
 		Dependencies:      namedSchemaOrStringArrayArrayToMap(s.Dependencies),
 
-		Ref:          s.Ref,
+		Reference:    referenceToHcl(s),
 		Common:       commonToHcl(s),
 		SchemaNumber: numberToHcl(s),
 		SchemaString: stringToHcl(s),

@@ -53,9 +53,9 @@ func (self *Body) hclBodyNode(level int) (string, error) {
 		if err != nil {
 			return "", err
 		}
-		if str == "" {
-			continue
-		}
+		//if str == "" {
+		//	continue
+		//}
 		switch attr.Expr.ExpressionClause.(type) {
 		case *Expression_Fexpr:
 			str = fmt.Sprintf("{\n%s\n%s}", nextLeading+str, leading)
@@ -363,7 +363,9 @@ func hclCty(self *CtyValue) (string, error) {
 	switch t := self.CtyValueClause.(type) {
 	case *CtyValue_StringValue:
 		return t.StringValue, nil
-	case *CtyValue_NumberValue, *CtyValue_BoolValue:
+	case *CtyValue_BoolValue:
+		return fmt.Sprintf("%t", t.BoolValue), nil
+	case *CtyValue_NumberValue:
 		xcty, err := xctyValueTo(self)
 		if err != nil {
 			return "", err
@@ -381,8 +383,6 @@ func hclCty(self *CtyValue) (string, error) {
 			return "", err
 		}
 		return string(bs), nil
-	//case *CtyValue_BoolValue:
-	//	return t.BoolValue, nil
 	case *CtyValue_ListValue:
 		var output []string
 		for _, v := range t.ListValue.Values {

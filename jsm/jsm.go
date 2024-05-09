@@ -73,9 +73,9 @@ type SchemaObject struct {
 }
 
 type SchemaFull struct {
-	Schema    *string
-	ID        *string
-	Ref       *string
+	Schema *string
+	ID     *string
+	*Reference
 	ReadOnly  *bool
 	WriteOnly *bool
 
@@ -275,4 +275,19 @@ func (self *Schema) toExpression() (*light.Expression, error) {
 
 	// this is boolean
 	return self.Common.toExpression()
+}
+
+func (self *Schema) toBody() (*light.Body, error) {
+	if self.isFull {
+		return self.SchemaFull.toBody()
+	}
+	return shortsToBody(
+		self.Reference,
+		self.Common,
+		self.SchemaNumber,
+		self.SchemaString,
+		self.SchemaArray,
+		self.SchemaObject,
+		self.SchemaMap,
+	)
 }

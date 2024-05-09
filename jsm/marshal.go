@@ -199,11 +199,12 @@ func (self *Common) toNumberFcexpr() (*light.FunctionCallExpr, error) {
 	}
 
 	if self.Default != nil {
-		d, err := yamlToFloat64(self.Default)
-		if err != nil {
-			return nil, err
-		}
-		fnc.Args = append(fnc.Args, doubleToLiteralValueExpr(d))
+		//d, err := yamlToFloat64(self.Default)
+		//if err != nil {
+		//	return nil, err
+		//}
+		//fnc.Args = append(fnc.Args, doubleToLiteralValueExpr(d))
+		fnc.Args = append(fnc.Args, stringToLiteralValueExpr(self.Default.Value))
 	}
 
 	return fnc, nil
@@ -222,11 +223,12 @@ func (self *Common) toIntegerFcexpr() (*light.FunctionCallExpr, error) {
 	}
 
 	if self.Default != nil {
-		d, err := yamlToInt64(self.Default)
-		if err != nil {
-			return nil, err
-		}
-		fnc.Args = append(fnc.Args, int64ToLiteralValueExpr(d))
+		//d, err := yamlToInt64(self.Default)
+		//if err != nil {
+		//	return nil, err
+		//}
+		//fnc.Args = append(fnc.Args, int64ToLiteralValueExpr(d))
+		fnc.Args = append(fnc.Args, stringToLiteralValueExpr(self.Default.Value))
 	}
 
 	return fnc, nil
@@ -337,6 +339,9 @@ func (self *Common) toExpression() (*light.Expression, error) {
 
 // because of order in function, we can't loop attribute map
 func (self *SchemaNumber) toExpression(expr *light.FunctionCallExpr) (*light.Expression, error) {
+	//if expr.Args != nil && len(expr.Args) == 0 {
+	//	expr.Args = nil
+	//}
 	if self.Minimum != nil {
 		if self.Minimum.Float != nil {
 			expr.Args = append(expr.Args, doubleToLiteralValueExpr(*self.Minimum.Float))
