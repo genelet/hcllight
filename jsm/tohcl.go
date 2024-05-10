@@ -47,7 +47,9 @@ func ToHcl(s *jsonschema.Schema) *Schema {
 			SchemaArray: arrayToHcl(s),
 		}
 	case "object":
-		if s.Properties == nil {
+		if isMap(s) && !isObject(s) {
+			typ := "map"
+			common.Type.String = &typ
 			return &Schema{
 				Common:    common,
 				SchemaMap: mapToHcl(s),
@@ -201,7 +203,7 @@ func arrayToHcl(s *jsonschema.Schema) *SchemaArray {
 	}
 
 	items := new(SchemaOrSchemaArray)
-	if s.Items == nil {
+	if s.Items != nil {
 		if s.Items.Schema != nil {
 			items.Schema = ToHcl(s.Items.Schema)
 		} else {

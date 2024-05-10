@@ -5,9 +5,9 @@ import (
 	"math/rand"
 	"strings"
 
-	"github.com/genelet/determined/dethcl"
 	"github.com/genelet/determined/utils"
 	"github.com/genelet/hcllight/internal/ast"
+	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
@@ -199,7 +199,7 @@ func (self *Expression) HclExpression(x ...interface{}) (string, error) {
 		args := expr.GetArgs()
 		var arr []string
 		for _, arg := range args {
-			str, err := arg.HclExpression()
+			str, err := arg.HclExpression(level)
 			if err != nil {
 				return "", err
 			}
@@ -366,23 +366,17 @@ func hclCty(self *CtyValue) (string, error) {
 	case *CtyValue_BoolValue:
 		return fmt.Sprintf("%t", t.BoolValue), nil
 	case *CtyValue_NumberValue:
-		xcty, err := xctyValueTo(self)
-		if err != nil {
-			return "", err
-		}
-		val, err := ast.CtyValueTo(xcty)
-		if err != nil {
-			return "", err
-		}
+		val := cty.NumberFloatVal(t.NumberValue)
 		v, err := utils.CtyToNative(val)
 		if err != nil {
 			return "", err
 		}
-		bs, err := dethcl.MarshalLevel(v, 0)
-		if err != nil {
-			return "", err
+		switch v.(type) {
+		case int, int64, int32, int16, int8, uint, uint64, uint32, uint16, uint8:
+			return fmt.Sprintf("%d", v), nil
+		default:
 		}
-		return string(bs), nil
+		return fmt.Sprintf("%f", v), nil
 	case *CtyValue_ListValue:
 		var output []string
 		for _, v := range t.ListValue.Values {

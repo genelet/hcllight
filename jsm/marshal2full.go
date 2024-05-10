@@ -49,15 +49,29 @@ func commonToAttributes(self *Common, attrs map[string]*light.Attribute) error {
 
 func numberToAttributes(self *SchemaNumber, attrs map[string]*light.Attribute) error {
 	if self.Minimum != nil {
-		attrs["minimum"] = &light.Attribute{
-			Name: "minimum",
-			Expr: doubleToLiteralValueExpr(*self.Minimum.Float),
+		if self.Minimum.Float != nil {
+			attrs["minimum"] = &light.Attribute{
+				Name: "minimum",
+				Expr: doubleToLiteralValueExpr(*self.Minimum.Float),
+			}
+		} else {
+			attrs["minimum"] = &light.Attribute{
+				Name: "minimum",
+				Expr: int64ToLiteralValueExpr(*self.Minimum.Integer),
+			}
 		}
 	}
 	if self.Maximum != nil {
-		attrs["maximum"] = &light.Attribute{
-			Name: "maximum",
-			Expr: doubleToLiteralValueExpr(*self.Maximum.Float),
+		if self.Maximum.Float != nil {
+			attrs["maximum"] = &light.Attribute{
+				Name: "maximum",
+				Expr: doubleToLiteralValueExpr(*self.Maximum.Float),
+			}
+		} else {
+			attrs["maximum"] = &light.Attribute{
+				Name: "maximum",
+				Expr: int64ToLiteralValueExpr(*self.Maximum.Integer),
+			}
 		}
 	}
 	if self.ExclusiveMinimum != nil {
@@ -73,9 +87,16 @@ func numberToAttributes(self *SchemaNumber, attrs map[string]*light.Attribute) e
 		}
 	}
 	if self.MultipleOf != nil {
-		attrs["multipleOf"] = &light.Attribute{
-			Name: "multipleOf",
-			Expr: doubleToLiteralValueExpr(*self.MultipleOf.Float),
+		if self.MultipleOf.Float != nil {
+			attrs["multipleOf"] = &light.Attribute{
+				Name: "multipleOf",
+				Expr: doubleToLiteralValueExpr(*self.MultipleOf.Float),
+			}
+		} else {
+			attrs["multipleOf"] = &light.Attribute{
+				Name: "multipleOf",
+				Expr: int64ToLiteralValueExpr(*self.MultipleOf.Integer),
+			}
 		}
 	}
 	return nil
@@ -279,6 +300,30 @@ func (self *SchemaFull) toBody() (*light.Body, error) {
 		blocks = make([]*light.Block, 0)
 	}
 
+	if self.Schema != nil {
+		attrs["schema"] = &light.Attribute{
+			Name: "schema",
+			Expr: stringToTextValueExpr(*self.Schema),
+		}
+	}
+	if self.ID != nil {
+		attrs["id"] = &light.Attribute{
+			Name: "id",
+			Expr: stringToTextValueExpr(*self.ID),
+		}
+	}
+	if self.ReadOnly != nil {
+		attrs["readOnly"] = &light.Attribute{
+			Name: "readOnly",
+			Expr: booleanToLiteralValueExpr(*self.ReadOnly),
+		}
+	}
+	if self.WriteOnly != nil {
+		attrs["writeOnly"] = &light.Attribute{
+			Name: "writeOnly",
+			Expr: booleanToLiteralValueExpr(*self.WriteOnly),
+		}
+	}
 	if self.AdditionalItems != nil {
 		if self.AdditionalItems.Schema != nil {
 			ex, err := self.AdditionalItems.Schema.toExpression()

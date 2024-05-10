@@ -174,7 +174,7 @@ func (self *Common) toBoolFcexpr() (*light.FunctionCallExpr, error) {
 		return nil, fmt.Errorf("invalid type for bool: %#v", *self.Type.String)
 	}
 	fnc := &light.FunctionCallExpr{
-		Name: "bool",
+		Name: "boolean",
 	}
 	if self.Default != nil {
 		d, err := yamlToBool(self.Default)
@@ -339,9 +339,6 @@ func (self *Common) toExpression() (*light.Expression, error) {
 
 // because of order in function, we can't loop attribute map
 func (self *SchemaNumber) toExpression(expr *light.FunctionCallExpr) (*light.Expression, error) {
-	//if expr.Args != nil && len(expr.Args) == 0 {
-	//	expr.Args = nil
-	//}
 	if self.Minimum != nil {
 		if self.Minimum.Float != nil {
 			expr.Args = append(expr.Args, doubleToLiteralValueExpr(*self.Minimum.Float))
@@ -369,6 +366,7 @@ func (self *SchemaNumber) toExpression(expr *light.FunctionCallExpr) (*light.Exp
 			expr.Args = append(expr.Args, int64ToLiteralValueExpr(*self.MultipleOf.Integer))
 		}
 	}
+
 	return &light.Expression{
 		ExpressionClause: &light.Expression_Fcexpr{
 			Fcexpr: expr,
