@@ -8,15 +8,16 @@ func ToJSM(s *Schema) *jsonschema.Schema {
 	if s == nil {
 		return nil
 	}
+	if s.isFull {
+		return schemaFullToJSM(s)
+	}
+
 	if s.Reference != nil {
 		return referenceToJSM(s.Reference)
 	}
 
 	schema := commonToJSM(s)
 
-	if schema.Type != nil && schema.Type.String != nil && *schema.Type.String == "boolean" {
-		return schema
-	}
 	if s.SchemaString != nil {
 		return stringToJSM(schema, s.SchemaString)
 	}
@@ -35,7 +36,7 @@ func ToJSM(s *Schema) *jsonschema.Schema {
 	if s.SchemaMap != nil {
 		return mapToJSM(schema, s.SchemaMap)
 	}
-	return schemaFullToJSM(s)
+	return schema
 }
 
 func mapToNamedSchemaArray(s map[string]*Schema) *[]*jsonschema.NamedSchema {
@@ -212,28 +213,31 @@ func objectToJSM(jsm *jsonschema.Schema, o *SchemaObject) *jsonschema.Schema {
 }
 
 func mapToJSM(jsm *jsonschema.Schema, m *SchemaMap) *jsonschema.Schema {
-	if m == nil {
+	if m == nil || m.AdditionalProperties == nil {
 		return jsm
 	}
 	if jsm == nil {
 		jsm = &jsonschema.Schema{}
 	}
 
-	if m.AdditionalProperties != nil {
-		if m.AdditionalProperties.Schema != nil {
-			jsm.AdditionalProperties.Schema = ToJSM(m.AdditionalProperties.Schema)
-		} else {
-			jsm.AdditionalProperties.Boolean = m.AdditionalProperties.Boolean
-		}
+	if m.AdditionalProperties.Schema != nil {
+		jsm.AdditionalProperties.Schema = ToJSM(m.AdditionalProperties.Schema)
+	} else {
+		jsm.AdditionalProperties.Boolean = m.AdditionalProperties.Boolean
 	}
+
 	return jsm
 }
 
 func schemaFullToJSM(s *Schema) *jsonschema.Schema {
 	jsm := commonToJSM(s)
+	jsm.Schema = s.Schema
+	jsm.ID = s.ID
 	if s.Reference != nil {
 		jsm.Ref = s.Reference.Ref
 	}
+	jsm.ReadOnly = s.ReadOnly
+	jsm.WriteOnly = s.WriteOnly
 	jsm = stringToJSM(jsm, s.SchemaString)
 	jsm = numberToJSM(jsm, s.SchemaNumber)
 	jsm = integerToJSM(jsm, s.SchemaInteger)
@@ -255,6 +259,7 @@ func schemaFullToJSM(s *Schema) *jsonschema.Schema {
 	jsm.AnyOf = sliceToJSM(s.AnyOf)
 	jsm.OneOf = sliceToJSM(s.OneOf)
 	jsm.Not = ToJSM(s.Not)
+	jsm.Definitions = mapToNamedSchemaArray(s.Definitions)
 
 	jsm.Title = s.Title
 	jsm.Description = s.Description

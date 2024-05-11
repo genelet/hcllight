@@ -307,7 +307,7 @@ func (self *SecurityRequirement) toHCL() (*light.Body, error) {
 	for k, v := range self.AdditionalProperties {
 		attrs[k] = &light.Attribute{
 			Name: k,
-			Expr: stringsToTupleConsExpr(v.Value),
+			Expr: stringArrayToTupleConsEpr(v.Value),
 		}
 	}
 	body.Attributes = attrs
@@ -343,7 +343,7 @@ func (self *Operation) toHCL() (*light.Body, error) {
 		}
 	}
 	if self.Tags != nil {
-		expr := stringsToTupleConsExpr(self.Tags)
+		expr := stringArrayToTupleConsEpr(self.Tags)
 		attrs["tags"] = &light.Attribute{
 			Name: "tags",
 			Expr: expr,
@@ -523,7 +523,7 @@ func (self *ServerVariable) toHCL() (*light.Body, error) {
 		}
 	}
 	if self.Enum != nil {
-		expr := stringsToTupleConsExpr(self.Enum)
+		expr := stringArrayToTupleConsEpr(self.Enum)
 		attrs["enum"] = &light.Attribute{
 			Name: "enum",
 			Expr: expr,

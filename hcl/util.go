@@ -75,7 +75,7 @@ func booleanToLiteralValueExpr(b bool) *light.Expression {
 	}
 }
 
-func stringsToTupleConsExpr(items []string) *light.Expression {
+func stringArrayToTupleConsEpr(items []string) *light.Expression {
 	tcexpr := &light.TupleConsExpr{}
 	for _, item := range items {
 		tcexpr.Exprs = append(tcexpr.Exprs, stringToTextValueExpr(item))

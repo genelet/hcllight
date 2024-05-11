@@ -14,7 +14,7 @@ func commonToAttributes(self *Common, attrs map[string]*light.Attribute) error {
 		} else {
 			attrs["type"] = &light.Attribute{
 				Name: "type",
-				Expr: stringsToTupleConsExpr(*self.Type.StringArray),
+				Expr: stringArrayToTupleConsEpr(*self.Type.StringArray),
 			}
 		}
 	}
@@ -52,7 +52,7 @@ func numberToAttributes(self *SchemaNumber, attrs map[string]*light.Attribute) e
 		if self.Minimum.Float != nil {
 			attrs["minimum"] = &light.Attribute{
 				Name: "minimum",
-				Expr: doubleToLiteralValueExpr(*self.Minimum.Float),
+				Expr: float64ToLiteralValueExpr(*self.Minimum.Float),
 			}
 		} else {
 			attrs["minimum"] = &light.Attribute{
@@ -65,7 +65,7 @@ func numberToAttributes(self *SchemaNumber, attrs map[string]*light.Attribute) e
 		if self.Maximum.Float != nil {
 			attrs["maximum"] = &light.Attribute{
 				Name: "maximum",
-				Expr: doubleToLiteralValueExpr(*self.Maximum.Float),
+				Expr: float64ToLiteralValueExpr(*self.Maximum.Float),
 			}
 		} else {
 			attrs["maximum"] = &light.Attribute{
@@ -90,7 +90,7 @@ func numberToAttributes(self *SchemaNumber, attrs map[string]*light.Attribute) e
 		if self.MultipleOf.Float != nil {
 			attrs["multipleOf"] = &light.Attribute{
 				Name: "multipleOf",
-				Expr: doubleToLiteralValueExpr(*self.MultipleOf.Float),
+				Expr: float64ToLiteralValueExpr(*self.MultipleOf.Float),
 			}
 		} else {
 			attrs["multipleOf"] = &light.Attribute{
@@ -144,7 +144,7 @@ func arrayToAttributes(self *SchemaArray, attrs map[string]*light.Attribute) err
 		}
 	}
 	if self.Items != nil {
-		expr, err := itemsToExpression(self.Items)
+		expr, err := schemaOrSchemaArrayToExpression(self.Items)
 		if err != nil {
 			return err
 		}
@@ -172,11 +172,11 @@ func objectToAttributesBlocks(self *SchemaObject, attrs map[string]*light.Attrib
 	if self.Required != nil {
 		attrs["required"] = &light.Attribute{
 			Name: "required",
-			Expr: stringsToTupleConsExpr(self.Required),
+			Expr: stringArrayToTupleConsEpr(self.Required),
 		}
 	}
 	if self.Properties != nil {
-		bdy, err := mapToBody(self.Properties)
+		bdy, err := mapSchemaToBody(self.Properties)
 		if err != nil {
 			return err
 		}
@@ -191,7 +191,7 @@ func objectToAttributesBlocks(self *SchemaObject, attrs map[string]*light.Attrib
 
 func mapToAttributes(self *SchemaMap, attrs map[string]*light.Attribute) error {
 	if self.AdditionalProperties.Schema != nil {
-		expr, err := self.AdditionalProperties.Schema.toExpression()
+		expr, err := schemaToExpression(self.AdditionalProperties.Schema)
 		if err != nil {
 			return err
 		}
@@ -274,7 +274,7 @@ func shortsToBody(
 	return body, nil
 }
 
-func (self *SchemaFull) toBody() (*light.Body, error) {
+func schemaFullToBody(self *SchemaFull) (*light.Body, error) {
 	body, err := shortsToBody(
 		self.Reference,
 		self.Common,
@@ -325,24 +325,17 @@ func (self *SchemaFull) toBody() (*light.Body, error) {
 		}
 	}
 	if self.AdditionalItems != nil {
-		if self.AdditionalItems.Schema != nil {
-			ex, err := self.AdditionalItems.Schema.toExpression()
-			if err != nil {
-				return nil, err
-			}
-			attrs["additionalItems"] = &light.Attribute{
-				Name: "additionalItems",
-				Expr: ex,
-			}
-		} else {
-			attrs["additionalItems"] = &light.Attribute{
-				Name: "additionalItems",
-				Expr: booleanToLiteralValueExpr(*self.AdditionalItems.Boolean),
-			}
+		ex, err := schemaOrBooleanToExpression(self.AdditionalItems)
+		if err != nil {
+			return nil, err
+		}
+		attrs["additionalItems"] = &light.Attribute{
+			Name: "additionalItems",
+			Expr: ex,
 		}
 	}
 	if self.PatternProperties != nil {
-		bdy, err := mapToBody(self.PatternProperties)
+		bdy, err := mapSchemaToBody(self.PatternProperties)
 		if err != nil {
 			return nil, err
 		}
@@ -352,7 +345,7 @@ func (self *SchemaFull) toBody() (*light.Body, error) {
 		})
 	}
 	if self.Definitions != nil {
-		bdy, err := mapToBody(self.Definitions)
+		bdy, err := mapSchemaToBody(self.Definitions)
 		if err != nil {
 			return nil, err
 		}
@@ -362,7 +355,7 @@ func (self *SchemaFull) toBody() (*light.Body, error) {
 		})
 	}
 	if self.Dependencies != nil {
-		bdy, err := mapSchemaOrStringArrayToMap(self.Dependencies)
+		bdy, err := mapSchemaOrStringArrayToBody(self.Dependencies)
 		if err != nil {
 			return nil, err
 		}
@@ -414,7 +407,7 @@ func (self *SchemaFull) toBody() (*light.Body, error) {
 		}
 	}
 	if self.Not != nil {
-		expr, err := self.Not.toExpression()
+		expr, err := schemaToExpression(self.Not)
 		if err != nil {
 			return nil, err
 		}

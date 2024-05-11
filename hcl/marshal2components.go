@@ -103,7 +103,7 @@ func (self *DefaultType) toExpression() *light.Expression {
 		return booleanToLiteralValueExpr(t)
 	case *DefaultType_Number:
 		t := self.GetNumber()
-		return doubleToLiteralValueExpr(t)
+		return float64ToLiteralValueExpr(t)
 	case *DefaultType_String_:
 		t := self.GetString_()
 		return stringToTextValueExpr(t)

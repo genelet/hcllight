@@ -121,7 +121,7 @@ func (s *SchemaOrReference) toExpression() *light.Expression {
 			args = append(args, int64ToLiteralValueExpr(t.MaxProperties))
 		}
 		if t.Required != nil {
-			required := stringsToTupleConsExpr(t.Required)
+			required := stringArrayToTupleConsEpr(t.Required)
 			args = append(args, required)
 		}
 	case *SchemaOrReference_String_:

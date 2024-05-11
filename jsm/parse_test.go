@@ -13,9 +13,9 @@ func TestParseSchema(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Error parsing schema: %v", err)
 	}
-	hcl := ToHcl(s)
+	schema := ToHcl(s)
 	//t.Errorf("Schema: %s", s.String())
-	body, err := hcl.toBody()
+	body, err := schemaToBody(schema)
 	if err != nil {
 		t.Fatalf("Error converting schema to expression: %v", err)
 	}
