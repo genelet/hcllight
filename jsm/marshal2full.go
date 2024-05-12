@@ -1,6 +1,8 @@
 package jsm
 
 import (
+	"fmt"
+
 	"github.com/genelet/hcllight/light"
 )
 
@@ -274,6 +276,57 @@ func shortsToBody(
 	return body, nil
 }
 
+func bodyToShorts(body *light.Body) (*Schema, error) {
+	var reference *Reference
+	var common *Common
+	var schemaNumber *SchemaNumber
+	var schemaString *SchemaString
+	var schemaArray *SchemaArray
+	var schemaObject *SchemaObject
+	var schemaMap *SchemaMap
+
+	var foundFcexpr bool
+	for name, attr := range body.Attributes {
+		if name == "ref" {
+			ref, err := expressionToReference(attr.Expr)
+			if err != nil {
+				return nil, err
+			}
+			reference = &Reference{Ref: &ref}
+		}
+
+		fcexp := attr.Expr.GetFcexpr()
+		if fcexp == nil || foundFcexpr {
+			break
+		}
+		foundFcexpr = true
+
+		common, err := fcexprToCommon(fcexp)
+		if err != nil {
+			return nil, err
+		}
+
+		switch fcexp.Name {
+		case "boolean":
+			return &Schema{
+				Common: common,
+			}, nil
+		case "number", "integer":
+			return fcexprToSchemaNumber(common, fcexp)
+		case "string":
+			return fcexprToSchemaString(common, fcexp)
+		case "array":
+			return fcexprToSchemaArray(common, fcexp)
+		case "object":
+			return fcexprToSchemaObject(common, fcexp)
+		case "map":
+			return fcexprToSchemaMap(common, fcexp)
+		default:
+		}
+	}
+	return nil, fmt.Errorf("unexpected attributes in body: %#v", body)
+}
+
 func schemaFullToBody(self *SchemaFull) (*light.Body, error) {
 	body, err := shortsToBody(
 		self.Reference,
@@ -436,4 +489,8 @@ func schemaFullToBody(self *SchemaFull) (*light.Body, error) {
 		body.Blocks = blocks
 	}
 	return body, nil
+}
+
+func bodyToSchemaFull(body *light.Body) (*Schema, error) {
+
 }
