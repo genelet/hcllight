@@ -12,7 +12,6 @@ require (
 	github.com/google/gnostic-models v0.6.9-0.20230804172637-c7be7c783f49
 	github.com/google/go-cmp v0.6.0
 	github.com/hashicorp/hcl/v2 v2.19.1
-	github.com/k0kubun/pp/v3 v3.2.0
 	github.com/pb33f/libopenapi v0.15.14
 	github.com/zclconf/go-cty v1.14.2
 	google.golang.org/protobuf v1.32.0
@@ -34,8 +33,6 @@ require (
 	github.com/invopop/yaml v0.2.0 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
 	github.com/mailru/easyjson v0.7.7 // indirect
-	github.com/mattn/go-colorable v0.1.13 // indirect
-	github.com/mattn/go-isatty v0.0.16 // indirect
 	github.com/mitchellh/go-homedir v1.1.0 // indirect
 	github.com/mitchellh/go-wordwrap v1.0.0 // indirect
 	github.com/mohae/deepcopy v0.0.0-20170929034955-c48cc78d4826 // indirect

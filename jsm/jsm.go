@@ -1,6 +1,8 @@
 package jsm
 
 import (
+	"fmt"
+
 	"github.com/genelet/hcllight/light"
 	"github.com/google/gnostic/jsonschema"
 	"gopkg.in/yaml.v3"
@@ -165,10 +167,11 @@ func isFull(s *jsonschema.Schema) bool {
 	return true
 }
 
-func schemaToBody(self *Schema) (*light.Body, error) {
+func (self *Schema) ToBody() (*light.Body, error) {
 	if self.isFull {
 		return schemaFullToBody(self.SchemaFull)
 	}
+
 	return shortsToBody(
 		self.Reference,
 		self.Common,
@@ -178,4 +181,62 @@ func schemaToBody(self *Schema) (*light.Body, error) {
 		self.SchemaObject,
 		self.SchemaMap,
 	)
+}
+
+func NewSchemaFromBody(body *light.Body) (*Schema, error) {
+	if body == nil {
+		return nil, nil
+	}
+	if (body.Blocks != nil && len(body.Blocks) > 0) ||
+		body.Attributes == nil ||
+		(body.Attributes != nil && len(body.Attributes) != 1) {
+		return bodyToSchemaFull(body)
+	}
+
+	var foundFcexpr bool
+	for name, attr := range body.Attributes {
+		if name == "ref" {
+			ref, err := expressionToReference(attr.Expr)
+			if err != nil {
+				return nil, err
+			}
+			return &Schema{
+				Reference: &Reference{
+					Ref: &ref,
+				},
+			}, nil
+		}
+
+		fcexp := attr.Expr.GetFcexpr()
+		if fcexp == nil || foundFcexpr {
+			break
+		}
+		foundFcexpr = true
+
+		common, err := fcexprToCommon(fcexp)
+		if err != nil {
+			return nil, err
+		}
+
+		switch fcexp.Name {
+		case "boolean":
+			return &Schema{
+				Common: common,
+			}, nil
+		case "number", "integer":
+			return fcexprToSchemaNumber(common, fcexp)
+		case "string":
+			return fcexprToSchemaString(common, fcexp)
+		case "array":
+			return fcexprToSchemaArray(common, fcexp)
+		case "object":
+			return fcexprToSchemaObject(common, fcexp)
+		case "map":
+			return fcexprToSchemaMap(common, fcexp)
+		default:
+			return nil, fmt.Errorf("unexpected expression name: %s", fcexp.Name)
+		}
+	}
+
+	return bodyToSchemaFull(body)
 }

@@ -16,11 +16,13 @@ func referenceToExpression(ref string) (*light.Expression, error) {
 }
 
 func expressionToReference(expr *light.Expression) (string, error) {
-	x := traversalToString(expr)
-	if x == nil {
-		return "", fmt.Errorf("invalid expression: %#v", expr)
+	// in case there is only one level of reference which is parsed as lvexpr
+	if x := expr.GetLvexpr(); x != nil {
+		return "#/" + x.Val.GetStringValue(), nil
+	} else if x := traversalToString(expr); x != nil {
+		return "#/" + *x, nil
 	}
-	return "#/" + *x, nil
+	return "", fmt.Errorf("invalid expression: %#v", expr)
 }
 
 func shortToExpr(key string, expr *light.Expression) *light.Expression {

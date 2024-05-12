@@ -4,7 +4,7 @@ import (
 	"github.com/google/gnostic/jsonschema"
 )
 
-func ToJSM(s *Schema) *jsonschema.Schema {
+func (s *Schema) ToJSM() *jsonschema.Schema {
 	if s == nil {
 		return nil
 	}
@@ -45,7 +45,7 @@ func mapToNamedSchemaArray(s map[string]*Schema) *[]*jsonschema.NamedSchema {
 	for k, v := range s {
 		arr = append(arr, &jsonschema.NamedSchema{
 			Name:  k,
-			Value: ToJSM(v),
+			Value: v.ToJSM(),
 		})
 	}
 	return &arr
@@ -61,7 +61,7 @@ func mapToNamedSchemaOrStringArrayArray(s map[string]*SchemaOrStringArray) *[]*j
 			arr = append(arr, &jsonschema.NamedSchemaOrStringArray{
 				Name: k,
 				Value: &jsonschema.SchemaOrStringArray{
-					Schema: ToJSM(v.Schema),
+					Schema: v.Schema.ToJSM(),
 				},
 			})
 		} else {
@@ -86,7 +86,7 @@ func sliceToJSM(allof []*Schema) *[]*jsonschema.Schema {
 	}
 	var arr []*jsonschema.Schema
 	for _, v := range allof {
-		arr = append(arr, ToJSM(v))
+		arr = append(arr, v.ToJSM())
 	}
 	return &arr
 }
@@ -152,7 +152,7 @@ func arrayToJSM(jsm *jsonschema.Schema, a *SchemaArray) *jsonschema.Schema {
 
 	if a.Items != nil {
 		if a.Items.Schema != nil {
-			jsm.Items.Schema = ToJSM(a.Items.Schema)
+			jsm.Items.Schema = a.Items.Schema.ToJSM()
 		} else {
 			jsm.Items.SchemaArray = sliceToJSM(a.Items.SchemaArray)
 		}
@@ -190,7 +190,7 @@ func mapToJSM(jsm *jsonschema.Schema, m *SchemaMap) *jsonschema.Schema {
 	}
 
 	if m.AdditionalProperties.Schema != nil {
-		jsm.AdditionalProperties.Schema = ToJSM(m.AdditionalProperties.Schema)
+		jsm.AdditionalProperties.Schema = (m.AdditionalProperties.Schema).ToJSM()
 	} else {
 		jsm.AdditionalProperties.Boolean = m.AdditionalProperties.Boolean
 	}
@@ -215,7 +215,7 @@ func schemaFullToJSM(s *Schema) *jsonschema.Schema {
 
 	if s.AdditionalItems != nil {
 		if s.AdditionalItems.Schema != nil {
-			jsm.AdditionalItems.Schema = ToJSM(s.AdditionalItems.Schema)
+			jsm.AdditionalItems.Schema = (s.AdditionalItems.Schema).ToJSM()
 		} else {
 			jsm.AdditionalItems.Boolean = s.AdditionalItems.Boolean
 		}
@@ -226,7 +226,7 @@ func schemaFullToJSM(s *Schema) *jsonschema.Schema {
 	jsm.AllOf = sliceToJSM(s.AllOf)
 	jsm.AnyOf = sliceToJSM(s.AnyOf)
 	jsm.OneOf = sliceToJSM(s.OneOf)
-	jsm.Not = ToJSM(s.Not)
+	jsm.Not = s.Not.ToJSM()
 	jsm.Definitions = mapToNamedSchemaArray(s.Definitions)
 
 	jsm.Title = s.Title

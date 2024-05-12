@@ -4,7 +4,7 @@ import (
 	"github.com/google/gnostic/jsonschema"
 )
 
-func ToHcl(s *jsonschema.Schema) *Schema {
+func NewSchemaFromJSM(s *jsonschema.Schema) *Schema {
 	if s == nil {
 		return nil
 	}
@@ -67,7 +67,7 @@ func namedSchemaArrayToMap(s *[]*jsonschema.NamedSchema) map[string]*Schema {
 	}
 	m := make(map[string]*Schema)
 	for _, v := range *s {
-		m[v.Name] = ToHcl(v.Value)
+		m[v.Name] = NewSchemaFromJSM(v.Value)
 	}
 	return m
 }
@@ -80,7 +80,7 @@ func namedSchemaOrStringArrayArrayToMap(s *[]*jsonschema.NamedSchemaOrStringArra
 	for _, v := range *s {
 		if v.Value.Schema != nil {
 			m[v.Name] = &SchemaOrStringArray{
-				Schema: ToHcl(v.Value.Schema),
+				Schema: NewSchemaFromJSM(v.Value.Schema),
 			}
 		} else {
 			var arr []string
@@ -101,7 +101,7 @@ func sliceToHcl(allof *[]*jsonschema.Schema) []*Schema {
 	}
 	var arr []*Schema
 	for _, v := range *allof {
-		arr = append(arr, ToHcl(v))
+		arr = append(arr, NewSchemaFromJSM(v))
 	}
 	return arr
 }
@@ -164,7 +164,7 @@ func arrayToHcl(s *jsonschema.Schema) *SchemaArray {
 	items := new(SchemaOrSchemaArray)
 	if s.Items != nil {
 		if s.Items.Schema != nil {
-			items.Schema = ToHcl(s.Items.Schema)
+			items.Schema = NewSchemaFromJSM(s.Items.Schema)
 		} else {
 			items.SchemaArray = sliceToHcl(s.Items.SchemaArray)
 		}
@@ -185,7 +185,7 @@ func mapToHcl(s *jsonschema.Schema) *SchemaMap {
 
 	return &SchemaMap{
 		AdditionalProperties: &SchemaOrBoolean{
-			Schema:  ToHcl(s.AdditionalProperties.Schema),
+			Schema:  NewSchemaFromJSM(s.AdditionalProperties.Schema),
 			Boolean: s.AdditionalProperties.Boolean,
 		},
 	}
@@ -227,7 +227,7 @@ func schemaFullToHcl(s *jsonschema.Schema) *Schema {
 		AllOf:       sliceToHcl(s.AllOf),
 		AnyOf:       sliceToHcl(s.AnyOf),
 		OneOf:       sliceToHcl(s.OneOf),
-		Not:         ToHcl(s.Not),
+		Not:         NewSchemaFromJSM(s.Not),
 		Definitions: namedSchemaArrayToMap(s.Definitions),
 
 		Title:       s.Title,
@@ -236,7 +236,7 @@ func schemaFullToHcl(s *jsonschema.Schema) *Schema {
 	if s.AdditionalItems != nil {
 		if s.AdditionalItems.Schema != nil {
 			full.AdditionalItems = &SchemaOrBoolean{
-				Schema: ToHcl(s.AdditionalItems.Schema),
+				Schema: NewSchemaFromJSM(s.AdditionalItems.Schema),
 			}
 		} else {
 			full.AdditionalItems = &SchemaOrBoolean{
