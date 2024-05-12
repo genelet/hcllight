@@ -25,14 +25,6 @@ type SchemaNumber struct {
 	ExclusiveMinimum *bool
 }
 
-type SchemaInteger struct {
-	MultipleOf       *int64
-	Maximum          *int64
-	ExclusiveMaximum *bool
-	Minimum          *int64
-	ExclusiveMinimum *bool
-}
-
 type SchemaString struct {
 	MaxLength *int64
 	MinLength *int64
@@ -103,7 +95,6 @@ type Schema struct {
 	*Common
 	*Reference
 	*SchemaNumber
-	*SchemaInteger
 	*SchemaString
 	*SchemaArray
 	*SchemaMap

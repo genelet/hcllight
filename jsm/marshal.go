@@ -289,76 +289,6 @@ func fcexprToSchemaNumber(common *Common, fcexpr *light.FunctionCallExpr) (*Sche
 	return s, nil
 }
 
-func schemaIntegerToFcexpr(self *SchemaInteger, expr *light.FunctionCallExpr) (*light.FunctionCallExpr, error) {
-	if self == nil {
-		return expr, nil
-	}
-	if self.Minimum != nil {
-		expr.Args = append(expr.Args, int64ToLiteralExpr("minimum", *self.Minimum))
-	}
-	if self.Maximum != nil {
-		expr.Args = append(expr.Args, int64ToLiteralExpr("maximum", *self.Maximum))
-	}
-	if self.ExclusiveMinimum != nil {
-		expr.Args = append(expr.Args, booleanToLiteralExpr("exclusiveMinimum", *self.ExclusiveMinimum))
-	}
-	if self.ExclusiveMaximum != nil {
-		expr.Args = append(expr.Args, booleanToLiteralExpr("exclusiveMaximum", *self.ExclusiveMaximum))
-	}
-	if self.MultipleOf != nil {
-		expr.Args = append(expr.Args, int64ToLiteralExpr("multipoleOf", *self.MultipleOf))
-	}
-	return expr, nil
-}
-
-func fcexprToSchemaInteger(common *Common, fcexpr *light.FunctionCallExpr) (*Schema, error) {
-	s := &Schema{
-		Common:        common,
-		SchemaInteger: &SchemaInteger{},
-	}
-	for _, arg := range fcexpr.Args {
-		switch arg.ExpressionClause.(type) {
-		case *light.Expression_Fcexpr:
-			expr := arg.GetFcexpr()
-			switch expr.Name {
-			case "minimum":
-				min, err := exprToInt64(expr.Args[0])
-				if err != nil {
-					return nil, err
-				}
-				s.SchemaInteger.Minimum = &min
-			case "maximum":
-				max, err := exprToInt64(expr.Args[0])
-				if err != nil {
-					return nil, err
-				}
-				s.SchemaInteger.Maximum = &max
-			case "exclusiveMinimum":
-				excl, err := exprToBoolean(expr.Args[0])
-				if err != nil {
-					return nil, err
-				}
-				s.SchemaInteger.ExclusiveMinimum = &excl
-			case "exclusiveMaximum":
-				excl, err := exprToBoolean(expr.Args[0])
-				if err != nil {
-					return nil, err
-				}
-				s.SchemaInteger.ExclusiveMaximum = &excl
-			case "multipleOf":
-				mul, err := exprToInt64(expr.Args[0])
-				if err != nil {
-					return nil, err
-				}
-				s.SchemaInteger.MultipleOf = &mul
-			default:
-			}
-		default:
-		}
-	}
-	return s, nil
-}
-
 func schemaStringToFcexpr(self *SchemaString, expr *light.FunctionCallExpr) (*light.FunctionCallExpr, error) {
 	if self == nil {
 		return expr, nil
@@ -621,10 +551,8 @@ func schemaToFcexpr(self *Schema) (*light.FunctionCallExpr, error) {
 		return schemaArrayToFcexpr(self.SchemaArray, expr)
 	case "string":
 		return schemaStringToFcexpr(self.SchemaString, expr)
-	case "number":
+	case "number", "integer":
 		return schemaNumberToFcexpr(self.SchemaNumber, expr)
-	case "integer":
-		return schemaIntegerToFcexpr(self.SchemaInteger, expr)
 	default:
 	}
 
@@ -643,10 +571,8 @@ func fcexprToSchema(fcexpr *light.FunctionCallExpr) (*Schema, error) {
 	}
 
 	switch fcexpr.Name {
-	case "number":
+	case "number", "integer":
 		return fcexprToSchemaNumber(common, fcexpr)
-	case "integer":
-		return fcexprToSchemaInteger(common, fcexpr)
 	case "string":
 		return fcexprToSchemaString(common, fcexpr)
 	case "array":

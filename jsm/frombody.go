@@ -5,41 +5,6 @@ import (
 	"github.com/google/gnostic/jsonschema"
 )
 
-func attrToString(v *light.Expression) *string {
-	if v == nil {
-		return nil
-	}
-	return textValueExprToString(v.GetTcexpr().Exprs[0])
-}
-
-func attrToBool(v *light.Expression) *bool {
-	if v == nil {
-		return nil
-	}
-	return literalValueExprToBool(v.GetTcexpr().Exprs[0])
-}
-
-func attrToInt64(v *light.Expression) *int64 {
-	if v == nil {
-		return nil
-	}
-	return literalValueExprToInt64(v.GetTcexpr().Exprs[0])
-}
-
-func attrToFloat64(v *light.Expression) *float64 {
-	if v == nil {
-		return nil
-	}
-	return literalValueExprToFloat64(v.GetTcexpr().Exprs[0])
-}
-
-func attrToStringArray(v *light.Expression) []string {
-	if v == nil {
-		return nil
-	}
-	return tupleConsExprToStringArray(v)
-}
-
 func getType(body *light.Body) *jsonschema.StringOrStringArray {
 	if body == nil {
 		return nil
@@ -47,12 +12,14 @@ func getType(body *light.Body) *jsonschema.StringOrStringArray {
 	if attr, ok := body.Attributes["type"]; ok {
 		switch attr.Expr.ExpressionClause.(type) {
 		case *light.Expression_Tcexpr:
+			x := tupleConsExprToStringArray(attr.Expr)
 			return &jsonschema.StringOrStringArray{
-				StringArray: &tupleConsExprToStringArray(attr.Expr),
+				StringArray: &x,
 			}
 		case *light.Expression_Lvexpr:
+			x := textValueExprToString(attr.Expr)
 			return &jsonschema.StringOrStringArray{
-				String: &textValueExprToString(attr.Expr),
+				String: x,
 			}
 		default:
 		}
@@ -60,7 +27,9 @@ func getType(body *light.Body) *jsonschema.StringOrStringArray {
 	return nil
 }
 
-func bodyToSchema(body *light.Body) (*Schema, error) {
+func BodyToSchema(body *light.Body) (*Schema, error) {
+	for name, attr := range body.Attributes {
+	}
 	schemaFull, err := bodyToSchemaFull(body)
 	if err != nil {
 		return nil, err
@@ -70,7 +39,15 @@ func bodyToSchema(body *light.Body) (*Schema, error) {
 		return nil, nil
 	}
 
-	typ := getType(body)
+	common := schemaFull.Common
+	if common == nil {
+		return &Schema{
+			SchemaFull: schemaFull,
+			isFull:     true,
+		}, nil
+	}
+
+	typ := common.Type
 
 	if typ == nil ||
 		typ.String == nil ||
@@ -94,143 +71,80 @@ func bodyToSchema(body *light.Body) (*Schema, error) {
 		}, nil
 	}
 
-	common := schemaFull.Common
+	if schemaFull.Reference != nil && common == nil && schemaFull.SchemaNumber == nil && schemaFull.SchemaString == nil && schemaFull.SchemaArray == nil && schemaFull.SchemaObject == nil && schemaFull.SchemaMap == nil {
+		return &Schema{
+			Reference: schemaFull.Reference,
+		}, nil
+	}
+
 	schema := &Schema{
 		Common: common,
 	}
+
 	if schemaFull.SchemaNumber == nil && schemaFull.SchemaString == nil && schemaFull.SchemaArray == nil && schemaFull.SchemaObject == nil && schemaFull.SchemaMap == nil {
 		return schema, nil
 	}
 
-	if (schemaFull.Number != nil && schemaFull.SchemaString == nil && schemaFull.SchemaArray == nil && schemaFull.SchemaObject == nil && schemaFull.SchemaMap == nil) ||
-		(schemaFull.String != nil && schemaFull.SchemaNumber == nil && schemaFull.SchemaArray == nil && schemaFull.SchemaObject == nil && schemaFull.SchemaMap == nil) ||
-		(schemaFull.Array != nil && schemaFull.SchemaNumber == nil && schemaFull.SchemaString == nil && schemaFull.SchemaObject == nil && schemaFull.SchemaMap == nil) ||
-		(schemaFull.Object != nil && schemaFull.SchemaNumber == nil && schemaFull.SchemaString == nil && schemaFull.SchemaArray == nil && schemaFull.SchemaMap == nil) ||
-		(schemaFull.Map != nil && schemaFull.SchemaNumber == nil && schemaFull.SchemaString == nil && schemaFull.SchemaArray == nil && schemaFull.SchemaObject == nil) {
-		switch *typ.String {
-		case "interger":
-			object := schemaFull.SchemaNumber
-			if object == nil {
-				return schema, nil
-			}
-
-			if object.MultipleOf != nil {
-				schema.MultipleOf = object.MultipleOf.Integer
-			}
-			if object.Maximum != nil {
-				schema.Maximum = object.Maximum.Integer
-			}
-			if object.Minimum != nil {
-				schema.Minimum = object.Minimum.Integer
-			}
-			return schema, nil
-		case "number":
-			return &Schema{
-				Common:       common,
-				SchemaNumber: schemaFull.SchemaNumber,
-			}, nil
-		case "string":
-			return &Schema{
-				Common:       common,
-				SchemaString: schemaFull.SchemaString,
-			}, nil
-		case "array":
-			return &Schema{
-				Common:      common,
-				SchemaArray: schemaFull.SchemaArray,
-			}, nil
-		case "object":
-			return &Schema{
-				Common:       common,
-				SchemaObject: schemaFull.SchemaObject,
-			}, nil
-		case "map":
-			return &Schema{
-				Common:    common,
-				SchemaMap: schemaFull.SchemaMap,
-			}, nil
-		default:
-		}
+	if schemaFull.SchemaNumber != nil && schemaFull.SchemaString == nil && schemaFull.SchemaArray == nil && schemaFull.SchemaObject == nil && schemaFull.SchemaMap == nil {
+		schema.SchemaNumber = schemaFull.SchemaNumber
+		return schema, nil
+	} else if schemaFull.SchemaString != nil && schemaFull.SchemaNumber == nil && schemaFull.SchemaArray == nil && schemaFull.SchemaObject == nil && schemaFull.SchemaMap == nil {
+		schema.SchemaString = schemaFull.SchemaString
+		return schema, nil
+	} else if schemaFull.SchemaArray != nil && schemaFull.SchemaNumber == nil && schemaFull.SchemaString == nil && schemaFull.SchemaObject == nil && schemaFull.SchemaMap == nil {
+		schema.SchemaArray = schemaFull.SchemaArray
+		return schema, nil
+	} else if schemaFull.SchemaObject != nil && schemaFull.SchemaNumber == nil && schemaFull.SchemaString == nil && schemaFull.SchemaArray == nil && schemaFull.SchemaMap == nil {
+		schema.SchemaObject = schemaFull.SchemaObject
+		return schema, nil
+	} else if schemaFull.SchemaMap != nil && schemaFull.SchemaNumber == nil && schemaFull.SchemaString == nil && schemaFull.SchemaArray == nil && schemaFull.SchemaObject == nil {
+		schema.SchemaMap = schemaFull.SchemaMap
+		return schema, nil
 	}
 
-	if typ != nil {
-		switch {
-		case typ.String != nil:
-			common = &Common{
-				Type: typ,
-			}
-		case typ.StringArray != nil:
-			common = &Common{
-				Type: typ,
-			}
-		default:
-		}
+	return &Schema{
+		SchemaFull: schemaFull,
+		isFull:     true,
+	}, nil
+}
+
+func bodyToSchemaFull(body *light.Body) (*SchemaFull, error) {
+	if body == nil {
+		return nil, nil
 	}
 
-	for k, attr := range s.Attributes {
-		v := attr.Expr
-		switch k {
+	schemaFull := &SchemaFull{}
+	typ := getType(body)
+
+	var reference *Reference
+	var common *Common
+	var schemaNumber *jsonschema.SchemaNumber
+	var schemaString *SchemaString
+	var schemaArray *SchemaArray
+	var SchemaObject *SchemaObject
+	var schemaMap *SchemaMap
+
+	for name, attr := range body.Attributes {
+		var err error
+		switch name {
+		case "ref":
+			ref, err := attributeToString(attr)
+			if err != nil {
+				return nil, err
+			}
+			reference = &Reference{
+				Ref: ref,
+			}
+			return nil, nil
 		case "schema":
-			schema.Schema = attrToString(v)
+			schemaFull.Schema, err = attributeToString(attr)
 		case "id":
-			schema.ID = attrToString(v)
-		case "pattern":
-			schema.Pattern = attrToString(v)
-		case "title":
-			schema.Title = attrToString(v)
-		case "description":
-			schema.Description = attrToString(v)
+			schemaFull.ID, err = attributeToString(attr)
 		case "format":
-			schema.Format = attrToString(v)
-		case "readOnly":
-			schema.ReadOnly = attrToBool(v)
-		case "writeOnly":
-			schema.WriteOnly = attrToBool(v)
-		//case "exclusiveMaximum":
-		//	schema.ExclusiveMaximum = attrToBool(v)
-		//case "exclusiveMinimum":
-		//		schema.ExclusiveMinimum = attrToBool(v)
-		case "uniqueItems":
-			schema.UniqueItems = attrToBool(v)
-		case "maxLength":
-			schema.MaxLength = attrToInt64(v)
-		case "minLength":
-			schema.MinLength = attrToInt64(v)
-		case "maxItems":
-			schema.MaxItems = attrToInt64(v)
-		case "minItems":
-			schema.MinItems = attrToInt64(v)
-		case "maxProperties":
-			schema.MaxProperties = attrToInt64(v)
-		case "minProperties":
-			schema.MinProperties = attrToInt64(v)
-		case "multipleOf":
-			schema.MultipleOf = attrToFloat64(v)
-		case "maximum":
-			schema.Maximum = attrToFloat64(v)
-		case "minimum":
-			schema.Minimum = attrToFloat64(v)
-		case "required":
-			schema.Required = attrToStringArray(v)
-		case "enumeration":
-			schema.Enumeration, _ = tupleConsExprToEnum(v)
-		case "default":
-			schema.Default = attrToInterface(v)
-		case "additionalItems":
-			schema.AdditionalItems = attrToInterface(v)
-		case "additionalProperties":
-			schema.AdditionalProperties = attrToInterface(v)
-		case "oneOf":
-			schema.OneOf = attrToInterface(v)
-		case "anyOf":
-			schema.AnyOf = attrToInterface(v)
-		case "allOf":
-			schema.AllOf = attrToInterface(v)
-		case "not":
-			schema.Not = attrToInterface(v)
+			schemaFull.Format, err = attributeToString(attr)
 		default:
 		}
 	}
+	common := getCommon(body)
 
-	return schema, nil
 }

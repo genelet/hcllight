@@ -26,15 +26,10 @@ func ToHcl(s *jsonschema.Schema) *Schema {
 		return &Schema{
 			Common: common,
 		}
-	case "number":
+	case "number", "integer":
 		return &Schema{
 			Common:       common,
 			SchemaNumber: numberToHcl(s),
-		}
-	case "integer":
-		return &Schema{
-			Common:        common,
-			SchemaInteger: integerToHcl(s),
 		}
 	case "string":
 		return &Schema{
@@ -159,42 +154,6 @@ func numberToHcl(s *jsonschema.Schema) *SchemaNumber {
 		Minimum:          s.Minimum,
 		ExclusiveMinimum: s.ExclusiveMinimum,
 	}
-}
-
-func integerToHcl(s *jsonschema.Schema) *SchemaInteger {
-	if s == nil || !isNumber(s) {
-		return nil
-	}
-
-	integer := &SchemaInteger{
-		ExclusiveMaximum: s.ExclusiveMaximum,
-		ExclusiveMinimum: s.ExclusiveMinimum,
-	}
-	if s.MultipleOf != nil {
-		if s.MultipleOf.Float != nil {
-			x := int64(*s.MultipleOf.Float)
-			integer.MultipleOf = &x
-		} else {
-			integer.MultipleOf = s.MultipleOf.Integer
-		}
-	}
-	if s.Maximum != nil {
-		if s.Maximum.Float != nil {
-			x := int64(*s.Maximum.Float)
-			integer.Maximum = &x
-		} else {
-			integer.Maximum = s.Maximum.Integer
-		}
-	}
-	if s.Minimum != nil {
-		if s.Minimum.Float != nil {
-			x := int64(*s.Minimum.Float)
-			integer.Minimum = &x
-		} else {
-			integer.Minimum = s.Minimum.Integer
-		}
-	}
-	return integer
 }
 
 func arrayToHcl(s *jsonschema.Schema) *SchemaArray {

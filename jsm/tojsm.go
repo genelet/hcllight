@@ -24,9 +24,6 @@ func ToJSM(s *Schema) *jsonschema.Schema {
 	if s.SchemaNumber != nil {
 		return numberToJSM(schema, s.SchemaNumber)
 	}
-	if s.SchemaInteger != nil {
-		return integerToJSM(schema, s.SchemaInteger)
-	}
 	if s.SchemaArray != nil {
 		return arrayToJSM(schema, s.SchemaArray)
 	}
@@ -36,6 +33,7 @@ func ToJSM(s *Schema) *jsonschema.Schema {
 	if s.SchemaMap != nil {
 		return mapToJSM(schema, s.SchemaMap)
 	}
+	// boolean
 	return schema
 }
 
@@ -144,35 +142,6 @@ func numberToJSM(jsm *jsonschema.Schema, n *SchemaNumber) *jsonschema.Schema {
 	return jsm
 }
 
-func integerToJSM(jsm *jsonschema.Schema, i *SchemaInteger) *jsonschema.Schema {
-	if i == nil {
-		return jsm
-	}
-	if jsm == nil {
-		jsm = &jsonschema.Schema{}
-	}
-
-	if i.MultipleOf != nil {
-		jsm.MultipleOf = &jsonschema.SchemaNumber{
-			Integer: i.MultipleOf,
-		}
-	}
-	if i.Maximum != nil {
-		jsm.Maximum = &jsonschema.SchemaNumber{
-			Integer: i.Maximum,
-		}
-	}
-	jsm.ExclusiveMaximum = i.ExclusiveMaximum
-	if i.Minimum != nil {
-		jsm.Minimum = &jsonschema.SchemaNumber{
-			Integer: i.Minimum,
-		}
-	}
-	jsm.ExclusiveMinimum = i.ExclusiveMinimum
-
-	return jsm
-}
-
 func arrayToJSM(jsm *jsonschema.Schema, a *SchemaArray) *jsonschema.Schema {
 	if a == nil {
 		return jsm
@@ -240,7 +209,6 @@ func schemaFullToJSM(s *Schema) *jsonschema.Schema {
 	jsm.WriteOnly = s.WriteOnly
 	jsm = stringToJSM(jsm, s.SchemaString)
 	jsm = numberToJSM(jsm, s.SchemaNumber)
-	jsm = integerToJSM(jsm, s.SchemaInteger)
 	jsm = arrayToJSM(jsm, s.SchemaArray)
 	jsm = objectToJSM(jsm, s.SchemaObject)
 	jsm = mapToJSM(jsm, s.SchemaMap)
