@@ -8,22 +8,6 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-func (self *Schema) ToBody() (*light.Body, error) {
-	if self.isFull {
-		return schemaFullToBody(self.SchemaFull)
-	}
-
-	return shortsToBody(
-		self.Reference,
-		self.Common,
-		self.SchemaNumber,
-		self.SchemaString,
-		self.SchemaArray,
-		self.SchemaObject,
-		self.SchemaMap,
-	)
-}
-
 func NewSchemaFromBody(body *light.Body) (*Schema, error) {
 	if body == nil {
 		return nil, nil
@@ -39,6 +23,22 @@ func NewSchemaFromBody(body *light.Body) (*Schema, error) {
 	var err error
 	s.Reference, s.Common, s.SchemaNumber, s.SchemaString, s.SchemaArray, s.SchemaObject, s.SchemaMap, err = bodyToShorts(body)
 	return s, err
+}
+
+func (self *Schema) ToBody() (*light.Body, error) {
+	if self.isFull {
+		return schemaFullToBody(self.SchemaFull)
+	}
+
+	return shortsToBody(
+		self.Reference,
+		self.Common,
+		self.SchemaNumber,
+		self.SchemaString,
+		self.SchemaArray,
+		self.SchemaObject,
+		self.SchemaMap,
+	)
 }
 
 func referenceToExpression(ref string) (*light.Expression, error) {
