@@ -8,6 +8,39 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
+func (self *Schema) ToBody() (*light.Body, error) {
+	if self.isFull {
+		return schemaFullToBody(self.SchemaFull)
+	}
+
+	return shortsToBody(
+		self.Reference,
+		self.Common,
+		self.SchemaNumber,
+		self.SchemaString,
+		self.SchemaArray,
+		self.SchemaObject,
+		self.SchemaMap,
+	)
+}
+
+func NewSchemaFromBody(body *light.Body) (*Schema, error) {
+	if body == nil {
+		return nil, nil
+	}
+	if (body.Blocks != nil && len(body.Blocks) > 0) ||
+		body.Attributes == nil ||
+		(body.Attributes != nil && len(body.Attributes) != 1) {
+		full, err := bodyToSchemaFull(body)
+		return &Schema{SchemaFull: full, isFull: true}, err
+	}
+
+	s := &Schema{}
+	var err error
+	s.Reference, s.Common, s.SchemaNumber, s.SchemaString, s.SchemaArray, s.SchemaObject, s.SchemaMap, err = bodyToShorts(body)
+	return s, err
+}
+
 func referenceToExpression(ref string) (*light.Expression, error) {
 	if ref[:2] != "#/" {
 		return nil, fmt.Errorf("invalid reference: %s", ref)
@@ -164,6 +197,8 @@ func fcexprToCommon(fcexpr *light.FunctionCallExpr) (*Common, error) {
 		},
 	}
 
+	found := false
+
 	for _, arg := range fcexpr.Args {
 		switch arg.ExpressionClause.(type) {
 		case *light.Expression_Fcexpr:
@@ -175,6 +210,7 @@ func fcexprToCommon(fcexpr *light.FunctionCallExpr) (*Common, error) {
 					return nil, err
 				}
 				common.Format = &format
+				found = true
 			case "default":
 				def, err := exprToLiteralString(expr.Args[0])
 				if err != nil {
@@ -184,6 +220,7 @@ func fcexprToCommon(fcexpr *light.FunctionCallExpr) (*Common, error) {
 					Kind:  yaml.ScalarNode,
 					Value: def,
 				}
+				found = true
 			case "enum":
 				enum, err := tupleConsExprToEnum(&light.TupleConsExpr{
 					Exprs: expr.Args,
@@ -192,19 +229,23 @@ func fcexprToCommon(fcexpr *light.FunctionCallExpr) (*Common, error) {
 					return nil, err
 				}
 				common.Enumeration = enum
+				found = true
 			default:
 			}
 		default:
 		}
 	}
 
-	return common, nil
+	if found {
+		return common, nil
+	}
+	return nil, nil
 }
 
 // because of order in function, we can't loop attribute map
-func schemaNumberToFcexpr(self *SchemaNumber, expr *light.FunctionCallExpr) (*light.FunctionCallExpr, error) {
+func schemaNumberToFcexpr(self *SchemaNumber, expr *light.FunctionCallExpr) error {
 	if self == nil {
-		return expr, nil
+		return nil
 	}
 	if self.Minimum != nil {
 		if self.Minimum.Float != nil {
@@ -234,14 +275,13 @@ func schemaNumberToFcexpr(self *SchemaNumber, expr *light.FunctionCallExpr) (*li
 		}
 	}
 
-	return expr, nil
+	return nil
 }
 
-func fcexprToSchemaNumber(common *Common, fcexpr *light.FunctionCallExpr) (*Schema, error) {
-	s := &Schema{
-		Common:       common,
-		SchemaNumber: &SchemaNumber{},
-	}
+func fcexprToSchemaNumber(fcexpr *light.FunctionCallExpr) (*SchemaNumber, error) {
+	s := &SchemaNumber{}
+	found := false
+
 	for _, arg := range fcexpr.Args {
 		switch arg.ExpressionClause.(type) {
 		case *light.Expression_Fcexpr:
@@ -252,48 +292,56 @@ func fcexprToSchemaNumber(common *Common, fcexpr *light.FunctionCallExpr) (*Sche
 				if err != nil {
 					return nil, err
 				}
-				s.SchemaNumber.Minimum = &jsonschema.SchemaNumber{
+				s.Minimum = &jsonschema.SchemaNumber{
 					Float: &min,
 				}
+				found = true
 			case "maximum":
 				max, err := exprToFloat64(expr.Args[0])
 				if err != nil {
 					return nil, err
 				}
-				s.SchemaNumber.Maximum = &jsonschema.SchemaNumber{
+				s.Maximum = &jsonschema.SchemaNumber{
 					Float: &max,
 				}
+				found = true
 			case "exclusiveMinimum":
 				excl, err := exprToBoolean(expr.Args[0])
 				if err != nil {
 					return nil, err
 				}
-				s.SchemaNumber.ExclusiveMinimum = &excl
+				s.ExclusiveMinimum = &excl
+				found = true
 			case "exclusiveMaximum":
 				excl, err := exprToBoolean(expr.Args[0])
 				if err != nil {
 					return nil, err
 				}
-				s.SchemaNumber.ExclusiveMaximum = &excl
+				s.ExclusiveMaximum = &excl
+				found = true
 			case "multipleOf":
 				mul, err := exprToFloat64(expr.Args[0])
 				if err != nil {
 					return nil, err
 				}
-				s.SchemaNumber.MultipleOf = &jsonschema.SchemaNumber{
+				s.MultipleOf = &jsonschema.SchemaNumber{
 					Float: &mul,
 				}
+				found = true
 			default:
 			}
 		default:
 		}
 	}
-	return s, nil
+	if found {
+		return s, nil
+	}
+	return nil, nil
 }
 
-func schemaStringToFcexpr(self *SchemaString, expr *light.FunctionCallExpr) (*light.FunctionCallExpr, error) {
+func schemaStringToFcexpr(self *SchemaString, expr *light.FunctionCallExpr) error {
 	if self == nil {
-		return expr, nil
+		return nil
 	}
 	if self.MaxLength != nil {
 		expr.Args = append(expr.Args, int64ToLiteralExpr("maxLength", *self.MaxLength))
@@ -304,14 +352,12 @@ func schemaStringToFcexpr(self *SchemaString, expr *light.FunctionCallExpr) (*li
 	if self.Pattern != nil {
 		expr.Args = append(expr.Args, stringToTextExpr("pattern", *self.Pattern))
 	}
-	return expr, nil
+	return nil
 }
 
-func fcexprToSchemaString(common *Common, fcexpr *light.FunctionCallExpr) (*Schema, error) {
-	s := &Schema{
-		Common:       common,
-		SchemaString: &SchemaString{},
-	}
+func fcexprToSchemaString(fcexpr *light.FunctionCallExpr) (*SchemaString, error) {
+	s := &SchemaString{}
+	found := false
 	for _, arg := range fcexpr.Args {
 		switch arg.ExpressionClause.(type) {
 		case *light.Expression_Fcexpr:
@@ -322,35 +368,41 @@ func fcexprToSchemaString(common *Common, fcexpr *light.FunctionCallExpr) (*Sche
 				if err != nil {
 					return nil, err
 				}
-				s.SchemaString.MaxLength = &max
+				s.MaxLength = &max
+				found = true
 			case "minLength":
 				min, err := exprToInt64(expr.Args[0])
 				if err != nil {
 					return nil, err
 				}
-				s.SchemaString.MinLength = &min
+				s.MinLength = &min
+				found = true
 			case "pattern":
 				pattern, err := exprToTextString(expr.Args[0])
 				if err != nil {
 					return nil, err
 				}
-				s.SchemaString.Pattern = &pattern
+				s.Pattern = &pattern
+				found = true
 			default:
 			}
 		default:
 		}
 	}
-	return s, nil
+	if found {
+		return s, nil
+	}
+	return nil, nil
 }
 
-func schemaArrayToFcexpr(self *SchemaArray, expr *light.FunctionCallExpr) (*light.FunctionCallExpr, error) {
+func schemaArrayToFcexpr(self *SchemaArray, expr *light.FunctionCallExpr) error {
 	if self == nil {
-		return expr, nil
+		return nil
 	}
 	if self.Items != nil && (self.Items.Schema != nil || len(self.Items.SchemaArray) > 0) {
 		ex, err := schemaOrSchemaArrayToExpression(self.Items)
 		if err != nil {
-			return nil, err
+			return err
 		}
 		expr.Args = append([]*light.Expression{ex}, expr.Args...)
 	}
@@ -364,16 +416,13 @@ func schemaArrayToFcexpr(self *SchemaArray, expr *light.FunctionCallExpr) (*ligh
 	if self.UniqueItems != nil {
 		expr.Args = append(expr.Args, booleanToLiteralExpr("uniqueItems", *self.UniqueItems))
 	}
-	return expr, nil
+	return nil
 }
 
-func fcexprToSchemaArray(common *Common, fcexpr *light.FunctionCallExpr) (*Schema, error) {
-	s := &Schema{
-		Common:      common,
-		SchemaArray: &SchemaArray{},
-	}
-
+func fcexprToSchemaArray(fcexpr *light.FunctionCallExpr) (*SchemaArray, error) {
+	s := &SchemaArray{}
 	var found bool
+
 	for _, arg := range fcexpr.Args {
 		switch arg.ExpressionClause.(type) {
 		case *light.Expression_Fcexpr:
@@ -384,46 +433,50 @@ func fcexprToSchemaArray(common *Common, fcexpr *light.FunctionCallExpr) (*Schem
 				if err != nil {
 					return nil, err
 				}
-				s.SchemaArray.MaxItems = &max
+				s.MaxItems = &max
+				found = true
 			case "minItems":
 				min, err := exprToInt64(expr.Args[0])
 				if err != nil {
 					return nil, err
 				}
-				s.SchemaArray.MinItems = &min
+				s.MinItems = &min
+				found = true
 			case "uniqueItems":
 				unique, err := exprToBoolean(expr.Args[0])
 				if err != nil {
 					return nil, err
 				}
-				s.SchemaArray.UniqueItems = &unique
+				s.UniqueItems = &unique
+				found = true
 			default:
 			}
 		default:
-			if found {
-				return nil, fmt.Errorf("got two or more items in fcexpr")
-			}
-			found = true
 			items, err := expressionToSchemaOrSchemaArray(arg)
 			if err != nil {
 				return nil, err
 			}
-			s.SchemaArray.Items = items
+			s.Items = items
+			found = true
 		}
 	}
-	return s, nil
+	if found {
+		return s, nil
+	}
+	return nil, nil
 }
 
-func schemaObjectToFcexpr(self *SchemaObject, expr *light.FunctionCallExpr) (*light.FunctionCallExpr, error) {
+func schemaObjectToFcexpr(self *SchemaObject, expr *light.FunctionCallExpr) error {
 	if self == nil {
-		return expr, nil
+		return nil
 	}
+
 	if self.Properties != nil {
 		ex, err := mapSchemaToObjectConsExpr(self.Properties)
 		if err != nil {
-			return nil, err
+			return err
 		}
-		expr.Args = append([]*light.Expression{&light.Expression{
+		expr.Args = append([]*light.Expression{{
 			ExpressionClause: &light.Expression_Ocexpr{
 				Ocexpr: ex,
 			}}}, expr.Args...)
@@ -445,14 +498,13 @@ func schemaObjectToFcexpr(self *SchemaObject, expr *light.FunctionCallExpr) (*li
 			},
 		})
 	}
-	return expr, nil
+	return nil
 }
 
-func fcexprToSchemaObject(common *Common, fcexpr *light.FunctionCallExpr) (*Schema, error) {
-	s := &Schema{
-		Common:       common,
-		SchemaObject: &SchemaObject{},
-	}
+func fcexprToSchemaObject(fcexpr *light.FunctionCallExpr) (*SchemaObject, error) {
+	s := &SchemaObject{}
+	found := false
+
 	for _, arg := range fcexpr.Args {
 		switch arg.ExpressionClause.(type) {
 		case *light.Expression_Ocexpr:
@@ -461,7 +513,8 @@ func fcexprToSchemaObject(common *Common, fcexpr *light.FunctionCallExpr) (*Sche
 			if err != nil {
 				return nil, err
 			}
-			s.SchemaObject.Properties = properties
+			s.Properties = properties
+			found = true
 		case *light.Expression_Fcexpr:
 			expr := arg.GetFcexpr()
 			switch expr.Name {
@@ -470,26 +523,32 @@ func fcexprToSchemaObject(common *Common, fcexpr *light.FunctionCallExpr) (*Sche
 				if err != nil {
 					return nil, err
 				}
-				s.SchemaObject.MaxProperties = &max
+				s.MaxProperties = &max
+				found = true
 			case "minProperties":
 				min, err := exprToInt64(expr.Args[0])
 				if err != nil {
 					return nil, err
 				}
-				s.SchemaObject.MinProperties = &min
+				s.MinProperties = &min
+				found = true
 			case "required":
-				s.SchemaObject.Required = tupleConsExprToStringArray(expr.Args[0])
+				s.Required = tupleConsExprToStringArray(expr.Args[0])
+				found = true
 			default:
 			}
 		default:
 		}
 	}
-	return s, nil
+	if found {
+		return s, nil
+	}
+	return nil, nil
 }
 
-func schemaMapToFcexpr(self *SchemaMap, expr *light.FunctionCallExpr) (*light.FunctionCallExpr, error) {
+func schemaMapToFcexpr(self *SchemaMap, expr *light.FunctionCallExpr) error {
 	if self == nil {
-		return expr, nil
+		return nil
 	}
 	if self.AdditionalProperties != nil {
 		var ex *light.Expression
@@ -500,18 +559,16 @@ func schemaMapToFcexpr(self *SchemaMap, expr *light.FunctionCallExpr) (*light.Fu
 			ex = booleanToLiteralValueExpr(*self.AdditionalProperties.Boolean)
 		}
 		if err != nil {
-			return nil, err
+			return err
 		}
 		expr.Args = append([]*light.Expression{ex}, expr.Args...)
 	}
-	return expr, nil
+	return nil
 }
 
-func fcexprToSchemaMap(common *Common, fcexpr *light.FunctionCallExpr) (*Schema, error) {
-	s := &Schema{
-		Common:    common,
-		SchemaMap: &SchemaMap{},
-	}
+func fcexprToSchemaMap(fcexpr *light.FunctionCallExpr) (*SchemaMap, error) {
+	s := &SchemaMap{}
+	found := false
 	for _, arg := range fcexpr.Args {
 		switch arg.ExpressionClause.(type) {
 		case *light.Expression_Lvexpr:
@@ -519,20 +576,25 @@ func fcexprToSchemaMap(common *Common, fcexpr *light.FunctionCallExpr) (*Schema,
 			if err != nil {
 				return nil, err
 			}
-			s.SchemaMap.AdditionalProperties = &SchemaOrBoolean{
+			s.AdditionalProperties = &SchemaOrBoolean{
 				Boolean: &b,
 			}
+			found = true
 		default:
 			s, err := expressionToSchema(arg)
 			if err != nil {
 				return nil, err
 			}
-			s.SchemaMap.AdditionalProperties = &SchemaOrBoolean{
+			s.AdditionalProperties = &SchemaOrBoolean{
 				Schema: s,
 			}
+			found = true
 		}
 	}
-	return s, nil
+	if found {
+		return s, nil
+	}
+	return nil, nil
 }
 
 func schemaToFcexpr(self *Schema) (*light.FunctionCallExpr, error) {
@@ -546,20 +608,20 @@ func schemaToFcexpr(self *Schema) (*light.FunctionCallExpr, error) {
 
 	switch expr.Name {
 	case "map":
-		return schemaMapToFcexpr(self.SchemaMap, expr)
+		err = schemaMapToFcexpr(self.SchemaMap, expr)
 	case "object":
-		return schemaObjectToFcexpr(self.SchemaObject, expr)
+		err = schemaObjectToFcexpr(self.SchemaObject, expr)
 	case "array":
-		return schemaArrayToFcexpr(self.SchemaArray, expr)
+		err = schemaArrayToFcexpr(self.SchemaArray, expr)
 	case "string":
-		return schemaStringToFcexpr(self.SchemaString, expr)
+		err = schemaStringToFcexpr(self.SchemaString, expr)
 	case "number", "integer":
-		return schemaNumberToFcexpr(self.SchemaNumber, expr)
+		err = schemaNumberToFcexpr(self.SchemaNumber, expr)
 	default:
 	}
 
 	// this is boolean
-	return expr, nil
+	return expr, err
 }
 
 func fcexprToSchema(fcexpr *light.FunctionCallExpr) (*Schema, error) {
@@ -571,24 +633,34 @@ func fcexprToSchema(fcexpr *light.FunctionCallExpr) (*Schema, error) {
 	if err != nil {
 		return nil, err
 	}
+	var schemaNumber *SchemaNumber
+	var schemaString *SchemaString
+	var schemaArray *SchemaArray
+	var schemaObject *SchemaObject
+	var schemaMap *SchemaMap
 
 	switch fcexpr.Name {
 	case "number", "integer":
-		return fcexprToSchemaNumber(common, fcexpr)
+		schemaNumber, err = fcexprToSchemaNumber(fcexpr)
 	case "string":
-		return fcexprToSchemaString(common, fcexpr)
+		schemaString, err = fcexprToSchemaString(fcexpr)
 	case "array":
-		return fcexprToSchemaArray(common, fcexpr)
+		schemaArray, err = fcexprToSchemaArray(fcexpr)
 	case "object":
-		return fcexprToSchemaObject(common, fcexpr)
+		schemaObject, err = fcexprToSchemaObject(fcexpr)
 	case "map":
-		return fcexprToSchemaMap(common, fcexpr)
+		schemaMap, err = fcexprToSchemaMap(fcexpr)
 	default:
 	}
 
 	// boolean
 	return &Schema{
-		Common: common,
+		Common:       common,
+		SchemaNumber: schemaNumber,
+		SchemaString: schemaString,
+		SchemaArray:  schemaArray,
+		SchemaObject: schemaObject,
+		SchemaMap:    schemaMap,
 	}, nil
 }
 

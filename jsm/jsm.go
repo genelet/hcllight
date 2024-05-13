@@ -1,7 +1,6 @@
 package jsm
 
 import (
-	"github.com/genelet/hcllight/light"
 	"github.com/google/gnostic/jsonschema"
 	"gopkg.in/yaml.v3"
 )
@@ -163,33 +162,4 @@ func isFull(s *jsonschema.Schema) bool {
 	default:
 	}
 	return true
-}
-
-func (self *Schema) ToBody() (*light.Body, error) {
-	if self.isFull {
-		return schemaFullToBody(self.SchemaFull)
-	}
-
-	return shortsToBody(
-		self.Reference,
-		self.Common,
-		self.SchemaNumber,
-		self.SchemaString,
-		self.SchemaArray,
-		self.SchemaObject,
-		self.SchemaMap,
-	)
-}
-
-func NewSchemaFromBody(body *light.Body) (*Schema, error) {
-	if body == nil {
-		return nil, nil
-	}
-	if (body.Blocks != nil && len(body.Blocks) > 0) ||
-		body.Attributes == nil ||
-		(body.Attributes != nil && len(body.Attributes) != 1) {
-		return bodyToSchemaFull(body)
-	}
-
-	return bodyToShorts(body)
 }

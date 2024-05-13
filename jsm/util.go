@@ -181,6 +181,32 @@ func tupleConsExprToStringArray(t *light.Expression) []string {
 	return items
 }
 
+func stringOrStringArrayToExpression(t *jsonschema.StringOrStringArray) *light.Expression {
+	if t == nil {
+		return nil
+	}
+	if t.String != nil {
+		return stringToTextValueExpr(*t.String)
+	}
+	return stringArrayToTupleConsEpr(*t.StringArray)
+}
+
+func expressionToStringOrStringArray(expr *light.Expression) *jsonschema.StringOrStringArray {
+	if expr == nil {
+		return nil
+	}
+	if expr.GetLvexpr() != nil {
+		x := expr.GetLvexpr().Val.GetStringValue()
+		return &jsonschema.StringOrStringArray{
+			String: &x,
+		}
+	}
+	x := tupleConsExprToStringArray(expr)
+	return &jsonschema.StringOrStringArray{
+		StringArray: &x,
+	}
+}
+
 func stringToTraversal(str string) *light.Expression {
 	parts := strings.SplitN(str, "/", -1)
 	args := []*light.Traverser{
