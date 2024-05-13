@@ -385,7 +385,9 @@ func mapToAttributes(self *SchemaMap, attrs map[string]*light.Attribute) error {
 }
 
 func attributesToMap(attrs map[string]*light.Attribute) (*SchemaMap, error) {
-	mmap := &SchemaMap{}
+	mmap := &SchemaMap{
+		AdditionalProperties: &SchemaOrBoolean{},
+	}
 
 	var err error
 	var found bool
@@ -475,19 +477,40 @@ func shortsToBody(
 }
 
 func bodyToShorts(body *light.Body) (*Reference, *Common, *SchemaNumber, *SchemaString, *SchemaArray, *SchemaObject, *SchemaMap, error) {
+	seven := func(err error) (*Reference, *Common, *SchemaNumber, *SchemaString, *SchemaArray, *SchemaObject, *SchemaMap, error) {
+		return nil, nil, nil, nil, nil, nil, nil, err
+	}
 	var reference *Reference
-	var common *Common
-	var schemaNumber *SchemaNumber
-	var schemaString *SchemaString
-	var schemaArray *SchemaArray
-	var schemaObject *SchemaObject
-	var schemaMap *SchemaMap
+	common, err := attributesToCommon(body.Attributes)
+	if err != nil {
+		return seven(err)
+	}
+	schemaNumber, err := attributesToNumber(body.Attributes)
+	if err != nil {
+		return seven(err)
+	}
+	schemaString, err := attributesToString(body.Attributes)
+	if err != nil {
+		return seven(err)
+	}
+	schemaArray, err := attributesToArray(body.Attributes)
+	if err != nil {
+		return seven(err)
+	}
+	schemaObject, err := attributesBlocksToObject(body.Attributes, body.Blocks)
+	if err != nil {
+		return seven(err)
+	}
+	schemaMap, err := attributesToMap(body.Attributes)
+	if err != nil {
+		return seven(err)
+	}
 
 	for name, attr := range body.Attributes {
 		if name == "ref" {
 			ref, err := expressionToReference(attr.Expr)
 			if err != nil {
-				return nil, nil, nil, nil, nil, nil, nil, err
+				return seven(err)
 			}
 			reference = &Reference{Ref: &ref}
 			continue
@@ -496,7 +519,7 @@ func bodyToShorts(body *light.Body) (*Reference, *Common, *SchemaNumber, *Schema
 		if fcexp := attr.Expr.GetFcexpr(); fcexp != nil {
 			schema, err := fcexprToSchema(fcexp)
 			if err != nil {
-				return nil, nil, nil, nil, nil, nil, nil, err
+				return seven(err)
 			}
 			if schema.Common != nil {
 				common = schema.Common
@@ -516,6 +539,7 @@ func bodyToShorts(body *light.Body) (*Reference, *Common, *SchemaNumber, *Schema
 			if schema.SchemaMap != nil {
 				schemaMap = schema.SchemaMap
 			}
+			continue
 		}
 	}
 	return reference, common, schemaNumber, schemaString, schemaArray, schemaObject, schemaMap, nil

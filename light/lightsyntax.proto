@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-package kinet;
+package light;
 
 option go_package = "./light";
 

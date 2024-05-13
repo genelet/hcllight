@@ -7,7 +7,6 @@ replace github.com/genelet/determined => ../determined
 require (
 	github.com/genelet/determined v0.0.0-00010101000000-000000000000
 	github.com/getkin/kin-openapi v0.123.0
-	github.com/golang/protobuf v1.5.3
 	github.com/google/gnostic v0.7.0
 	github.com/google/gnostic-models v0.6.9-0.20230804172637-c7be7c783f49
 	github.com/google/go-cmp v0.6.0

@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-package kinet;
+package ast;
 
 option go_package = "./internal/ast";
 

@@ -73,7 +73,7 @@ func (s *Schema) ToJSM() *jsonschema.Schema {
 		return referenceToJSM(s.Reference)
 	}
 
-	schema := commonToJSM(s)
+	schema := commonToJSM(s.Common)
 
 	if s.SchemaString != nil {
 		return stringToJSM(schema, s.SchemaString)
@@ -131,9 +131,7 @@ func namedSchemaOrStringArrayArrayToMap(s *[]*jsonschema.NamedSchemaOrStringArra
 			}
 		} else {
 			var arr []string
-			for _, v := range *v.Value.StringArray {
-				arr = append(arr, v)
-			}
+			arr = append(arr, *v.Value.StringArray...)
 			m[v.Name] = &SchemaOrStringArray{
 				StringArray: arr,
 			}
@@ -157,9 +155,7 @@ func mapToNamedSchemaOrStringArrayArray(s map[string]*SchemaOrStringArray) *[]*j
 			})
 		} else {
 			var sa []string
-			for _, str := range v.StringArray {
-				sa = append(sa, str)
-			}
+			sa = append(sa, v.StringArray...)
 			arr = append(arr, &jsonschema.NamedSchemaOrStringArray{
 				Name: k,
 				Value: &jsonschema.SchemaOrStringArray{
@@ -226,7 +222,11 @@ func commonToHcl(s *jsonschema.Schema) *Common {
 	return common
 }
 
-func commonToJSM(c *Schema) *jsonschema.Schema {
+func commonToJSM(c *Common) *jsonschema.Schema {
+	if c == nil {
+		return nil
+	}
+
 	jsm := &jsonschema.Schema{}
 	jsm.Type = c.Type
 	jsm.Format = c.Format
@@ -324,6 +324,9 @@ func arrayToJSM(jsm *jsonschema.Schema, a *SchemaArray) *jsonschema.Schema {
 	}
 
 	if a.Items != nil {
+		if jsm.Items == nil {
+			jsm.Items = &jsonschema.SchemaOrSchemaArray{}
+		}
 		if a.Items.Schema != nil {
 			jsm.Items.Schema = a.Items.Schema.ToJSM()
 		} else {
@@ -357,7 +360,9 @@ func mapToJSM(jsm *jsonschema.Schema, m *SchemaMap) *jsonschema.Schema {
 	if jsm == nil {
 		jsm = &jsonschema.Schema{}
 	}
-
+	if jsm.AdditionalProperties == nil {
+		jsm.AdditionalProperties = &jsonschema.SchemaOrBoolean{}
+	}
 	if m.AdditionalProperties.Schema != nil {
 		jsm.AdditionalProperties.Schema = (m.AdditionalProperties.Schema).ToJSM()
 	} else {
@@ -444,40 +449,45 @@ func schemaFullToHcl(s *jsonschema.Schema) *Schema {
 }
 
 func schemaFullToJSM(s *Schema) *jsonschema.Schema {
-	jsm := commonToJSM(s)
-	jsm.Schema = s.Schema
-	jsm.ID = s.ID
-	if s.Reference != nil {
-		jsm.Ref = s.Reference.Ref
+	if s == nil || !s.isFull {
+		return nil
 	}
-	jsm.ReadOnly = s.ReadOnly
-	jsm.WriteOnly = s.WriteOnly
-	jsm = stringToJSM(jsm, s.SchemaString)
-	jsm = numberToJSM(jsm, s.SchemaNumber)
-	jsm = arrayToJSM(jsm, s.SchemaArray)
-	jsm = objectToJSM(jsm, s.SchemaObject)
-	jsm = mapToJSM(jsm, s.SchemaMap)
+	full := s.SchemaFull
+	jsm := commonToJSM(full.Common)
+	if jsm == nil {
+		jsm = &jsonschema.Schema{}
+	}
+	jsm.Schema = full.Schema
+	jsm.ID = full.ID
+	if full.Reference != nil {
+		jsm.Ref = full.Reference.Ref
+	}
+	jsm.ReadOnly = full.ReadOnly
+	jsm.WriteOnly = full.WriteOnly
+	jsm = stringToJSM(jsm, full.SchemaString)
+	jsm = numberToJSM(jsm, full.SchemaNumber)
+	jsm = arrayToJSM(jsm, full.SchemaArray)
+	jsm = objectToJSM(jsm, full.SchemaObject)
+	jsm = mapToJSM(jsm, full.SchemaMap)
 
-	if s.AdditionalItems != nil {
-		if s.AdditionalItems.Schema != nil {
-			jsm.AdditionalItems.Schema = (s.AdditionalItems.Schema).ToJSM()
+	if full.AdditionalItems != nil {
+		if full.AdditionalItems.Schema != nil {
+			jsm.AdditionalItems.Schema = (full.AdditionalItems.Schema).ToJSM()
 		} else {
-			jsm.AdditionalItems.Boolean = s.AdditionalItems.Boolean
+			jsm.AdditionalItems.Boolean = full.AdditionalItems.Boolean
 		}
 	}
-	jsm.PatternProperties = mapToNamedSchemaArray(s.PatternProperties)
-	jsm.Dependencies = mapToNamedSchemaOrStringArrayArray(s.Dependencies)
+	jsm.PatternProperties = mapToNamedSchemaArray(full.PatternProperties)
+	jsm.Dependencies = mapToNamedSchemaOrStringArrayArray(full.Dependencies)
 
-	jsm.AllOf = sliceToJSM(s.AllOf)
-	jsm.AnyOf = sliceToJSM(s.AnyOf)
-	jsm.OneOf = sliceToJSM(s.OneOf)
+	jsm.AllOf = sliceToJSM(full.AllOf)
+	jsm.AnyOf = sliceToJSM(full.AnyOf)
+	jsm.OneOf = sliceToJSM(full.OneOf)
 	jsm.Not = s.Not.ToJSM()
-	jsm.Definitions = mapToNamedSchemaArray(s.Definitions)
+	jsm.Definitions = mapToNamedSchemaArray(full.Definitions)
 
-	jsm.Title = s.Title
-	jsm.Description = s.Description
-	jsm.Format = s.Format
-	jsm.Default = s.Default
+	jsm.Title = full.Title
+	jsm.Description = full.Description
 
 	return jsm
 }

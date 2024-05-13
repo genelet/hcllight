@@ -1,12 +1,10 @@
 package jsm
 
 import (
-	"strconv"
 	"strings"
 
 	"github.com/genelet/hcllight/light"
 	"github.com/google/gnostic/jsonschema"
-	"gopkg.in/yaml.v3"
 )
 
 func stringToTextValueExpr(s string) *light.Expression {
@@ -256,6 +254,7 @@ func traversalToString(t *light.Expression) *string {
 	return &x
 }
 
+/*
 func yamlToBool(y *yaml.Node) (bool, error) {
 	if y == nil {
 		return false, nil
@@ -323,7 +322,7 @@ func stringToYaml(s string) *yaml.Node {
 		Value: s,
 	}
 }
-
+*/
 // try to use mapToBody first
 func mapSchemaToObjectConsExpr(s map[string]*Schema) (*light.ObjectConsExpr, error) {
 	if s == nil {
@@ -461,7 +460,7 @@ func expressionToSchemaOrBoolean(expr *light.Expression) (*SchemaOrBoolean, erro
 }
 
 func enumToTupleConsExpr(enumeration []jsonschema.SchemaEnumValue) (*light.TupleConsExpr, error) {
-	if enumeration == nil || len(enumeration) == 0 {
+	if len(enumeration) == 0 {
 		return nil, nil
 	}
 
@@ -474,7 +473,7 @@ func enumToTupleConsExpr(enumeration []jsonschema.SchemaEnumValue) (*light.Tuple
 		}
 	}
 
-	if enums == nil || len(enums) == 0 {
+	if len(enums) == 0 {
 		return nil, nil
 	}
 
