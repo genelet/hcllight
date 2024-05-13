@@ -4,6 +4,7 @@ import (
 	"os"
 	"testing"
 
+	"github.com/genelet/hcllight/light"
 	"github.com/google/gnostic/jsonschema"
 	//"github.com/k0kubun/pp/v3"
 )
@@ -27,5 +28,20 @@ func TestParseSchema(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Error writing HCL: %v", err)
 	}
-	t.Errorf("1")
+
+	bs, err := os.ReadFile("schema_v30.hcl")
+	if err != nil {
+		t.Fatalf("Error reading HCL: %v", err)
+	}
+
+	body, err = light.Parse(bs)
+	if err != nil {
+		t.Fatalf("Error parsing HCL: %v", err)
+	}
+	schema, err = NewSchemaFromBody(body)
+	if err != nil {
+		t.Fatalf("error %v", err)
+	}
+	s = schema.ToJSM()
+	t.Errorf("Schema: %s", s.JSONString())
 }

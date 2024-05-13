@@ -1,407 +1,33 @@
 
-  schema = "http://json-schema.org/draft-04/schema#"
-  id = "https://spec.openapis.org/oas/3.0/schema/2021-09-28"
   description = "The description of OpenAPI v3.0.x documents, as defined by https://spec.openapis.org/oas/v3.0.3"
   type = "object"
   required = ["openapi", "info", "paths"]
   additionalProperties = false
+  schema = "http://json-schema.org/draft-04/schema#"
+  id = "https://spec.openapis.org/oas/3.0/schema/2021-09-28"
   properties {
-    info = definitions.Info
-    externalDocs = definitions.ExternalDocumentation
-    servers = array(definitions.Server)
     security = array(definitions.SecurityRequirement)
     tags = array(definitions.Tag, uniqueItems(true))
     paths = definitions.Paths
     components = definitions.Components
     openapi = string(pattern("^3\.0\.\d(-.+)?$"))
+    info = definitions.Info
+    externalDocs = definitions.ExternalDocumentation
+    servers = array(definitions.Server)
   }
   patternProperties {
     ^x- {}
   }
   definitions {
+    SecurityRequirement = map(array(string()))
     Discriminator = object({
       propertyName = string(),
       mapping = map(string())
     }, required("propertyName"))
-    SecurityRequirement = map(array(string()))
-    Operation {
-      type = "object"
-      required = ["responses"]
-      additionalProperties = false
-      properties {
-        security = array(definitions.SecurityRequirement)
-        tags = array(string())
-        externalDocs = definitions.ExternalDocumentation
-        operationId = string()
-        callbacks = map({
-          oneOf = [definitions.Callback, definitions.Reference]
-        })
-        responses = definitions.Responses
-        description = string()
-        deprecated = boolean(default(false))
-        servers = array(definitions.Server)
-        summary = string()
-        parameters = array({
-          oneOf = [definitions.Parameter, definitions.Reference]
-        }, uniqueItems(true))
-        requestBody {
-          oneOf = [definitions.RequestBody, definitions.Reference]
-        }
-      }
-      patternProperties {
-        ^x- {}
-      }
-    }
-    QueryParameter {
-      description = "Parameter in query"
-      properties {
-        in {
-          enum = ["query"]
-        }
-        style {
-          default = form
-          enum = ["form", "spaceDelimited", "pipeDelimited", "deepObject"]
-        }
-      }
-    }
-    SecurityScheme {
-      oneOf = [definitions.APIKeySecurityScheme, definitions.HTTPSecurityScheme, definitions.OAuth2SecurityScheme, definitions.OpenIdConnectSecurityScheme]
-    }
-    OAuth2SecurityScheme {
-      type = "object"
-      required = ["type", "flows"]
-      additionalProperties = false
-      properties {
-        type = string(enum("oauth2"))
-        flows = definitions.OAuthFlows
-        description = string()
-      }
-      patternProperties {
-        ^x- {}
-      }
-    }
-    Link {
-      type = "object"
-      additionalProperties = false
-      not = {
-        required = ["operationId", "operationRef"],
-        description = "Operation Id and Operation Ref are mutually exclusive"
-      }
-      properties {
-        operationId = string()
-        operationRef = string()
-        parameters = map({})
-        description = string()
-        server = definitions.Server
-        requestBody {}
-      }
-      patternProperties {
-        ^x- {}
-      }
-    }
-    Example {
-      type = "object"
-      additionalProperties = false
-      properties {
-        summary = string()
-        description = string()
-        externalValue = string(format("uri-reference"))
-        value {}
-      }
-      patternProperties {
-        ^x- {}
-      }
-    }
-    Paths {
-      type = "object"
-      additionalProperties = false
-      patternProperties {
-        ^\/ = definitions.PathItem
-        ^x- {}
-      }
-    }
-    Parameter {
-      additionalProperties = false
-      allOf = [definitions.ExampleXORExamples, definitions.SchemaXORContent]
-      oneOf = [definitions.PathParameter, definitions.QueryParameter, definitions.HeaderParameter, definitions.CookieParameter]
-      type = "object"
-      required = ["name", "in"]
-      properties {
-        explode = boolean()
-        in = string()
-        deprecated = boolean(default(false))
-        allowReserved = boolean(default(false))
-        required = boolean(default(false))
-        description = string()
-        style = string()
-        allowEmptyValue = boolean(default(false))
-        name = string()
-        examples = map({
-          oneOf = [definitions.Example, definitions.Reference]
-        })
-        content {
-          type = "object"
-          maxProperties = 1
-          minProperties = 1
-          additionalProperties = definitions.MediaType
-        }
-        example {}
-        schema {
-          oneOf = [definitions.Schema, definitions.Reference]
-        }
-      }
-      patternProperties {
-        ^x- {}
-      }
-    }
-    PasswordOAuthFlow {
-      additionalProperties = false
-      type = "object"
-      required = ["tokenUrl", "scopes"]
-      properties {
-        tokenUrl = string(format("uri-reference"))
-        refreshUrl = string(format("uri-reference"))
-        scopes = map(string())
-      }
-      patternProperties {
-        ^x- {}
-      }
-    }
-    ExampleXORExamples {
-      description = "Example and examples are mutually exclusive"
-      not = {
-        required = ["example", "examples"]
-      }
-    }
-    HeaderParameter {
-      description = "Parameter in header"
-      properties {
-        in {
-          enum = ["header"]
-        }
-        style {
-          enum = ["simple"]
-          default = simple
-        }
-      }
-    }
-    OAuthFlows {
-      additionalProperties = false
-      type = "object"
-      properties {
-        implicit = definitions.ImplicitOAuthFlow
-        password = definitions.PasswordOAuthFlow
-        clientCredentials = definitions.ClientCredentialsFlow
-        authorizationCode = definitions.AuthorizationCodeOAuthFlow
-      }
-      patternProperties {
-        ^x- {}
-      }
-    }
-    Encoding {
-      additionalProperties = false
-      type = "object"
-      properties {
-        contentType = string()
-        headers = map({
-          oneOf = [definitions.Header, definitions.Reference]
-        })
-        style = string(enum("form", "spaceDelimited", "pipeDelimited", "deepObject"))
-        explode = boolean()
-        allowReserved = boolean(default(false))
-      }
-      patternProperties {
-        ^x- {}
-      }
-    }
-    Components {
-      type = "object"
-      additionalProperties = false
-      properties {
-        schemas {
-          type = "object"
-          patternProperties {
-            ^[a-zA-Z0-9\.\-_]+$ {
-              oneOf = [definitions.Schema, definitions.Reference]
-            }
-          }
-        }
-        responses {
-          type = "object"
-          patternProperties {
-            ^[a-zA-Z0-9\.\-_]+$ {
-              oneOf = [definitions.Reference, definitions.Response]
-            }
-          }
-        }
-        parameters {
-          type = "object"
-          patternProperties {
-            ^[a-zA-Z0-9\.\-_]+$ {
-              oneOf = [definitions.Reference, definitions.Parameter]
-            }
-          }
-        }
-        examples {
-          type = "object"
-          patternProperties {
-            ^[a-zA-Z0-9\.\-_]+$ {
-              oneOf = [definitions.Reference, definitions.Example]
-            }
-          }
-        }
-        requestBodies {
-          type = "object"
-          patternProperties {
-            ^[a-zA-Z0-9\.\-_]+$ {
-              oneOf = [definitions.Reference, definitions.RequestBody]
-            }
-          }
-        }
-        callbacks {
-          type = "object"
-          patternProperties {
-            ^[a-zA-Z0-9\.\-_]+$ {
-              oneOf = [definitions.Reference, definitions.Callback]
-            }
-          }
-        }
-        headers {
-          type = "object"
-          patternProperties {
-            ^[a-zA-Z0-9\.\-_]+$ {
-              oneOf = [definitions.Reference, definitions.Header]
-            }
-          }
-        }
-        securitySchemes {
-          type = "object"
-          patternProperties {
-            ^[a-zA-Z0-9\.\-_]+$ {
-              oneOf = [definitions.Reference, definitions.SecurityScheme]
-            }
-          }
-        }
-        links {
-          type = "object"
-          patternProperties {
-            ^[a-zA-Z0-9\.\-_]+$ {
-              oneOf = [definitions.Reference, definitions.Link]
-            }
-          }
-        }
-      }
-      patternProperties {
-        ^x- {}
-      }
-    }
-    Responses {
-      type = "object"
-      minProperties = 1
-      additionalProperties = false
-      properties {
-        default {
-          oneOf = [definitions.Response, definitions.Reference]
-        }
-      }
-      patternProperties {
-        ^[1-5](?:\d{2}|XX)$ {
-          oneOf = [definitions.Response, definitions.Reference]
-        }
-        ^x- {}
-      }
-    }
-    AuthorizationCodeOAuthFlow {
-      required = ["authorizationUrl", "tokenUrl", "scopes"]
-      additionalProperties = false
-      type = "object"
-      properties {
-        scopes = map(string())
-        authorizationUrl = string(format("uri-reference"))
-        tokenUrl = string(format("uri-reference"))
-        refreshUrl = string(format("uri-reference"))
-      }
-      patternProperties {
-        ^x- {}
-      }
-    }
-    MediaType {
-      type = "object"
-      additionalProperties = false
-      allOf = [definitions.ExampleXORExamples]
-      properties {
-        examples = map({
-          oneOf = [definitions.Example, definitions.Reference]
-        })
-        encoding = map(definitions.Encoding)
-        schema {
-          oneOf = [definitions.Schema, definitions.Reference]
-        }
-        example {}
-      }
-      patternProperties {
-        ^x- {}
-      }
-    }
-    OpenIdConnectSecurityScheme {
-      additionalProperties = false
-      type = "object"
-      required = ["type", "openIdConnectUrl"]
-      properties {
-        type = string(enum("openIdConnect"))
-        openIdConnectUrl = string(format("uri-reference"))
-        description = string()
-      }
-      patternProperties {
-        ^x- {}
-      }
-    }
-    ExternalDocumentation {
-      type = "object"
-      required = ["url"]
-      additionalProperties = false
-      properties {
-        description = string()
-        url = string(format("uri-reference"))
-      }
-      patternProperties {
-        ^x- {}
-      }
-    }
-    HTTPSecurityScheme {
-      type = "object"
-      required = ["scheme", "type"]
-      additionalProperties = false
-      oneOf = [{
-        description = "Bearer",
-        properties = {
-          scheme = string(pattern("^[Bb][Ee][Aa][Rr][Ee][Rr]$"))
-        }
-      }, {
-        not = {
-          required = ["bearerFormat"]
-        },
-        description = "Non Bearer",
-        properties = {
-          scheme = {
-            not = string(pattern("^[Bb][Ee][Aa][Rr][Ee][Rr]$"))
-          }
-        }
-      }]
-      properties {
-        scheme = string()
-        bearerFormat = string()
-        description = string()
-        type = string(enum("http"))
-      }
-      patternProperties {
-        ^x- {}
-      }
-    }
     Info {
-      additionalProperties = false
       type = "object"
       required = ["title", "version"]
+      additionalProperties = false
       properties {
         version = string()
         title = string()
@@ -414,104 +40,13 @@
         ^x- {}
       }
     }
-    License {
+    ExternalDocumentation {
       type = "object"
-      required = ["name"]
+      required = ["url"]
       additionalProperties = false
       properties {
-        name = string()
-        url = string(format("uri-reference"))
-      }
-      patternProperties {
-        ^x- {}
-      }
-    }
-    Callback {
-      additionalProperties = definitions.PathItem
-      type = "object"
-      patternProperties {
-        ^x- {}
-      }
-    }
-    CookieParameter {
-      description = "Parameter in cookie"
-      properties {
-        in {
-          enum = ["cookie"]
-        }
-        style {
-          default = form
-          enum = ["form"]
-        }
-      }
-    }
-    ClientCredentialsFlow {
-      additionalProperties = false
-      type = "object"
-      required = ["tokenUrl", "scopes"]
-      properties {
-        refreshUrl = string(format("uri-reference"))
-        scopes = map(string())
-        tokenUrl = string(format("uri-reference"))
-      }
-      patternProperties {
-        ^x- {}
-      }
-    }
-    Schema {
-      type = "object"
-      additionalProperties = false
-      properties {
-        nullable = boolean(default(false))
-        allOf = array({
-          oneOf = [definitions.Schema, definitions.Reference]
-        })
-        minimum = number()
-        minProperties = integer(default(0), minimum(0))
-        maxProperties = integer(minimum(0))
-        deprecated = boolean(default(false))
-        properties = map({
-          oneOf = [definitions.Schema, definitions.Reference]
-        })
-        enum = array({}, minItems(1), uniqueItems(false))
-        pattern = string(format("regex"))
-        discriminator = definitions.Discriminator
-        required = array(string(), minItems(1), uniqueItems(true))
-        minLength = integer(default(0), minimum(0))
-        maximum = number()
-        exclusiveMaximum = boolean(default(false))
-        title = string()
-        maxLength = integer(minimum(0))
-        anyOf = array({
-          oneOf = [definitions.Schema, definitions.Reference]
-        })
         description = string()
-        format = string()
-        oneOf = array({
-          oneOf = [definitions.Schema, definitions.Reference]
-        })
-        externalDocs = definitions.ExternalDocumentation
-        exclusiveMinimum = boolean(default(false))
-        xml = definitions.XML
-        multipleOf = number(minimum(0), exclusiveMinimum(true))
-        uniqueItems = boolean(default(false))
-        writeOnly = boolean(default(false))
-        readOnly = boolean(default(false))
-        minItems = integer(default(0), minimum(0))
-        maxItems = integer(minimum(0))
-        type = string(enum("array", "boolean", "integer", "number", "object", "string"))
-        additionalProperties {
-          default = true
-          oneOf = [definitions.Schema, definitions.Reference, boolean()]
-        }
-        not {
-          oneOf = [definitions.Schema, definitions.Reference]
-        }
-        items {
-          oneOf = [definitions.Schema, definitions.Reference]
-        }
-        default {}
-        example {}
+        url = string(format("uri-reference"))
       }
       patternProperties {
         ^x- {}
@@ -550,20 +85,138 @@
       }
       description = "Schema and content are mutually exclusive, at least one is required"
     }
-    PathParameter {
-      required = ["required"]
-      description = "Parameter in path"
+    Parameter {
+      required = ["name", "in"]
+      additionalProperties = false
+      allOf = [definitions.ExampleXORExamples, definitions.SchemaXORContent]
+      oneOf = [definitions.PathParameter, definitions.QueryParameter, definitions.HeaderParameter, definitions.CookieParameter]
+      type = "object"
       properties {
-        style {
-          default = simple
-          enum = ["matrix", "label", "simple"]
+        deprecated = boolean(default(false))
+        style = string()
+        explode = boolean()
+        allowReserved = boolean(default(false))
+        examples = map({
+          oneOf = [definitions.Example, definitions.Reference]
+        })
+        allowEmptyValue = boolean(default(false))
+        in = string()
+        required = boolean(default(false))
+        name = string()
+        description = string()
+        schema {
+          oneOf = [definitions.Schema, definitions.Reference]
         }
-        required {
-          enum = [true]
+        content {
+          maxProperties = 1
+          minProperties = 1
+          additionalProperties = definitions.MediaType
+          type = "object"
         }
-        in {
-          enum = ["path"]
+        example {}
+      }
+      patternProperties {
+        ^x- {}
+      }
+    }
+    HTTPSecurityScheme {
+      oneOf = [{
+        description = "Bearer",
+        properties = {
+          scheme = string(pattern("^[Bb][Ee][Aa][Rr][Ee][Rr]$"))
         }
+      }, {
+        description = "Non Bearer",
+        not = {
+          required = ["bearerFormat"]
+        },
+        properties = {
+          scheme = {
+            not = string(pattern("^[Bb][Ee][Aa][Rr][Ee][Rr]$"))
+          }
+        }
+      }]
+      type = "object"
+      required = ["scheme", "type"]
+      additionalProperties = false
+      properties {
+        scheme = string()
+        bearerFormat = string()
+        description = string()
+        type = string(enum("http"))
+      }
+      patternProperties {
+        ^x- {}
+      }
+    }
+    OAuthFlows {
+      type = "object"
+      additionalProperties = false
+      properties {
+        implicit = definitions.ImplicitOAuthFlow
+        password = definitions.PasswordOAuthFlow
+        clientCredentials = definitions.ClientCredentialsFlow
+        authorizationCode = definitions.AuthorizationCodeOAuthFlow
+      }
+      patternProperties {
+        ^x- {}
+      }
+    }
+    Example {
+      type = "object"
+      additionalProperties = false
+      properties {
+        description = string()
+        externalValue = string(format("uri-reference"))
+        summary = string()
+        value {}
+      }
+      patternProperties {
+        ^x- {}
+      }
+    }
+    Tag {
+      additionalProperties = false
+      type = "object"
+      required = ["name"]
+      properties {
+        externalDocs = definitions.ExternalDocumentation
+        name = string()
+        description = string()
+      }
+      patternProperties {
+        ^x- {}
+      }
+    }
+    SecurityScheme {
+      oneOf = [definitions.APIKeySecurityScheme, definitions.HTTPSecurityScheme, definitions.OAuth2SecurityScheme, definitions.OpenIdConnectSecurityScheme]
+    }
+    Operation {
+      required = ["responses"]
+      additionalProperties = false
+      type = "object"
+      properties {
+        description = string()
+        responses = definitions.Responses
+        parameters = array({
+          oneOf = [definitions.Parameter, definitions.Reference]
+        }, uniqueItems(true))
+        callbacks = map({
+          oneOf = [definitions.Callback, definitions.Reference]
+        })
+        security = array(definitions.SecurityRequirement)
+        tags = array(string())
+        summary = string()
+        operationId = string()
+        externalDocs = definitions.ExternalDocumentation
+        deprecated = boolean(default(false))
+        servers = array(definitions.Server)
+        requestBody {
+          oneOf = [definitions.RequestBody, definitions.Reference]
+        }
+      }
+      patternProperties {
+        ^x- {}
       }
     }
     RequestBody {
@@ -571,10 +224,460 @@
       required = ["content"]
       additionalProperties = false
       properties {
+        description = string()
         content = map(definitions.MediaType)
         required = boolean(default(false))
+      }
+      patternProperties {
+        ^x- {}
+      }
+    }
+    OAuth2SecurityScheme {
+      type = "object"
+      required = ["type", "flows"]
+      additionalProperties = false
+      properties {
+        flows = definitions.OAuthFlows
+        description = string()
+        type = string(enum("oauth2"))
+      }
+      patternProperties {
+        ^x- {}
+      }
+    }
+    OpenIdConnectSecurityScheme {
+      additionalProperties = false
+      type = "object"
+      required = ["type", "openIdConnectUrl"]
+      properties {
+        type = string(enum("openIdConnect"))
+        openIdConnectUrl = string(format("uri-reference"))
         description = string()
       }
+      patternProperties {
+        ^x- {}
+      }
+    }
+    ImplicitOAuthFlow {
+      type = "object"
+      required = ["authorizationUrl", "scopes"]
+      additionalProperties = false
+      properties {
+        authorizationUrl = string(format("uri-reference"))
+        refreshUrl = string(format("uri-reference"))
+        scopes = map(string())
+      }
+      patternProperties {
+        ^x- {}
+      }
+    }
+    AuthorizationCodeOAuthFlow {
+      type = "object"
+      required = ["authorizationUrl", "tokenUrl", "scopes"]
+      additionalProperties = false
+      properties {
+        tokenUrl = string(format("uri-reference"))
+        refreshUrl = string(format("uri-reference"))
+        scopes = map(string())
+        authorizationUrl = string(format("uri-reference"))
+      }
+      patternProperties {
+        ^x- {}
+      }
+    }
+    Components {
+      type = "object"
+      additionalProperties = false
+      properties {
+        responses {
+          type = "object"
+          patternProperties {
+            ^[a-zA-Z0-9\.\-_]+$ {
+              oneOf = [definitions.Reference, definitions.Response]
+            }
+          }
+        }
+        examples {
+          type = "object"
+          patternProperties {
+            ^[a-zA-Z0-9\.\-_]+$ {
+              oneOf = [definitions.Reference, definitions.Example]
+            }
+          }
+        }
+        securitySchemes {
+          type = "object"
+          patternProperties {
+            ^[a-zA-Z0-9\.\-_]+$ {
+              oneOf = [definitions.Reference, definitions.SecurityScheme]
+            }
+          }
+        }
+        links {
+          type = "object"
+          patternProperties {
+            ^[a-zA-Z0-9\.\-_]+$ {
+              oneOf = [definitions.Reference, definitions.Link]
+            }
+          }
+        }
+        schemas {
+          type = "object"
+          patternProperties {
+            ^[a-zA-Z0-9\.\-_]+$ {
+              oneOf = [definitions.Schema, definitions.Reference]
+            }
+          }
+        }
+        parameters {
+          type = "object"
+          patternProperties {
+            ^[a-zA-Z0-9\.\-_]+$ {
+              oneOf = [definitions.Reference, definitions.Parameter]
+            }
+          }
+        }
+        requestBodies {
+          type = "object"
+          patternProperties {
+            ^[a-zA-Z0-9\.\-_]+$ {
+              oneOf = [definitions.Reference, definitions.RequestBody]
+            }
+          }
+        }
+        headers {
+          type = "object"
+          patternProperties {
+            ^[a-zA-Z0-9\.\-_]+$ {
+              oneOf = [definitions.Reference, definitions.Header]
+            }
+          }
+        }
+        callbacks {
+          type = "object"
+          patternProperties {
+            ^[a-zA-Z0-9\.\-_]+$ {
+              oneOf = [definitions.Reference, definitions.Callback]
+            }
+          }
+        }
+      }
+      patternProperties {
+        ^x- {}
+      }
+    }
+    Response {
+      type = "object"
+      required = ["description"]
+      additionalProperties = false
+      properties {
+        links = map({
+          oneOf = [definitions.Link, definitions.Reference]
+        })
+        description = string()
+        headers = map({
+          oneOf = [definitions.Header, definitions.Reference]
+        })
+        content = map(definitions.MediaType)
+      }
+      patternProperties {
+        ^x- {}
+      }
+    }
+    Header {
+      type = "object"
+      additionalProperties = false
+      allOf = [definitions.ExampleXORExamples, definitions.SchemaXORContent]
+      properties {
+        allowReserved = boolean(default(false))
+        explode = boolean()
+        description = string()
+        deprecated = boolean(default(false))
+        allowEmptyValue = boolean(default(false))
+        style = string(default("simple"), enum("simple"))
+        examples = map({
+          oneOf = [definitions.Example, definitions.Reference]
+        })
+        required = boolean(default(false))
+        schema {
+          oneOf = [definitions.Schema, definitions.Reference]
+        }
+        content {
+          type = "object"
+          maxProperties = 1
+          minProperties = 1
+          additionalProperties = definitions.MediaType
+        }
+        example {}
+      }
+      patternProperties {
+        ^x- {}
+      }
+    }
+    Paths {
+      type = "object"
+      additionalProperties = false
+      patternProperties {
+        ^\/ = definitions.PathItem
+        ^x- {}
+      }
+    }
+    Responses {
+      type = "object"
+      minProperties = 1
+      additionalProperties = false
+      properties {
+        default {
+          oneOf = [definitions.Response, definitions.Reference]
+        }
+      }
+      patternProperties {
+        ^[1-5](?:\d{2}|XX)$ {
+          oneOf = [definitions.Response, definitions.Reference]
+        }
+        ^x- {}
+      }
+    }
+    ExampleXORExamples {
+      not = {
+        required = ["example", "examples"]
+      }
+      description = "Example and examples are mutually exclusive"
+    }
+    PathParameter {
+      required = ["required"]
+      description = "Parameter in path"
+      properties {
+        in {
+          enum = ["path"]
+        }
+        style {
+          default = simple
+          enum = ["matrix", "label", "simple"]
+        }
+        required {
+          enum = [true]
+        }
+      }
+    }
+    CookieParameter {
+      description = "Parameter in cookie"
+      properties {
+        in {
+          enum = ["cookie"]
+        }
+        style {
+          default = form
+          enum = ["form"]
+        }
+      }
+    }
+    ClientCredentialsFlow {
+      type = "object"
+      required = ["tokenUrl", "scopes"]
+      additionalProperties = false
+      properties {
+        refreshUrl = string(format("uri-reference"))
+        scopes = map(string())
+        tokenUrl = string(format("uri-reference"))
+      }
+      patternProperties {
+        ^x- {}
+      }
+    }
+    Link {
+      additionalProperties = false
+      not = {
+        required = ["operationId", "operationRef"],
+        description = "Operation Id and Operation Ref are mutually exclusive"
+      }
+      type = "object"
+      properties {
+        operationId = string()
+        operationRef = string()
+        parameters = map({})
+        description = string()
+        server = definitions.Server
+        requestBody {}
+      }
+      patternProperties {
+        ^x- {}
+      }
+    }
+    License {
+      type = "object"
+      required = ["name"]
+      additionalProperties = false
+      properties {
+        name = string()
+        url = string(format("uri-reference"))
+      }
+      patternProperties {
+        ^x- {}
+      }
+    }
+    XML {
+      type = "object"
+      additionalProperties = false
+      properties {
+        name = string()
+        namespace = string(format("uri"))
+        prefix = string()
+        attribute = boolean(default(false))
+        wrapped = boolean(default(false))
+      }
+      patternProperties {
+        ^x- {}
+      }
+    }
+    PasswordOAuthFlow {
+      additionalProperties = false
+      type = "object"
+      required = ["tokenUrl", "scopes"]
+      properties {
+        scopes = map(string())
+        tokenUrl = string(format("uri-reference"))
+        refreshUrl = string(format("uri-reference"))
+      }
+      patternProperties {
+        ^x- {}
+      }
+    }
+    Encoding {
+      type = "object"
+      additionalProperties = false
+      properties {
+        explode = boolean()
+        allowReserved = boolean(default(false))
+        contentType = string()
+        headers = map({
+          oneOf = [definitions.Header, definitions.Reference]
+        })
+        style = string(enum("form", "spaceDelimited", "pipeDelimited", "deepObject"))
+      }
+      patternProperties {
+        ^x- {}
+      }
+    }
+    Reference {
+      type = "object"
+      required = ["$ref"]
+      patternProperties {
+        ^\$ref$ = string(format("uri-reference"))
+      }
+    }
+    Schema {
+      type = "object"
+      additionalProperties = false
+      properties {
+        maxProperties = integer(minimum(0))
+        description = string()
+        minItems = integer(default(0), minimum(0))
+        writeOnly = boolean(default(false))
+        uniqueItems = boolean(default(false))
+        minLength = integer(default(0), minimum(0))
+        minProperties = integer(default(0), minimum(0))
+        nullable = boolean(default(false))
+        externalDocs = definitions.ExternalDocumentation
+        required = array(string(), minItems(1), uniqueItems(true))
+        discriminator = definitions.Discriminator
+        deprecated = boolean(default(false))
+        properties = map({
+          oneOf = [definitions.Schema, definitions.Reference]
+        })
+        format = string()
+        maxItems = integer(minimum(0))
+        title = string()
+        maximum = number()
+        maxLength = integer(minimum(0))
+        readOnly = boolean(default(false))
+        multipleOf = number(minimum(0), exclusiveMinimum(true))
+        type = string(enum("array", "boolean", "integer", "number", "object", "string"))
+        exclusiveMaximum = boolean(default(false))
+        xml = definitions.XML
+        exclusiveMinimum = boolean(default(false))
+        minimum = number()
+        allOf = array({
+          oneOf = [definitions.Schema, definitions.Reference]
+        })
+        oneOf = array({
+          oneOf = [definitions.Schema, definitions.Reference]
+        })
+        enum = array({}, minItems(1), uniqueItems(false))
+        pattern = string(format("regex"))
+        anyOf = array({
+          oneOf = [definitions.Schema, definitions.Reference]
+        })
+        items {
+          oneOf = [definitions.Schema, definitions.Reference]
+        }
+        example {}
+        default {}
+        additionalProperties {
+          oneOf = [definitions.Schema, definitions.Reference, boolean()]
+          default = true
+        }
+        not {
+          oneOf = [definitions.Schema, definitions.Reference]
+        }
+      }
+      patternProperties {
+        ^x- {}
+      }
+    }
+    PathItem {
+      type = "object"
+      additionalProperties = false
+      properties {
+        get = definitions.Operation
+        put = definitions.Operation
+        head = definitions.Operation
+        servers = array(definitions.Server)
+        delete = definitions.Operation
+        options = definitions.Operation
+        parameters = array({
+          oneOf = [definitions.Parameter, definitions.Reference]
+        }, uniqueItems(true))
+        $ref = string()
+        summary = string()
+        description = string()
+        post = definitions.Operation
+        patch = definitions.Operation
+        trace = definitions.Operation
+      }
+      patternProperties {
+        ^x- {}
+      }
+    }
+    QueryParameter {
+      description = "Parameter in query"
+      properties {
+        in {
+          enum = ["query"]
+        }
+        style {
+          default = form
+          enum = ["form", "spaceDelimited", "pipeDelimited", "deepObject"]
+        }
+      }
+    }
+    APIKeySecurityScheme {
+      type = "object"
+      required = ["type", "name", "in"]
+      additionalProperties = false
+      properties {
+        name = string()
+        in = string(enum("header", "query", "cookie"))
+        description = string()
+        type = string(enum("apiKey"))
+      }
+      patternProperties {
+        ^x- {}
+      }
+    }
+    Callback {
+      additionalProperties = definitions.PathItem
+      type = "object"
       patternProperties {
         ^x- {}
       }
@@ -592,136 +695,28 @@
       }
     }
     Server {
+      type = "object"
       required = ["url"]
       additionalProperties = false
-      type = "object"
       properties {
+        variables = map(definitions.ServerVariable)
         url = string()
         description = string()
-        variables = map(definitions.ServerVariable)
       }
       patternProperties {
         ^x- {}
       }
     }
-    XML {
-      type = "object"
-      additionalProperties = false
+    HeaderParameter {
+      description = "Parameter in header"
       properties {
-        prefix = string()
-        attribute = boolean(default(false))
-        wrapped = boolean(default(false))
-        name = string()
-        namespace = string(format("uri"))
-      }
-      patternProperties {
-        ^x- {}
-      }
-    }
-    Response {
-      type = "object"
-      required = ["description"]
-      additionalProperties = false
-      properties {
-        headers = map({
-          oneOf = [definitions.Header, definitions.Reference]
-        })
-        content = map(definitions.MediaType)
-        links = map({
-          oneOf = [definitions.Link, definitions.Reference]
-        })
-        description = string()
-      }
-      patternProperties {
-        ^x- {}
-      }
-    }
-    Header {
-      allOf = [definitions.ExampleXORExamples, definitions.SchemaXORContent]
-      type = "object"
-      additionalProperties = false
-      properties {
-        deprecated = boolean(default(false))
-        allowEmptyValue = boolean(default(false))
-        examples = map({
-          oneOf = [definitions.Example, definitions.Reference]
-        })
-        required = boolean(default(false))
-        style = string(default("simple"), enum("simple"))
-        explode = boolean()
-        allowReserved = boolean(default(false))
-        description = string()
-        example {}
-        content {
-          additionalProperties = definitions.MediaType
-          type = "object"
-          maxProperties = 1
-          minProperties = 1
+        in {
+          enum = ["header"]
         }
-        schema {
-          oneOf = [definitions.Schema, definitions.Reference]
+        style {
+          default = simple
+          enum = ["simple"]
         }
-      }
-      patternProperties {
-        ^x- {}
-      }
-    }
-    PathItem {
-      type = "object"
-      additionalProperties = false
-      properties {
-        delete = definitions.Operation
-        servers = array(definitions.Server)
-        patch = definitions.Operation
-        get = definitions.Operation
-        summary = string()
-        trace = definitions.Operation
-        description = string()
-        put = definitions.Operation
-        parameters = array({
-          oneOf = [definitions.Parameter, definitions.Reference]
-        }, uniqueItems(true))
-        $ref = string()
-        head = definitions.Operation
-        post = definitions.Operation
-        options = definitions.Operation
-      }
-      patternProperties {
-        ^x- {}
-      }
-    }
-    Tag {
-      type = "object"
-      required = ["name"]
-      additionalProperties = false
-      properties {
-        name = string()
-        description = string()
-        externalDocs = definitions.ExternalDocumentation
-      }
-      patternProperties {
-        ^x- {}
-      }
-    }
-    APIKeySecurityScheme {
-      additionalProperties = false
-      type = "object"
-      required = ["type", "name", "in"]
-      properties {
-        type = string(enum("apiKey"))
-        name = string()
-        in = string(enum("header", "query", "cookie"))
-        description = string()
-      }
-      patternProperties {
-        ^x- {}
-      }
-    }
-    Reference {
-      type = "object"
-      required = ["$ref"]
-      patternProperties {
-        ^\$ref$ = string(format("uri-reference"))
       }
     }
     ServerVariable {
@@ -729,22 +724,27 @@
       required = ["default"]
       additionalProperties = false
       properties {
-        enum = array(string())
         default = string()
         description = string()
+        enum = array(string())
       }
       patternProperties {
         ^x- {}
       }
     }
-    ImplicitOAuthFlow {
-      required = ["authorizationUrl", "scopes"]
-      additionalProperties = false
+    MediaType {
       type = "object"
+      additionalProperties = false
+      allOf = [definitions.ExampleXORExamples]
       properties {
-        authorizationUrl = string(format("uri-reference"))
-        refreshUrl = string(format("uri-reference"))
-        scopes = map(string())
+        encoding = map(definitions.Encoding)
+        examples = map({
+          oneOf = [definitions.Example, definitions.Reference]
+        })
+        schema {
+          oneOf = [definitions.Schema, definitions.Reference]
+        }
+        example {}
       }
       patternProperties {
         ^x- {}
