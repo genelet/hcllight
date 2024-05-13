@@ -8,19 +8,19 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-func (self *Schema) ToBody() (*light.Body, error) {
-	if self.isFull {
-		return schemaFullToBody(self.SchemaFull)
+func (s *Schema) ToBody() (*light.Body, error) {
+	if s.isFull {
+		return schemaFullToBody(s.SchemaFull)
 	}
 
 	return shortsToBody(
-		self.Reference,
-		self.Common,
-		self.SchemaNumber,
-		self.SchemaString,
-		self.SchemaArray,
-		self.SchemaObject,
-		self.SchemaMap,
+		s.Reference,
+		s.Common,
+		s.SchemaNumber,
+		s.SchemaString,
+		s.SchemaArray,
+		s.SchemaObject,
+		s.SchemaMap,
 	)
 }
 
@@ -581,12 +581,12 @@ func fcexprToSchemaMap(fcexpr *light.FunctionCallExpr) (*SchemaMap, error) {
 			}
 			found = true
 		default:
-			s, err := expressionToSchema(arg)
+			schema, err := expressionToSchema(arg)
 			if err != nil {
 				return nil, err
 			}
 			s.AdditionalProperties = &SchemaOrBoolean{
-				Schema: s,
+				Schema: schema,
 			}
 			found = true
 		}
@@ -653,7 +653,6 @@ func fcexprToSchema(fcexpr *light.FunctionCallExpr) (*Schema, error) {
 	default:
 	}
 
-	// boolean
 	return &Schema{
 		Common:       common,
 		SchemaNumber: schemaNumber,
@@ -661,7 +660,7 @@ func fcexprToSchema(fcexpr *light.FunctionCallExpr) (*Schema, error) {
 		SchemaArray:  schemaArray,
 		SchemaObject: schemaObject,
 		SchemaMap:    schemaMap,
-	}, nil
+	}, err
 }
 
 func schemaToExpression(self *Schema) (*light.Expression, error) {

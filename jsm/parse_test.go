@@ -28,20 +28,24 @@ func TestParseSchema(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Error writing HCL: %v", err)
 	}
+}
 
+func TestParseHCL(t *testing.T) {
 	bs, err := os.ReadFile("schema_v30.hcl")
 	if err != nil {
 		t.Fatalf("Error reading HCL: %v", err)
 	}
 
-	body, err = light.Parse(bs)
+	body, err := light.Parse(bs)
 	if err != nil {
 		t.Fatalf("Error parsing HCL: %v", err)
 	}
-	schema, err = NewSchemaFromBody(body)
+	schema, err := NewSchemaFromBody(body)
 	if err != nil {
 		t.Fatalf("error %v", err)
 	}
-	s = schema.ToJSM()
+	t.Errorf("Schema: %#v", schema.SchemaFull)
+	s := schema.ToJSM()
+	t.Errorf("Schema: %#v", s)
 	t.Errorf("Schema: %s", s.JSONString())
 }
