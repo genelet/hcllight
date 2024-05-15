@@ -10,7 +10,7 @@ import (
 )
 
 func TestParseSchema(t *testing.T) {
-	s, err := jsonschema.NewSchemaFromFile("schema_v30.yaml")
+	s, err := jsonschema.NewSchemaFromFile("schema_v31.yaml")
 	if err != nil {
 		t.Fatalf("Error parsing schema: %v", err)
 	}
@@ -24,14 +24,14 @@ func TestParseSchema(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Error converting expression to HCL: %v", err)
 	}
-	err = os.WriteFile("schema_v30.hcl", data, 0644)
+	err = os.WriteFile("schema_v31.hcl", data, 0644)
 	if err != nil {
 		t.Fatalf("Error writing HCL: %v", err)
 	}
 }
 
 func TestParseHCL(t *testing.T) {
-	bs, err := os.ReadFile("schema_v30.hcl")
+	bs, err := os.ReadFile("x.hcl")
 	if err != nil {
 		t.Fatalf("Error reading HCL: %v", err)
 	}
