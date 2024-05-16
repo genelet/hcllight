@@ -4,7 +4,6 @@
   id = "https://spec.openapis.org/oas/3.0/schema/2021-09-28"
   description = "The description of OpenAPI v3.0.x documents, as defined by https://spec.openapis.org/oas/v3.0.3"
   type = "object"
-x = "^x-"
   required = ["openapi", "info", "paths"]
   properties {
     security = array(definitions.SecurityRequirement)
@@ -15,9 +14,6 @@ x = "^x-"
     info = definitions.Info
     externalDocs = definitions.ExternalDocumentation
     servers = array(definitions.Server)
-  }
-  patternProperties {
-    x {}
   }
   definitions {
     Discriminator = object({
@@ -36,9 +32,6 @@ x = "^x-"
         explode = boolean()
         allowReserved = boolean(default(false))
         contentType = string()
-      }
-      patternProperties {
-        "^x-" {}
       }
     }
     HeaderParameter {
@@ -62,9 +55,6 @@ x = "^x-"
         content = map(definitions.MediaType)
         required = boolean(default(false))
       }
-      patternProperties {
-        "^x-" {}
-      }
     }
     HTTPSecurityScheme {
       type = "object"
@@ -73,7 +63,7 @@ x = "^x-"
       oneOf = [{
         description = "Bearer",
         properties = {
-          scheme = string(pattern("\^[Bb][Ee][Aa][Rr][Ee][Rr]$"))
+          scheme = string(pattern("\\^[Bb][Ee][Aa][Rr][Ee][Rr]$"))
         }
       }, {
         not = {
@@ -82,7 +72,7 @@ x = "^x-"
         description = "Non Bearer",
         properties = {
           scheme = {
-            not = string(pattern("\^[Bb][Ee][Aa][Rr][Ee][Rr]$"))
+            not = string(pattern("\\^[Bb][Ee][Aa][Rr][Ee][Rr]$"))
           }
         }
       }]
@@ -91,9 +81,6 @@ x = "^x-"
         type = string(enum("http"))
         scheme = string()
         bearerFormat = string()
-      }
-      patternProperties {
-        "^x-" {}
       }
     }
     PasswordOAuthFlow {
@@ -104,9 +91,6 @@ x = "^x-"
         tokenUrl = string(format("uri-reference"))
         refreshUrl = string(format("uri-reference"))
         scopes = map(string())
-      }
-      patternProperties {
-        "^x-" {}
       }
     }
     XML {
@@ -119,9 +103,6 @@ x = "^x-"
         attribute = boolean(default(false))
         wrapped = boolean(default(false))
       }
-      patternProperties {
-        "^x-" {}
-      }
     }
     Example {
       type = "object"
@@ -131,9 +112,6 @@ x = "^x-"
         summary = string()
         description = string()
         value {}
-      }
-      patternProperties {
-        "^x-" {}
       }
     }
     SchemaXORContent {
@@ -178,9 +156,6 @@ x = "^x-"
         description = string()
         variables = map(definitions.ServerVariable)
       }
-      patternProperties {
-        "^x-" {}
-      }
     }
     Responses {
       type = "object"
@@ -190,12 +165,6 @@ x = "^x-"
         default {
           oneOf = [definitions.Response, definitions.Reference]
         }
-      }
-      patternProperties {
-        "^[1-5](?:\d{2}|XX)$" {
-          oneOf = [definitions.Response, definitions.Reference]
-        }
-        "^x-" {}
       }
     }
     CookieParameter {
@@ -235,9 +204,6 @@ x = "^x-"
         description = string()
         type = string(enum("apiKey"))
       }
-      patternProperties {
-        "^x-" {}
-      }
     }
     Link {
       additionalProperties = false
@@ -253,9 +219,6 @@ x = "^x-"
         operationId = string()
         operationRef = string()
         requestBody {}
-      }
-      patternProperties {
-        "^x-" {}
       }
     }
     Schema {
@@ -313,9 +276,6 @@ x = "^x-"
           oneOf = [definitions.Schema, definitions.Reference]
         }
       }
-      patternProperties {
-        "^x-" {}
-      }
     }
     Tag {
       type = "object"
@@ -326,9 +286,6 @@ x = "^x-"
         name = string()
         description = string()
       }
-      patternProperties {
-        "^x-" {}
-      }
     }
     ExternalDocumentation {
       type = "object"
@@ -337,9 +294,6 @@ x = "^x-"
       properties {
         description = string()
         url = string(format("uri-reference"))
-      }
-      patternProperties {
-        "^x-" {}
       }
     }
     ExampleXORExamples {
@@ -378,16 +332,10 @@ x = "^x-"
         })
         content = map(definitions.MediaType)
       }
-      patternProperties {
-        "^x-" {}
-      }
     }
     Reference {
       type = "object"
       required = ["$ref"]
-      patternProperties {
-        "^\$ref$" = string(format("uri-reference"))
-      }
     }
     License {
       type = "object"
@@ -396,9 +344,6 @@ x = "^x-"
       properties {
         name = string()
         url = string(format("uri-reference"))
-      }
-      patternProperties {
-        "^x-" {}
       }
     }
     Header {
@@ -427,17 +372,10 @@ x = "^x-"
         }
         example {}
       }
-      patternProperties {
-        "^x-" {}
-      }
     }
     Paths {
       type = "object"
       additionalProperties = false
-      patternProperties {
-        "^\/" = definitions.PathItem
-        "^x-" {}
-      }
     }
     Info {
       type = "object"
@@ -451,9 +389,6 @@ x = "^x-"
         version = string()
         title = string()
       }
-      patternProperties {
-        "^x-" {}
-      }
     }
     ServerVariable {
       type = "object"
@@ -464,9 +399,6 @@ x = "^x-"
         enum = array(string())
         default = string()
       }
-      patternProperties {
-        "^x-" {}
-      }
     }
     Components {
       type = "object"
@@ -474,79 +406,31 @@ x = "^x-"
       properties {
         requestBodies {
           type = "object"
-          patternProperties {
-            "^[a-zA-Z0-9\.\-_]+$" {
-              oneOf = [definitions.Reference, definitions.RequestBody]
-            }
-          }
         }
         links {
           type = "object"
-          patternProperties {
-            "^[a-zA-Z0-9\.\-_]+$" {
-              oneOf = [definitions.Reference, definitions.Link]
-            }
-          }
         }
         callbacks {
           type = "object"
-          patternProperties {
-            "^[a-zA-Z0-9\.\-_]+$" {
-              oneOf = [definitions.Reference, definitions.Callback]
-            }
-          }
         }
         headers {
           type = "object"
-          patternProperties {
-            "^[a-zA-Z0-9\.\-_]+$" {
-              oneOf = [definitions.Reference, definitions.Header]
-            }
-          }
         }
         securitySchemes {
           type = "object"
-          patternProperties {
-            "^[a-zA-Z0-9\.\-_]+$" {
-              oneOf = [definitions.Reference, definitions.SecurityScheme]
-            }
-          }
         }
         schemas {
           type = "object"
-          patternProperties {
-            "^[a-zA-Z0-9\.\-_]+$" {
-              oneOf = [definitions.Schema, definitions.Reference]
-            }
-          }
         }
         responses {
           type = "object"
-          patternProperties {
-            "^[a-zA-Z0-9\.\-_]+$" {
-              oneOf = [definitions.Reference, definitions.Response]
-            }
-          }
         }
         parameters {
           type = "object"
-          patternProperties {
-            "^[a-zA-Z0-9\.\-_]+$" {
-              oneOf = [definitions.Reference, definitions.Parameter]
-            }
-          }
         }
         examples {
           type = "object"
-          patternProperties {
-            "^[a-zA-Z0-9\.\-_]+$" {
-              oneOf = [definitions.Reference, definitions.Example]
-            }
-          }
         }
-      }
-      patternProperties {
-        "^x-" {}
       }
     }
     MediaType {
@@ -562,9 +446,6 @@ x = "^x-"
         schema {
           oneOf = [definitions.Schema, definitions.Reference]
         }
-      }
-      patternProperties {
-        "^x-" {}
       }
     }
     Operation {
@@ -591,9 +472,6 @@ x = "^x-"
           oneOf = [definitions.RequestBody, definitions.Reference]
         }
       }
-      patternProperties {
-        "^x-" {}
-      }
     }
     OAuthFlows {
       type = "object"
@@ -603,9 +481,6 @@ x = "^x-"
         clientCredentials = definitions.ClientCredentialsFlow
         authorizationCode = definitions.AuthorizationCodeOAuthFlow
         implicit = definitions.ImplicitOAuthFlow
-      }
-      patternProperties {
-        "^x-" {}
       }
     }
     ImplicitOAuthFlow {
@@ -617,9 +492,6 @@ x = "^x-"
         refreshUrl = string(format("uri-reference"))
         scopes = map(string())
       }
-      patternProperties {
-        "^x-" {}
-      }
     }
     ClientCredentialsFlow {
       type = "object"
@@ -630,9 +502,6 @@ x = "^x-"
         refreshUrl = string(format("uri-reference"))
         scopes = map(string())
       }
-      patternProperties {
-        "^x-" {}
-      }
     }
     Contact {
       type = "object"
@@ -641,9 +510,6 @@ x = "^x-"
         name = string()
         url = string(format("uri-reference"))
         email = string(format("email"))
-      }
-      patternProperties {
-        "^x-" {}
       }
     }
     PathItem {
@@ -657,7 +523,7 @@ x = "^x-"
         get = definitions.Operation
         servers = array(definitions.Server)
         summary = string()
-        "$ref" = string()
+        //$ref = string()
         delete = definitions.Operation
         trace = definitions.Operation
         description = string()
@@ -665,9 +531,6 @@ x = "^x-"
         parameters = array({
           oneOf = [definitions.Parameter, definitions.Reference]
         }, uniqueItems(true))
-      }
-      patternProperties {
-        "^x-" {}
       }
     }
     Parameter {
@@ -700,9 +563,6 @@ x = "^x-"
           maxProperties = 1
         }
       }
-      patternProperties {
-        "^x-" {}
-      }
     }
     OAuth2SecurityScheme {
       type = "object"
@@ -713,9 +573,6 @@ x = "^x-"
         flows = definitions.OAuthFlows
         description = string()
       }
-      patternProperties {
-        "^x-" {}
-      }
     }
     OpenIdConnectSecurityScheme {
       type = "object"
@@ -725,9 +582,6 @@ x = "^x-"
         type = string(enum("openIdConnect"))
         openIdConnectUrl = string(format("uri-reference"))
         description = string()
-      }
-      patternProperties {
-        "^x-" {}
       }
     }
     AuthorizationCodeOAuthFlow {
@@ -740,15 +594,9 @@ x = "^x-"
         refreshUrl = string(format("uri-reference"))
         scopes = map(string())
       }
-      patternProperties {
-        "^x-" {}
-      }
     }
     Callback {
       type = "object"
       additionalProperties = definitions.PathItem
-      patternProperties {
-        "^x-" {}
-      }
     }
   }

@@ -58,9 +58,13 @@ func attributesToCommon(attrs map[string]*light.Attribute) (*Common, error) {
 			common.Format = textValueExprToString(attr.Expr)
 			found = true
 		case "default":
+			//for _, t := range attr.Expr.GetStexpr().Traversal {
+			//	log.Printf("default: %#v", t)
+			//}
 			common.Default = &yaml.Node{
-				Kind:  yaml.ScalarNode,
-				Value: *literalValueExprToString(attr.Expr),
+				Kind: yaml.ScalarNode,
+				//Value: *literalValueExprToString(attr.Expr),
+				Value: attr.Expr.String(),
 			}
 			found = true
 		case "enum":
