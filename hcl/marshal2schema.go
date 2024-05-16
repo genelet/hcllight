@@ -146,13 +146,13 @@ func (s *SchemaOrReference) toExpression() *light.Expression {
 		name = t.Type
 		args = append(args, stringToTextValueExpr(t.Format))
 		if t.Minimum != 0 || t.Maximum != 0 || t.ExclusiveMinimum || t.ExclusiveMaximum {
-			args = append(args, doubleToLiteralValueExpr(t.Minimum))
-			args = append(args, doubleToLiteralValueExpr(t.Maximum))
+			args = append(args, float64ToLiteralValueExpr(t.Minimum))
+			args = append(args, float64ToLiteralValueExpr(t.Maximum))
 			args = append(args, booleanToLiteralValueExpr(t.ExclusiveMinimum))
 			args = append(args, booleanToLiteralValueExpr(t.ExclusiveMaximum))
 		}
 		if t.MultipleOf != 0 {
-			args = append(args, doubleToLiteralValueExpr(t.MultipleOf))
+			args = append(args, float64ToLiteralValueExpr(t.MultipleOf))
 		}
 	case *SchemaOrReference_Integer:
 		t := s.GetInteger()
@@ -263,7 +263,7 @@ func (self *Schema) toHCL() (*light.Body, error) {
 		if v != 0 {
 			attrs[k] = &light.Attribute{
 				Name: k,
-				Expr: doubleToLiteralValueExpr(v),
+				Expr: float64ToLiteralValueExpr(v),
 			}
 		}
 	}
