@@ -47,7 +47,7 @@ func int64ToLiteralValueExpr(i int64) *light.Expression {
 	}
 }
 
-func doubleToLiteralValueExpr(f float64) *light.Expression {
+func float64ToLiteralValueExpr(f float64) *light.Expression {
 	return &light.Expression{
 		ExpressionClause: &light.Expression_Lvexpr{
 			Lvexpr: &light.LiteralValueExpr{

@@ -49,19 +49,21 @@ func (self *Body) hclBodyNode(level int) (string, error) {
 	lessLeading := strings.Repeat("  ", level)
 
 	for name, attr := range self.Attributes {
-		str, err := attr.Expr.HclExpression(level)
-		if err != nil {
-			return "", err
+		if attr.Expr != nil {
+			str, err := attr.Expr.HclExpression(level)
+			if err != nil {
+				return "", err
+			}
+
+			switch attr.Expr.ExpressionClause.(type) {
+			case *Expression_Fexpr:
+				str = fmt.Sprintf("{\n%s\n%s}", nextLeading+str, leading)
+			default:
+			}
+			arr = append(arr, fmt.Sprintf(`%s = %s`, name, str))
+		} else {
+			arr = append(arr, fmt.Sprintf(`%s = ""`, name))
 		}
-		//if str == "" {
-		//	continue
-		//}
-		switch attr.Expr.ExpressionClause.(type) {
-		case *Expression_Fexpr:
-			str = fmt.Sprintf("{\n%s\n%s}", nextLeading+str, leading)
-		default:
-		}
-		arr = append(arr, fmt.Sprintf(`%s = %s`, name, str))
 	}
 
 	for _, block := range self.Blocks {
