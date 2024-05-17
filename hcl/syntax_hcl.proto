@@ -1,9 +1,8 @@
 syntax = "proto3";
+
 package hcl;
+
 import "google/protobuf/any.proto";
-option java_multiple_files = true;
-option java_outer_classname = "OpenAPIProto";
-option java_package = "org.openapi_v3";
 option objc_class_prefix = "OAS";
 option go_package = "./hcl";
 
