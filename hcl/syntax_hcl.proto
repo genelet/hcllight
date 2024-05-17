@@ -309,7 +309,7 @@ message SchemaCommon {
 }
 
 message OASBoolean {
-  SchemaCommon common = 1
+  SchemaCommon common = 1;
 }
 
 message OASString {
@@ -325,7 +325,7 @@ message SchemaString {
 
 message OASNumber {
   SchemaCommon common = 1;
-  SchemaNumer number = 2;
+  SchemaNumber number = 2;
 }
 
 message SchemaNumber {
@@ -338,7 +338,7 @@ message SchemaNumber {
   
 message OASArray {
   SchemaCommon common = 1;
-  SchemaArray = 2;
+  SchemaArray array = 2;
 }
 
 message SchemaArray {
@@ -380,7 +380,7 @@ message Schema {
   bool deprecated = 8;
   string title = 9;
 
-  SchemaCommon common = 10
+  SchemaCommon common = 10;
   SchemaNumber number = 11;
   SchemaString string = 12;
   SchemaArray array = 13;
