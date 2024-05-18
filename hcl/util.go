@@ -1,6 +1,7 @@
 package hcl
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/genelet/hcllight/light"
@@ -19,6 +20,23 @@ func stringToTextValueExpr(s string) *light.Expression {
 	}
 }
 
+func textValueExprToString(t *light.Expression) *string {
+	if t == nil {
+		return nil
+	}
+	if t.GetTexpr() == nil {
+		return nil
+	}
+	parts := t.GetTexpr().Parts
+	if len(parts) == 0 {
+		return nil
+	}
+	if parts[0].GetLvexpr() == nil {
+		return nil
+	}
+	return literalValueExprToString(parts[0])
+}
+
 func stringToLiteralValueExpr(s string) *light.Expression {
 	return &light.Expression{
 		ExpressionClause: &light.Expression_Lvexpr{
@@ -31,6 +49,20 @@ func stringToLiteralValueExpr(s string) *light.Expression {
 			},
 		},
 	}
+}
+
+func literalValueExprToString(l *light.Expression) *string {
+	if l == nil {
+		return nil
+	}
+	if l.GetLvexpr() == nil {
+		return nil
+	}
+	if l.GetLvexpr().GetVal() == nil {
+		return nil
+	}
+	x := l.GetLvexpr().GetVal().GetStringValue()
+	return &x
 }
 
 func int64ToLiteralValueExpr(i int64) *light.Expression {
@@ -47,6 +79,20 @@ func int64ToLiteralValueExpr(i int64) *light.Expression {
 	}
 }
 
+func literalValueExprToInt64(l *light.Expression) *int64 {
+	if l == nil {
+		return nil
+	}
+	if l.GetLvexpr() == nil {
+		return nil
+	}
+	if l.GetLvexpr().GetVal() == nil {
+		return nil
+	}
+	x := int64(l.GetLvexpr().GetVal().GetNumberValue())
+	return &x
+}
+
 func float64ToLiteralValueExpr(f float64) *light.Expression {
 	return &light.Expression{
 		ExpressionClause: &light.Expression_Lvexpr{
@@ -59,6 +105,20 @@ func float64ToLiteralValueExpr(f float64) *light.Expression {
 			},
 		},
 	}
+}
+
+func literalValueExprToFloat64(l *light.Expression) *float64 {
+	if l == nil {
+		return nil
+	}
+	if l.GetLvexpr() == nil {
+		return nil
+	}
+	if l.GetLvexpr().GetVal() == nil {
+		return nil
+	}
+	x := l.GetLvexpr().GetVal().GetNumberValue()
+	return &x
 }
 
 func booleanToLiteralValueExpr(b bool) *light.Expression {
@@ -75,6 +135,20 @@ func booleanToLiteralValueExpr(b bool) *light.Expression {
 	}
 }
 
+func literalValueExprToBoolean(l *light.Expression) *bool {
+	if l == nil {
+		return nil
+	}
+	if l.GetLvexpr() == nil {
+		return nil
+	}
+	if l.GetLvexpr().GetVal() == nil {
+		return nil
+	}
+	x := l.GetLvexpr().GetVal().GetBoolValue()
+	return &x
+}
+
 func stringArrayToTupleConsEpr(items []string) *light.Expression {
 	tcexpr := &light.TupleConsExpr{}
 	for _, item := range items {
@@ -85,6 +159,24 @@ func stringArrayToTupleConsEpr(items []string) *light.Expression {
 			Tcexpr: tcexpr,
 		},
 	}
+}
+
+func tupleConsExprToStringArray(t *light.Expression) []string {
+	if t == nil {
+		return nil
+	}
+	if t.GetTcexpr() == nil {
+		return nil
+	}
+	exprs := t.GetTcexpr().Exprs
+	if len(exprs) == 0 {
+		return nil
+	}
+	var items []string
+	for _, expr := range exprs {
+		items = append(items, *textValueExprToString(expr))
+	}
+	return items
 }
 
 func stringToTraversal(str string) *light.Expression {
@@ -112,270 +204,208 @@ func stringToTraversal(str string) *light.Expression {
 	}
 }
 
-func itemsToTupleConsExpr(items []*SchemaOrReference) *light.Expression {
-	tcexpr := &light.TupleConsExpr{}
-	for _, item := range items {
-		expr := item.toExpression()
-		tcexpr.Exprs = append(tcexpr.Exprs, expr)
-	}
-	return &light.Expression{
-		ExpressionClause: &light.Expression_Tcexpr{
-			Tcexpr: tcexpr,
-		},
-	}
-}
-
-func enumToTupleConsExpr(enum []*Any) *light.Expression {
-	tcexpr := &light.TupleConsExpr{}
-	for _, item := range enum {
-		expr := item.toExpression(true)
-		tcexpr.Exprs = append(tcexpr.Exprs, expr)
-	}
-	return &light.Expression{
-		ExpressionClause: &light.Expression_Tcexpr{
-			Tcexpr: tcexpr,
-		},
-	}
-}
-
-func anyMapToBody(content map[string]*Any) *light.Body {
-	if content == nil {
+func traversalToString(t *light.Expression) *string {
+	if t == nil {
 		return nil
 	}
-	body := &light.Body{
-		Attributes: make(map[string]*light.Attribute),
+	if t.GetStexpr() == nil {
+		return nil
 	}
-	for k, v := range content {
-		body.Attributes[k] = &light.Attribute{
-			Name: k,
-			Expr: v.toExpression(),
+	traversal := t.GetStexpr().Traversal
+	if len(traversal) == 0 {
+		return nil
+	}
+	var parts []string
+	for _, part := range traversal {
+		switch part.GetTraverserClause().(type) {
+		case *light.Traverser_TRoot:
+			parts = append(parts, part.GetTRoot().Name)
+		case *light.Traverser_TAttr:
+			parts = append(parts, part.GetTAttr().Name)
 		}
 	}
-	return body
+	x := strings.Join(parts, "/")
+	return &x
 }
 
-func schemaOrReferenceToObjectConsExpr(hash map[string]*SchemaOrReference) *light.Expression {
-	ocexpr := &light.ObjectConsExpr{}
-	var items []*light.ObjectConsItem
-	for name, item := range hash {
-		expr := item.toExpression()
-		items = append(items, &light.ObjectConsItem{
-			KeyExpr:   stringToLiteralValueExpr(name),
-			ValueExpr: expr,
-		})
+/*
+func yamlToBool(y *yaml.Node) (bool, error) {
+	if y == nil {
+		return false, nil
 	}
-	ocexpr.Items = items
+	var x bool
+	err := y.Decode(&x)
+	return x, err
+}
+
+func boolToYaml(b bool) *yaml.Node {
+	return &yaml.Node{
+		Kind:  yaml.ScalarNode,
+		Tag:   "!!bool",
+		Value: strings.ToLower(strconv.FormatBool(b)),
+	}
+}
+
+func yamlToFloat64(y *yaml.Node) (float64, error) {
+	if y == nil {
+		return 0.0, nil
+	}
+	var x float64
+	err := y.Decode(&x)
+	return x, err
+}
+
+func float64ToYaml(f float64) *yaml.Node {
+	return &yaml.Node{
+		Kind:  yaml.ScalarNode,
+		Tag:   "!!float",
+		Value: strconv.FormatFloat(f, 'g', -1, 64),
+	}
+}
+
+func yamlToInt64(y *yaml.Node) (int64, error) {
+	if y == nil {
+		return 0, nil
+	}
+	var x int64
+	err := y.Decode(&x)
+	return x, err
+}
+
+func int64ToYaml(i int64) *yaml.Node {
+	return &yaml.Node{
+		Kind:  yaml.ScalarNode,
+		Tag:   "!!int",
+		Value: strconv.FormatInt(i, 10),
+	}
+}
+
+func yamlToString(y *yaml.Node) (string, error) {
+	if y == nil {
+		return "", nil
+	}
+	var x string
+	err := y.Decode(&x)
+	return x, err
+}
+
+func stringToYaml(s string) *yaml.Node {
+	return &yaml.Node{
+		Kind:  yaml.ScalarNode,
+		Tag:   "!!str",
+		Value: s,
+	}
+}
+*/
+
+func referenceToExpression(ref string) (*light.Expression, error) {
+	arr := strings.Split(ref, "#/")
+	if len(arr) != 2 {
+		return nil, fmt.Errorf("invalid reference: %s", ref)
+	}
+	return stringToTraversal(arr[1]), nil
+}
+
+func expressionToReference(expr *light.Expression) (string, error) {
+	// in case there is only one level of reference which is parsed as lvexpr
+	if x := expr.GetLvexpr(); x != nil {
+		return "#/" + x.Val.GetStringValue(), nil
+	} else if x := traversalToString(expr); x != nil {
+		return "#/" + *x, nil
+	}
+	return "", fmt.Errorf("1 invalid expression: %#v", expr)
+}
+
+func shortToExpr(key string, expr *light.Expression) *light.Expression {
 	return &light.Expression{
-		ExpressionClause: &light.Expression_Ocexpr{
-			Ocexpr: ocexpr,
-		},
-	}
-}
-
-type AbleHCL interface {
-	toHCL() (*light.Body, error)
-}
-
-func ableToTupleConsExpr(tags []AbleHCL) (*light.Expression, error) {
-	tcexpr := &light.TupleConsExpr{}
-	for _, tag := range tags {
-		body, err := tag.toHCL()
-		if err != nil {
-			return nil, err
-		}
-		tcexpr.Exprs = append(tcexpr.Exprs, &light.Expression{
-			ExpressionClause: &light.Expression_Ocexpr{
-				Ocexpr: body.ToObjectConsExpr(),
+		ExpressionClause: &light.Expression_Fcexpr{
+			Fcexpr: &light.FunctionCallExpr{
+				Name: key,
+				Args: []*light.Expression{expr},
 			},
-		})
-	}
-	return &light.Expression{
-		ExpressionClause: &light.Expression_Tcexpr{
-			Tcexpr: tcexpr,
 		},
-	}, nil
+	}
 }
 
-func tagsToTupleConsExpr(tags []*Tag) (*light.Expression, error) {
-	if tags == nil || len(tags) == 0 {
-		return nil, nil
-	}
-	var arr []AbleHCL
-	for _, tag := range tags {
-		arr = append(arr, tag)
-	}
-	return ableToTupleConsExpr(arr)
+func stringToTextExpr(key, value string) *light.Expression {
+	return shortToExpr(key, stringToTextValueExpr(value))
 }
 
-func serversToTupleConsExpr(servers []*Server) (*light.Expression, error) {
-	if servers == nil || len(servers) == 0 {
-		return nil, nil
+func exprToTextString(expr *light.Expression) (string, error) {
+	if expr == nil {
+		return "", nil
 	}
-	var arr []AbleHCL
-	for _, server := range servers {
-		arr = append(arr, server)
+	switch expr.ExpressionClause.(type) {
+	case *light.Expression_Texpr:
+		return expr.GetTexpr().Parts[0].GetLvexpr().GetVal().GetStringValue(), nil
+	case *light.Expression_Lvexpr:
+		return expr.GetLvexpr().Val.GetStringValue(), nil
+	default:
 	}
-	return ableToTupleConsExpr(arr)
+	return "", fmt.Errorf("2 invalid expression: %#v", expr)
 }
 
-func securityRequirementToTupleConsExpr(security []*SecurityRequirement) (*light.Expression, error) {
-	if security == nil || len(security) == 0 {
-		return nil, nil
-	}
-	var arr []AbleHCL
-	for _, item := range security {
-		arr = append(arr, item)
-	}
-	return ableToTupleConsExpr(arr)
+func stringToLiteralExpr(key, value string) *light.Expression {
+	return shortToExpr(key, stringToLiteralValueExpr(value))
 }
 
-func ableMapToBlocks(encodings map[string]AbleHCL, label string) ([]*light.Block, error) {
-	if encodings == nil {
-		return nil, nil
-	}
-	var blocks []*light.Block
-	for k, v := range encodings {
-		bdy, err := v.toHCL()
-		if err != nil {
-			return nil, err
+/*
+	func exprToLiteralString(expr *light.Expression) (string, error) {
+		if expr == nil {
+			return "", nil
 		}
-		blocks = append(blocks, &light.Block{
-			Type:   label,
-			Labels: []string{k},
-			Bdy:    bdy,
-		})
+		switch expr.ExpressionClause.(type) {
+		case *light.Expression_Lvexpr:
+			return expr.GetLvexpr().Val.GetStringValue(), nil
+		default:
+		}
+		return "", fmt.Errorf("3 invalid expression: %#v", expr)
 	}
-	return blocks, nil
+*/
+func float64ToLiteralExpr(key string, f float64) *light.Expression {
+	return shortToExpr(key, float64ToLiteralValueExpr(f))
 }
 
-func securitySchemeOrReferenceMapToBlocks(securitySchemes map[string]*SecuritySchemeOrReference) ([]*light.Block, error) {
-	if securitySchemes == nil {
-		return nil, nil
+func exprToFloat64(expr *light.Expression) (float64, error) {
+	if expr == nil {
+		return 0, nil
 	}
-	hash := make(map[string]AbleHCL)
-	for k, v := range securitySchemes {
-		hash[k] = v
+	switch expr.ExpressionClause.(type) {
+	case *light.Expression_Lvexpr:
+		return expr.GetLvexpr().Val.GetNumberValue(), nil
+	default:
 	}
-	return ableMapToBlocks(hash, "securityScheme")
+	return 0, fmt.Errorf("4 invalid expression: %#v", expr)
 }
 
-func encodingMapToBlocks(encodings map[string]*Encoding) ([]*light.Block, error) {
-	if encodings == nil {
-		return nil, nil
-	}
-	hash := make(map[string]AbleHCL)
-	for k, v := range encodings {
-		hash[k] = v
-	}
-	return ableMapToBlocks(hash, "encoding")
+func int64ToLiteralExpr(key string, i int64) *light.Expression {
+	return shortToExpr(key, int64ToLiteralValueExpr(i))
 }
 
-func exampleOrReferenceMapToBlocks(examples map[string]*ExampleOrReference) ([]*light.Block, error) {
-	if examples == nil {
-		return nil, nil
+func exprToInt64(expr *light.Expression) (int64, error) {
+	if expr == nil {
+		return 0, nil
 	}
-	hash := make(map[string]AbleHCL)
-	for k, v := range examples {
-		hash[k] = v
+	switch expr.ExpressionClause.(type) {
+	case *light.Expression_Lvexpr:
+		return int64(expr.GetLvexpr().Val.GetNumberValue()), nil
+	default:
 	}
-	return ableMapToBlocks(hash, "example")
+	return 0, fmt.Errorf("5 invalid expression: %#v", expr)
 }
 
-func headerOrReferenceMapToBlocks(headers map[string]*HeaderOrReference) ([]*light.Block, error) {
-	if headers == nil {
-		return nil, nil
-	}
-	hash := make(map[string]AbleHCL)
-	for k, v := range headers {
-		hash[k] = v
-	}
-	return ableMapToBlocks(hash, "header")
+func booleanToLiteralExpr(key string, b bool) *light.Expression {
+	return shortToExpr(key, booleanToLiteralValueExpr(b))
 }
 
-func linkOrReferenceMapToBlocks(links map[string]*LinkOrReference) ([]*light.Block, error) {
-	if links == nil {
-		return nil, nil
+func exprToBoolean(expr *light.Expression) (bool, error) {
+	if expr == nil {
+		return false, nil
 	}
-	hash := make(map[string]AbleHCL)
-	for k, v := range links {
-		hash[k] = v
+	switch expr.ExpressionClause.(type) {
+	case *light.Expression_Lvexpr:
+		return expr.GetLvexpr().Val.GetBoolValue(), nil
+	default:
 	}
-	return ableMapToBlocks(hash, "link")
-}
-
-func mediaTypeMapToBlocks(content map[string]*MediaType) ([]*light.Block, error) {
-	if content == nil {
-		return nil, nil
-	}
-	hash := make(map[string]AbleHCL)
-	for k, v := range content {
-		hash[k] = v
-	}
-	return ableMapToBlocks(hash, "content")
-}
-
-func parameterOrReferenceMapToBlocks(parameters map[string]*ParameterOrReference) ([]*light.Block, error) {
-	if parameters == nil {
-		return nil, nil
-	}
-	hash := make(map[string]AbleHCL)
-	for k, v := range parameters {
-		hash[k] = v
-	}
-	return ableMapToBlocks(hash, "parameter")
-}
-
-func requestBodyOrReferenceMapToBlocks(requestBodies map[string]*RequestBodyOrReference) ([]*light.Block, error) {
-	if requestBodies == nil {
-		return nil, nil
-	}
-	hash := make(map[string]AbleHCL)
-	for k, v := range requestBodies {
-		hash[k] = v
-	}
-	return ableMapToBlocks(hash, "requestBody")
-}
-
-func responseOrReferenceMapToBlocks(responses map[string]*ResponseOrReference) ([]*light.Block, error) {
-	if responses == nil {
-		return nil, nil
-	}
-	hash := make(map[string]AbleHCL)
-	for k, v := range responses {
-		hash[k] = v
-	}
-	return ableMapToBlocks(hash, "response")
-}
-
-func callbackOrReferenceMapToBlocks(callbacks map[string]*CallbackOrReference) ([]*light.Block, error) {
-	if callbacks == nil {
-		return nil, nil
-	}
-	hash := make(map[string]AbleHCL)
-	for k, v := range callbacks {
-		hash[k] = v
-	}
-	return ableMapToBlocks(hash, "callback")
-}
-
-func serverVariableMapToBlocks(serverVariables map[string]*ServerVariable) ([]*light.Block, error) {
-	if serverVariables == nil {
-		return nil, nil
-	}
-	hash := make(map[string]AbleHCL)
-	for k, v := range serverVariables {
-		hash[k] = v
-	}
-	return ableMapToBlocks(hash, "serverVariable")
-}
-
-func schemaOrReferenceMapToBlocks(schemas map[string]*SchemaOrReference) ([]*light.Block, error) {
-	if schemas == nil {
-		return nil, nil
-	}
-	hash := make(map[string]AbleHCL)
-	for k, v := range schemas {
-		hash[k] = v
-	}
-	return ableMapToBlocks(hash, "schema")
+	return false, fmt.Errorf("6 invalid expression: %#v", expr)
 }
