@@ -391,7 +391,6 @@ message Schema {
   repeated SchemaOrReference one_of = 27;
   repeated SchemaOrReference any_of = 28;
   SchemaOrReference not = 29;
-  repeated SchemaOrReference items = 30;
   string description = 34;
   map<string,Any> specification_extension = 36;
 }
