@@ -369,16 +369,28 @@ message SchemaObject {
   repeated string required = 4;
 }
 
+message SchemaAllOf {
+  repeated SchemaOrReference items = 1;
+}
+
+message SchemaOneOf {
+  repeated SchemaOrReference items = 1;
+}
+
+message SchemaAnyOf {
+  repeated SchemaOrReference items = 1;
+}
+
 message Schema {
   bool nullable = 1;
-  Discriminator discriminator = 2;
-  bool read_only = 3;
-  bool write_only = 4;
-  Xml xml = 5;
-  ExternalDocs external_docs = 6;
-  Any example = 7;
-  bool deprecated = 8;
-  string title = 9;
+  bool read_only = 2;
+  bool write_only = 3;
+  Xml xml = 4;
+  ExternalDocs external_docs = 5;
+  Any example = 6;
+  bool deprecated = 7;
+  string title = 8;
+  string description = 9;
 
   SchemaCommon common = 10;
   SchemaNumber number = 11;
@@ -387,11 +399,12 @@ message Schema {
   SchemaObject object = 14;
   SchemaMap map = 15;
 
-  repeated SchemaOrReference all_of = 26;
-  repeated SchemaOrReference one_of = 27;
-  repeated SchemaOrReference any_of = 28;
+  SchemaAllOf all_of = 26;
+  SchemaOneOf one_of = 27;
+  SchemaOrAnyOf any_of = 28;
   SchemaOrReference not = 29;
-  string description = 34;
+  Discriminator discriminator = 2;
+
   map<string,Any> specification_extension = 36;
 }
 
@@ -403,6 +416,9 @@ message SchemaOrReference {
     OASMap map = 5;
     OASObject object = 6;
     OASArray array = 7;
+    SchemaAllOf all_of = 8;
+    SchemaOneOf one_of = 9;
+    SchemaAnyOf any_of = 10;
     Reference reference = 11;
     Schema schema = 12;
   }
