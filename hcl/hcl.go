@@ -26,31 +26,48 @@ func isMap(s *openapiv3.Schema) bool {
 	return s.AdditionalProperties != nil
 }
 
+func isAllOf(s *openapiv3.Schema) bool {
+	return s.AllOf != nil
+}
+
+func isOneOf(s *openapiv3.Schema) bool {
+	return s.OneOf != nil
+}
+
+func isAnyOf(s *openapiv3.Schema) bool {
+	return s.AnyOf != nil
+}
+
 func isRest(s *openapiv3.Schema) bool {
-	return s.Nullable || s.Discriminator != nil || s.ReadOnly || s.WriteOnly || s.Xml != nil || s.ExternalDocs != nil || s.Example != nil || s.Deprecated || s.Title != "" || s.Description != "" || s.AllOf != nil || s.OneOf != nil || s.AnyOf != nil || s.Not != nil || (s.SpecificationExtension != nil && len(s.SpecificationExtension) > 0)
+	return s.Nullable || s.Discriminator != nil || s.ReadOnly || s.WriteOnly || s.Xml != nil || s.ExternalDocs != nil || s.Example != nil || s.Deprecated || s.Title != "" || s.Description != "" || s.Not != nil || (s.SpecificationExtension != nil && len(s.SpecificationExtension) > 0)
 }
 
 func isFull(s *openapiv3.Schema) bool {
-	if isRest(s) || !isCommon(s) {
+	if isRest(s) {
 		return true
+	}
+
+	if !isCommon(s) {
+		return isString(s) || isNumber(s) || isArray(s) || isObject(s) || isMap(s) || (isAllOf(s) && isOneOf(s)) || (isAllOf(s) && isAnyOf(s)) || (isOneOf(s) && isAnyOf(s))
 	}
 
 	switch s.Type {
 	case "boolean":
-		return isString(s) || isNumber(s) || isArray(s) || isObject(s) || isMap(s)
+		return isString(s) || isNumber(s) || isArray(s) || isObject(s) || isMap(s) || isAllOf(s) || isOneOf(s) || isAnyOf(s)
 	case "number", "integer":
-		return isString(s) || isArray(s) || isObject(s) || isMap(s)
+		return isString(s) || isArray(s) || isObject(s) || isMap(s) || isAllOf(s) || isOneOf(s) || isAnyOf(s)
 	case "string":
-		return isNumber(s) || isArray(s) || isObject(s) || isMap(s)
+		return isNumber(s) || isArray(s) || isObject(s) || isMap(s) || isAllOf(s) || isOneOf(s) || isAnyOf(s)
 	case "array":
-		return isString(s) || isNumber(s) || isObject(s) || isMap(s)
+		return isString(s) || isNumber(s) || isObject(s) || isMap(s) || isAllOf(s) || isOneOf(s) || isAnyOf(s)
 	case "object":
 		if s.AdditionalProperties != nil {
-			return isString(s) || isNumber(s) || isArray(s) || isObject(s)
+			return isString(s) || isNumber(s) || isArray(s) || isObject(s) || isAllOf(s) || isOneOf(s) || isAnyOf(s)
 		} else {
-			return isString(s) || isNumber(s) || isArray(s) || isMap(s)
+			return isString(s) || isNumber(s) || isArray(s) || isMap(s) || isAllOf(s) || isOneOf(s) || isAnyOf(s)
 		}
 	default:
 	}
+
 	return true
 }

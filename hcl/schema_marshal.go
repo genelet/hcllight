@@ -4,6 +4,155 @@ import (
 	"github.com/genelet/hcllight/light"
 )
 
+func defaultTypeToExpression(d *DefaultType) *light.Expression {
+	if d == nil {
+		return nil
+	}
+	switch d.Oneof.(type) {
+	case *DefaultType_Boolean:
+		t := d.GetBoolean()
+		return booleanToLiteralValueExpr(t)
+	case *DefaultType_Number:
+		t := d.GetNumber()
+		return float64ToLiteralValueExpr(t)
+	case *DefaultType_String_:
+		t := d.GetString_()
+		return stringToTextValueExpr(t)
+	default:
+	}
+	return nil
+}
+
+func expressionToDefaultType(e *light.Expression) *DefaultType {
+	if e == nil {
+		return nil
+	}
+	switch e.ExpressionClause.(type) {
+	case *light.Expression_Lvexpr:
+		t := e.GetLvexpr().GetVal()
+		switch t.CtyValueClause.(type) {
+		case *light.CtyValue_BooleanValue:
+			return &DefaultType{
+				Oneof: &DefaultType_Boolean{
+					Boolean: t.GetBooleanValue(),
+				},
+			}
+		case *light.CtyValue_NumberValue:
+			return &DefaultType{
+				Oneof: &DefaultType_Number{
+					Number: t.GetNumberValue(),
+				},
+			}
+		case *light.CtyValue_StringValue:
+			return &DefaultType{
+				Oneof: &DefaultType_String_{
+					String_: t.GetStringValue(),
+				},
+			}
+		default:
+		}
+	default:
+	}
+	return nil
+}
+
+func enumToTupleConsExpr(enumeration []*Any) (*light.TupleConsExpr, error) {
+	if len(enumeration) == 0 {
+		return nil, nil
+	}
+
+	var enums []*light.Expression
+	for _, e := range enumeration {
+		enums = append(enums, stringToTextValueExpr(e.GetYaml()))
+	}
+
+	if len(enums) == 0 {
+		return nil, nil
+	}
+
+	return &light.TupleConsExpr{
+		Exprs: enums,
+	}, nil
+}
+
+func tupleConsExprToEnum(t *light.TupleConsExpr) ([]*Any, error) {
+	if t == nil {
+		return nil, nil
+	}
+
+	var enums []*Any
+	for _, e := range t.Exprs {
+		enums = append(enums, &Any{Yaml: *textValueExprToString(e)})
+	}
+
+	if len(enums) == 0 {
+		return nil, nil
+	}
+
+	return enums, nil
+}
+
+func commonToAttributes(self *SchemaCommon, attrs map[string]*light.Attribute) error {
+	if self.Type != "" {
+		attrs["type"] = &light.Attribute{
+			Name: "type",
+			Expr: stringToTextValueExpr(self.Type),
+		}
+	}
+	if self.Format != "" {
+		attrs["format"] = &light.Attribute{
+			Name: "format",
+			Expr: stringToTextValueExpr(self.Format),
+		}
+	}
+	if self.Default != nil {
+		attrs["default"] = &light.Attribute{
+			Name: "default",
+			Expr: stringToLiteralValueExpr(self.Default.String()),
+		}
+	}
+	if self.Enum != nil {
+		expr, err := enumToTupleConsExpr(self.Enum)
+		if err != nil {
+			return err
+		}
+		attrs["enum"] = &light.Attribute{
+			Name: "enum",
+			Expr: &light.Expression{
+				ExpressionClause: &light.Expression_Tcexpr{
+					Tcexpr: expr,
+				},
+			},
+		}
+	}
+	return nil
+}
+
+func attributesToCommon(attrs map[string]*light.Attribute) (*SchemaCommon, error) {
+	common := &SchemaCommon{}
+	if v, ok := attrs["type"]; ok {
+		common.Type = *textValueExprToString(v.Expr)
+	}
+	if v, ok := attrs["format"]; ok {
+		common.Format = *textValueExprToString(v.Expr)
+	}
+	if v, ok := attrs["default"]; ok {
+		common.Default = &DefaultType{
+			Oneof: &DefaultType_Yaml{
+				Yaml: *literalValueToString(v.Expr),
+			},
+		}
+	}
+	if v, ok := attrs["enum"]; ok {
+		enums, err := tupleConsExprToEnum(v.Expr.GetTcexpr())
+		if err != nil {
+			return nil, err
+		}
+		common.Enum = enums
+	}
+	return common, nil
+}
+
 func (self *Reference) toBody() *light.Body {
 	body := &light.Body{
 		Attributes: map[string]*light.Attribute{
