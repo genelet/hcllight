@@ -5,9 +5,9 @@ import (
 )
 
 // reference
-func referenceToBody(self *Reference) *light.Body {
+func (self *Reference) toBody() (*light.Body, error) {
 	if self == nil {
-		return nil
+		return nil, nil
 	}
 
 	body := &light.Body{
@@ -30,7 +30,7 @@ func referenceToBody(self *Reference) *light.Body {
 			Expr: stringToTextValueExpr(self.Description),
 		}
 	}
-	return body
+	return body, nil
 }
 
 func referenceToExpression(self *Reference) *light.Expression {
@@ -60,4 +60,3 @@ func referenceToExpression(self *Reference) *light.Expression {
 		},
 	}
 }
-

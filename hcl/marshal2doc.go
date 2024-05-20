@@ -137,38 +137,6 @@ func (self *Tag) toHCL() (*light.Body, error) {
 	return body, nil
 }
 
-func (self *ExternalDocs) toHCL() (*light.Body, error) {
-	body := new(light.Body)
-	attrs := make(map[string]*light.Attribute)
-	blocks := make([]*light.Block, 0)
-	mapStrings := map[string]string{
-		"url":         self.Url,
-		"description": self.Description,
-	}
-	for k, v := range mapStrings {
-		if v != "" {
-			attrs[k] = &light.Attribute{
-				Name: k,
-				Expr: stringToTextValueExpr(v),
-			}
-		}
-	}
-	if self.SpecificationExtension != nil && len(self.SpecificationExtension) > 0 {
-		expr := anyMapToBody(self.SpecificationExtension)
-		blocks = append(blocks, &light.Block{
-			Type: "specificationExtension",
-			Bdy:  expr,
-		})
-	}
-	if len(attrs) > 0 {
-		body.Attributes = attrs
-	}
-	if len(blocks) > 0 {
-		body.Blocks = blocks
-	}
-	return body, nil
-}
-
 func (self *Server) toHCL() (*light.Body, error) {
 	body := new(light.Body)
 	attrs := make(map[string]*light.Attribute)
@@ -422,8 +390,7 @@ func (self *ParameterOrReference) toHCL() (*light.Body, error) {
 	case *ParameterOrReference_Parameter:
 		return self.GetParameter().toHCL()
 	case *ParameterOrReference_Reference:
-		body := self.GetReference().toBody()
-		return body, nil
+		return self.GetReference().toBody()
 	default:
 	}
 	return nil, nil
@@ -486,9 +453,13 @@ func (self *Parameter) toHCL() (*light.Body, error) {
 	}
 
 	if self.Schema != nil {
+		expr, err := SchemaOrReferenceToExpression(self.Schema)
+		if err != nil {
+			return nil, err
+		}
 		attrs["schema"] = &light.Attribute{
 			Name: "schema",
-			Expr: self.Schema.toExpression(),
+			Expr: expr,
 		}
 	}
 	if self.Content != nil {
@@ -636,83 +607,5 @@ func (self *License) toHCL() (*light.Body, error) {
 		body.Attributes = attrs
 	}
 
-	return body, nil
-}
-
-func (self *Xml) toHCL() (*light.Body, error) {
-	body := new(light.Body)
-	attrs := make(map[string]*light.Attribute)
-	mapStrings := map[string]string{
-		"name":      self.Name,
-		"namespace": self.Namespace,
-		"prefix":    self.Prefix,
-	}
-	mapBools := map[string]bool{
-		"attribute": self.Attribute,
-		"wrapped":   self.Wrapped,
-	}
-	for k, v := range mapStrings {
-		if v != "" {
-			attrs[k] = &light.Attribute{
-				Name: k,
-				Expr: stringToTextValueExpr(v),
-			}
-		}
-	}
-	for k, v := range mapBools {
-		if v {
-			attrs[k] = &light.Attribute{
-				Name: k,
-				Expr: booleanToLiteralValueExpr(v),
-			}
-		}
-	}
-	if self.SpecificationExtension != nil && len(self.SpecificationExtension) > 0 {
-		expr := anyMapToBody(self.SpecificationExtension)
-		body.Blocks = append(body.Blocks, &light.Block{
-			Type: "specificationExtension",
-			Bdy:  expr,
-		})
-	}
-	if len(attrs) > 0 {
-		body.Attributes = attrs
-	}
-
-	return body, nil
-}
-
-func (self *Discriminator) toHCL() (*light.Body, error) {
-	body := new(light.Body)
-	attrs := make(map[string]*light.Attribute)
-	mapStrings := map[string]string{
-		"propertyName": self.PropertyName,
-	}
-	for k, v := range mapStrings {
-		if v != "" {
-			attrs[k] = &light.Attribute{
-				Name: k,
-				Expr: stringToTextValueExpr(v),
-			}
-		}
-	}
-	if self.Mapping != nil {
-		bdy := &light.Body{
-			Attributes: make(map[string]*light.Attribute),
-		}
-		for k, v := range self.Mapping {
-			bdy.Attributes[k] = &light.Attribute{
-				Name: k,
-				Expr: stringToTextValueExpr(v),
-			}
-		}
-		body.Blocks = append(body.Blocks, &light.Block{
-			Type: "mapping",
-			Bdy:  bdy,
-		})
-	}
-
-	if len(attrs) > 0 {
-		body.Attributes = attrs
-	}
 	return body, nil
 }

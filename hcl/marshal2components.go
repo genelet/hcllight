@@ -1,11 +1,7 @@
 package hcl
 
 import (
-	"fmt"
-	"strings"
-
 	"github.com/genelet/hcllight/light"
-	"google.golang.org/protobuf/types/known/anypb"
 )
 
 func (self *Components) toHCL() (*light.Body, error) {
@@ -697,76 +693,4 @@ func (self *Callback) toHCL() (*light.Body, error) {
 	body.Blocks = blocks
 
 	return body, nil
-}
-
-func (self *Any) toExpression(how ...bool) *light.Expression {
-	if how != nil && len(how) > 0 {
-		x := self.Yaml
-		if x == "" && self.Value != nil {
-			x = fmt.Sprintf("%v", self.Value.GetValue())
-		}
-		return stringToTextValueExpr(strings.TrimSpace(x))
-	}
-
-	var args []*light.Expression
-
-	if self.Yaml != "" {
-		args = append(args, stringToTextValueExpr(strings.TrimSpace(self.Yaml)))
-	} else if self.Value != nil {
-		args = append(args, stringToLiteralValueExpr(fmt.Sprintf("%v", self.Value)))
-	}
-
-	return &light.Expression{
-		ExpressionClause: &light.Expression_Fcexpr{
-			Fcexpr: &light.FunctionCallExpr{
-				Name: "any",
-				Args: args,
-			},
-		},
-	}
-}
-
-func anyFromHCL(expr *light.Expression) *Any {
-	if expr == nil {
-		return nil
-	}
-	switch expr.ExpressionClause.(type) {
-	case *light.Expression_Texpr:
-		return &Any{
-			Yaml: expr.GetTexpr().Parts[0].GetLvexpr().GetVal().GetStringValue(),
-		}
-	case *light.Expression_Lvexpr:
-		return &Any{
-			Value: &anypb.Any{
-				Value: []byte(fmt.Sprintf("%v", expr.GetLvexpr().Val)),
-			},
-		}
-	default:
-	}
-	return nil
-}
-
-func (self *Expression) toExpression() *light.Expression {
-	if self.AdditionalProperties == nil {
-		return nil
-	}
-	body := anyMapToBody(self.AdditionalProperties)
-	return &light.Expression{
-		ExpressionClause: &light.Expression_Ocexpr{
-			Ocexpr: body.ToObjectConsExpr(),
-		},
-	}
-}
-
-func (self *AnyOrExpression) toExpression() *light.Expression {
-	switch self.Oneof.(type) {
-	case *AnyOrExpression_Expression:
-		t := self.GetExpression()
-		return t.toExpression()
-	case *AnyOrExpression_Any:
-		t := self.GetAny()
-		return t.toExpression()
-	default:
-	}
-	return nil
 }
