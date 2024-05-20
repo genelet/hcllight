@@ -1,15 +1,14 @@
 package hcl
 
 import (
+	"fmt"
+	"strings"
+
 	"github.com/genelet/hcllight/light"
 )
 
 // reference
 func (self *Reference) toBody() (*light.Body, error) {
-	if self == nil {
-		return nil, nil
-	}
-
 	body := &light.Body{
 		Attributes: map[string]*light.Attribute{
 			"XRef": {
@@ -33,17 +32,41 @@ func (self *Reference) toBody() (*light.Body, error) {
 	return body, nil
 }
 
-func referenceToExpression(self *Reference) *light.Expression {
-	if self == nil {
-		return nil
+func referenceFromBody(body *light.Body) (*Reference, error) {
+	if body == nil {
+		return nil, nil
 	}
 
-	if self.Summary == "" && self.Description == "" && (self.XRef)[:2] == "#/" {
-		return stringToTraversal((self.XRef)[:2])
+	self := &Reference{}
+	if attr, ok := body.Attributes["XRef"]; ok {
+		if attr.Expr != nil {
+			self.XRef = *literalValueExprToString(attr.Expr)
+		}
+	}
+	if attr, ok := body.Attributes["summary"]; ok {
+		if attr.Expr != nil {
+			self.Summary = *literalValueExprToString(attr.Expr)
+		}
+	}
+	if attr, ok := body.Attributes["description"]; ok {
+		if attr.Expr != nil {
+			self.Description = *literalValueExprToString(attr.Expr)
+		}
+	}
+	return self, nil
+}
+
+func (self *Reference) toExpression() (*light.Expression, error) {
+	if self.Summary == "" && self.Description == "" {
+		arr := strings.Split(self.XRef, "#/")
+		if len(arr) != 2 {
+			return nil, fmt.Errorf("invalid reference: %s", self.XRef)
+		}
+		return stringToTraversal(arr[1]), nil
 	}
 
 	args := []*light.Expression{
-		stringToLiteralValueExpr(self.XRef),
+		stringToTextValueExpr(self.XRef),
 	}
 	if self.Summary != "" {
 		args = append(args, stringToTextValueExpr(self.Summary))
@@ -58,5 +81,40 @@ func referenceToExpression(self *Reference) *light.Expression {
 				Args: args,
 			},
 		},
+	}, nil
+}
+
+func referenceFromExpression(expr *light.Expression) (*Reference, error) {
+	if expr == nil {
+		return nil, nil
 	}
+
+	reference := &Reference{}
+	var found bool
+	if x := expr.GetFcexpr(); x != nil {
+		if x.Name == "reference" {
+			if len(x.Args) < 1 {
+				return nil, fmt.Errorf("invalid reference expression: %#v", expr)
+			}
+			arg := x.Args[0]
+			reference.XRef = *textValueExprToString(arg)
+			if len(x.Args) > 1 {
+				arg = x.Args[1]
+				reference.Summary = *textValueExprToString(arg)
+			}
+			if len(x.Args) > 2 {
+				arg = x.Args[2]
+				reference.Description = *textValueExprToString(arg)
+			}
+			found = true
+		}
+	} else if x := expr.GetLvexpr(); x != nil {
+		reference.XRef = "#/" + *traversalToString(expr)
+		found = true
+	}
+
+	if found {
+		return reference, nil
+	}
+	return nil, nil
 }

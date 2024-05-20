@@ -4,18 +4,23 @@ import (
 	"github.com/genelet/hcllight/light"
 )
 
-func (s *SchemaOrReference) toBody() (*light.Body, error) {
-	if s == nil {
-		return nil, nil
-	}
-
+func (s *SchemaOrReference) toHCL() (*light.Body, error) {
 	switch s.Oneof.(type) {
 	case *SchemaOrReference_Schema:
 		return s.GetSchema().toHCL()
+		case *SchemaOrReference_Reference:
+		return s.GetReference().toBody()
 	default: // we ignore all other types, meaning we have to assign type Schema when parsing Components.Schemas
 	}
+
+
 	return nil, nil
 }
+
+func schemaOrReferenceFromHCL(b *light.Body) (*SchemaOrReference, error) {
+	if b == nil {
+		return nil, nil
+	}
 
 func SchemaOrReferenceToExpression(self *SchemaOrReference) (*light.Expression, error) {
 	if self == nil {
@@ -33,6 +38,8 @@ func SchemaOrReferenceToExpression(self *SchemaOrReference) (*light.Expression, 
 				Ocexpr: bdy.ToObjectConsExpr(),
 			},
 		}, nil
+	case *SchemaOrReference_Reference:
+		return self.GetReference().toExpression()
 	default:
 	}
 
@@ -86,6 +93,18 @@ func ExpressionToSchemaOrReference(self *light.Expression) (*SchemaOrReference, 
 			},
 		}, nil
 	default:
+	}
+
+	ref, err := referenceFromExpression(self)
+	if err != nil {
+		return nil, err
+	}
+	if ref != nil {
+		return &SchemaOrReference{
+			Oneof: &SchemaOrReference_Reference{
+				Reference: ref,
+			},
+		}, nil
 	}
 
 	expr := self.GetFcexpr()
