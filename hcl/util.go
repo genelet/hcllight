@@ -317,33 +317,6 @@ func expressionToReference(expr *light.Expression) (string, error) {
 }
 */
 
-func anyMapToBody(content map[string]*Any) *light.Body {
-	if content == nil {
-		return nil
-	}
-	body := &light.Body{
-		Attributes: make(map[string]*light.Attribute),
-	}
-	for k, v := range content {
-		body.Attributes[k] = &light.Attribute{
-			Name: k,
-			Expr: v.toExpression(),
-		}
-	}
-	return body
-}
-
-func bodyToAnyMap(body *light.Body) (map[string]*Any, error) {
-	if body == nil {
-		return nil, nil
-	}
-	hash := make(map[string]*Any)
-	for k, v := range body.Attributes {
-		hash[k] = anyFromHCL(v.Expr)
-	}
-	return hash, nil
-}
-
 type AbleHCL interface {
 	toHCL() (*light.Body, error)
 }

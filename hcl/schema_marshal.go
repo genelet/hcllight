@@ -4,16 +4,27 @@ import (
 	"github.com/genelet/hcllight/light"
 )
 
+func (s *SchemaOrReference) toBody() (*light.Body, error) {
+	if s == nil {
+		return nil, nil
+	}
+
+	switch s.Oneof.(type) {
+	case *SchemaOrReference_Schema:
+		return s.GetSchema().toHCL()
+	default: // we ignore all other types, meaning we have to assign type Schema when parsing Components.Schemas
+	}
+	return nil, nil
+}
+
 func SchemaOrReferenceToExpression(self *SchemaOrReference) (*light.Expression, error) {
 	if self == nil {
 		return nil, nil
 	}
 
 	switch self.Oneof.(type) {
-	case *SchemaOrReference_Reference:
-		return referenceToExpression(self.GetReference()), nil
 	case *SchemaOrReference_Schema:
-		bdy, err := schemaFullToBody(self.GetSchema())
+		bdy, err := self.GetSchema().toHCL()
 		if err != nil {
 			return nil, err
 		}
@@ -25,25 +36,36 @@ func SchemaOrReferenceToExpression(self *SchemaOrReference) (*light.Expression, 
 	default:
 	}
 
-	expr := &light.FunctionCallExpr{}
+	var expr *light.FunctionCallExpr
+	var err error
 	if x := self.GetBoolean(); x != nil {
-		expr.Name = "boolean"
-		expr.Args = append(expr.Args, booleanToLiteralValueExpr(x.Boolean))
+		expr, err = commonToFcexpr(x.GetCommon())
+	} else if x := self.GetNumber(); x != nil {
+		if expr, err = commonToFcexpr(x.GetCommon()); err == nil {
+			err = schemaNumberToFcexpr(x.GetNumber(), expr)
+		}
+	} else if x := self.GetString_(); x != nil {
+		if expr, err = commonToFcexpr(x.GetCommon()); err == nil {
+			err = schemaStringToFcexpr(x.GetString_(), expr)
+		}
+	} else if x := self.GetArray(); x != nil {
+		if expr, err = commonToFcexpr(x.GetCommon()); err == nil {
+			err = schemaArrayToFcexpr(x.GetArray(), expr)
+		}
+	} else if x := self.GetObject(); x != nil {
+		if expr, err = commonToFcexpr(x.GetCommon()); err == nil {
+			err = schemaObjectToFcexpr(x.GetObject(), expr)
+		}
+	} else if x := self.GetMap(); x != nil {
+		if expr, err = commonToFcexpr(x.GetCommon()); err == nil {
+			err = schemaMapToFcexpr(x.GetMap(), expr)
+		}
 	}
-	switch self.Oneof.(type) {
-	case *SchemaOrReference_Array:
-		return schemaArrayToFcexpr(self.GetArray().Array)
-	case *SchemaOrReference_Map:
-		return schemaMapToFcexpr(self.GetMap().Map)
-	case *SchemaOrReference_Object:
-		return schemaObjectToFcexpr(self.GetObject().Object)
-	case *SchemaOrReference_String_:
-		return schemaStringToFcexpr(self.GetString_().String_)
-	case *SchemaOrReference_Number:
-		return schemaNumberToFcexpr(self.GetNumber().Number)
-	default:
-	}
-	return nil, nil
+	return &light.Expression{
+		ExpressionClause: &light.Expression_Fcexpr{
+			Fcexpr: expr,
+		},
+	}, err
 }
 
 func ExpressionToSchemaOrReference(self *light.Expression) (*SchemaOrReference, error) {
@@ -52,135 +74,207 @@ func ExpressionToSchemaOrReference(self *light.Expression) (*SchemaOrReference, 
 	}
 
 	switch self.ExpressionClause.(type) {
-	case *light.Expression_Fcexpr:
-		expr := self.GetFcexpr()
-		switch expr.Name {
-		case "reference":
-			return &SchemaOrReference{
-				Oneof: &SchemaOrReference_Reference{
-					Reference: expressionToReference(expr),
-				},
-			}, nil
-		case "array":
-			return &SchemaOrReference{
-				Oneof: &SchemaOrReference_Array{
-					Array: fcexprToArray(expr),
-				},
-			}, nil
-		case "map":
-			return &SchemaOrReference{
-				Oneof: &SchemaOrReference_Map{
-					Map: fcexprToMap(expr),
-				},
-			}, nil
-		case "object":
-			return &SchemaOrReference{
-				Oneof: &SchemaOrReference_Object{
-					Object: fcexprToObject(expr),
-				},
-			}, nil
-		case "string":
-			return &SchemaOrReference{
-				Oneof: &SchemaOrReference_String_{
-					String_: fcexprToString(expr),
-				},
-			}, nil
-		case "number":
-			return &SchemaOrReference{
-				Oneof: &SchemaOrReference_Number{
-					Number: fcexprToNumber(expr),
-				},
-			}, nil
-		default:
-		}
-	}
-	return nil, nil
-
-}
-
-func schemaOrReferenceToFcexpr(self *SchemaOrReference) (*light.FunctionCallExpr, error) {
-	if self == nil {
-		return nil
-	}
-
-	if x := self.GetReference(); x != nil {
-		return referenceToExpression(x), nil
-	}
-
-	switch self.Oneof.(type) {
-	case *SchemaOrReference_Reference:
-		expr.Args = append(expr.Args, referenceToExpression(self.GetReference()))
-	case *SchemaOrReference_Schema:
-		bdy, err := schemaFullToBody(self.GetSchema())
+	case *light.Expression_Ocexpr:
+		bdy := self.GetOcexpr().ToBody()
+		s, err := schemaFullFromHCL(bdy)
 		if err != nil {
-			return err
+			return nil, err
 		}
-		return bdy.ToFunctionCallExpr(expr), nil
-	case *SchemaOrReference_Array:
-		return schemaArrayToFcexpr(self.GetArray().Array, expr)
-	case *SchemaOrReference_Map:
-		return schemaMapToFcexpr(self.GetMap().Map, expr)
-	case *SchemaOrReference_Object:
-		return schemaObjectToFcexpr(self.GetObject().Object, expr)
-	case *SchemaOrReference_String_:
-		return schemaStringToFcexpr(self.GetString_().String_, expr)
-	case *SchemaOrReference_Number:
-		return schemaNumberToFcexpr(self.GetNumber().Number, expr)
+		return &SchemaOrReference{
+			Oneof: &SchemaOrReference_Schema{
+				Schema: s,
+			},
+		}, nil
 	default:
 	}
-	return nil
-}
 
-func fcexprToSchemaOrReference(fcexpr *light.FunctionCallExpr) (*SchemaOrReference, error) {
-	if fcexpr == nil {
-		return nil, nil
-	}
-
-	common, err := fcexprToCommon(fcexpr)
+	expr := self.GetFcexpr()
+	common, err := fcexprToCommon(expr)
 	if err != nil {
 		return nil, err
 	}
-	var schemaNumber *SchemaNumber
-	var schemaString *SchemaString
-	var schemaArray *SchemaArray
-	var schemaObject *SchemaObject
-	var schemaMap *SchemaMap
+	number, err := fcexprToSchemaNumber(expr)
+	if err != nil {
+		return nil, err
+	}
+	string_, err := fcexprToSchemaString(expr)
+	if err != nil {
+		return nil, err
+	}
+	array, err := fcexprToSchemaArray(expr)
+	if err != nil {
+		return nil, err
+	}
+	object, err := fcexprToSchemaObject(expr)
+	if err != nil {
+		return nil, err
+	}
+	m, err := fcexprToSchemaMap(expr)
+	if err != nil {
+		return nil, err
+	}
 
-	switch fcexpr.Name {
-	case "number", "integer":
-		schemaNumber, err = fcexprToSchemaNumber(fcexpr)
-	case "string":
-		schemaString, err = fcexprToSchemaString(fcexpr)
-	case "array":
-		schemaArray, err = fcexprToSchemaArray(fcexpr)
-	case "object":
-		schemaObject, err = fcexprToSchemaObject(fcexpr)
-	case "map":
-		schemaMap, err = fcexprToSchemaMap(fcexpr)
-	default:
+	if number != nil {
+		return &SchemaOrReference{
+			Oneof: &SchemaOrReference_Number{
+				Number: &OASNumber{
+					Common: common,
+					Number: number,
+				},
+			},
+		}, nil
+	} else if string_ != nil {
+		return &SchemaOrReference{
+			Oneof: &SchemaOrReference_String_{
+				String_: &OASString{
+					Common:  common,
+					String_: string_,
+				},
+			},
+		}, nil
+	} else if array != nil {
+		return &SchemaOrReference{
+			Oneof: &SchemaOrReference_Array{
+				Array: &OASArray{
+					Common: common,
+					Array:  array,
+				},
+			},
+		}, nil
+	} else if object != nil {
+		return &SchemaOrReference{
+			Oneof: &SchemaOrReference_Object{
+				Object: &OASObject{
+					Common: common,
+					Object: object,
+				},
+			},
+		}, nil
+	} else if m != nil {
+		return &SchemaOrReference{
+			Oneof: &SchemaOrReference_Map{
+				Map: &OASMap{
+					Common: common,
+					Map:    m,
+				},
+			},
+		}, nil
 	}
 
 	return &SchemaOrReference{
-		OASSchemaBoolean: common,
-		SchemaNumber:     schemaNumber,
-		SchemaString:     schemaString,
-		SchemaArray:      schemaArray,
-		SchemaObject:     schemaObject,
-		SchemaMap:        schemaMap,
-	}, err
+		Oneof: &SchemaOrReference_Boolean{
+			Boolean: &OASBoolean{
+				Common: common,
+			},
+		},
+	}, nil
 }
 
-func SchemaOrReferenceToBody(s *SchemaOrReference) (*light.Body, error) {
-	if s == nil {
+// use mapSchemaOrReferenceToBody instead
+func mapSchemaOrReferenceToObjectConsExpr(m map[string]*SchemaOrReference) (*light.ObjectConsExpr, error) {
+	if m == nil {
 		return nil, nil
 	}
-	switch s.Oneof.(type) {
-	case *SchemaOrReference_Reference:
-		t := s.GetReference()
-		return t.toBody(), nil
-	case *SchemaOrReference_Schema:
-		return s.GetSchema().toHCL()
-	default: // we ignore all other types, meaning we have to assign type Schema when parsing Components.Schemas
+	var exprs []*light.ObjectConsItem
+	for k, v := range m {
+		expr, err := SchemaOrReferenceToExpression(v)
+		if err != nil {
+			return nil, err
+		}
+		exprs = append(exprs, &light.ObjectConsItem{
+			KeyExpr:   stringToLiteralValueExpr(k),
+			ValueExpr: expr,
+		})
 	}
-	return nil, nil
+	return &light.ObjectConsExpr{
+		Items: exprs,
+	}, nil
+}
+
+func objectConsExprToMapSchemaOrReference(o *light.ObjectConsExpr) (map[string]*SchemaOrReference, error) {
+	if o == nil {
+		return nil, nil
+	}
+	m := make(map[string]*SchemaOrReference)
+	for _, item := range o.Items {
+		key := *literalValueExprToString(item.KeyExpr)
+		value, err := ExpressionToSchemaOrReference(item.ValueExpr)
+		if err != nil {
+			return nil, err
+		}
+		m[key] = value
+	}
+	return m, nil
+}
+
+func mapSchemaOrReferenceToBody(m map[string]*SchemaOrReference) (*light.Body, error) {
+	if m == nil {
+		return nil, nil
+	}
+
+	var body *light.Body
+	attrs := make(map[string]*light.Attribute)
+	blocks := make([]*light.Block, 0)
+
+	for k, v := range m {
+		switch v.Oneof.(type) {
+		case *SchemaOrReference_Schema:
+			bdy, err := v.GetSchema().toHCL()
+			if err != nil {
+				return nil, err
+			}
+			blocks = append(blocks, &light.Block{
+				Type: k,
+				Bdy:  bdy,
+			})
+		default:
+			expr, err := SchemaOrReferenceToExpression(v)
+			if err != nil {
+				return nil, err
+			}
+			attrs[k] = &light.Attribute{
+				Name: k,
+				Expr: expr,
+			}
+		}
+	}
+
+	if len(attrs) > 0 || len(blocks) > 0 {
+		body = &light.Body{}
+	}
+	if len(attrs) > 0 {
+		body.Attributes = attrs
+	}
+	if len(blocks) > 0 {
+		body.Blocks = blocks
+	}
+	return body, nil
+}
+
+func bodyToMapSchemaOrReference(b *light.Body) (map[string]*SchemaOrReference, error) {
+	if b == nil {
+		return nil, nil
+	}
+
+	m := make(map[string]*SchemaOrReference)
+	for k, v := range b.Attributes {
+		value, err := ExpressionToSchemaOrReference(v.Expr)
+		if err != nil {
+			return nil, err
+		}
+		m[k] = value
+	}
+
+	for _, block := range b.Blocks {
+		s, err := schemaFullFromHCL(block.Bdy)
+		if err != nil {
+			return nil, err
+		}
+		m[block.Type] = &SchemaOrReference{
+			Oneof: &SchemaOrReference_Schema{
+				Schema: s,
+			},
+		}
+	}
+	return m, nil
 }

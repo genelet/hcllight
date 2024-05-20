@@ -87,13 +87,7 @@ func (self *Schema) toHCL() (*light.Body, error) {
 			Expr: expr,
 		}
 	}
-	if self.SpecificationExtension != nil {
-		expr := anyMapToBody(self.SpecificationExtension)
-		blocks = append(blocks, &light.Block{
-			Type: "specificationExtension",
-			Bdy:  expr,
-		})
-	}
+	addSpecificationBlock(self.SpecificationExtension, &blocks)
 
 	var err error
 	if err = commonToAttributes(self.Common, attrs); err == nil {
@@ -159,16 +153,39 @@ func schemaFullFromHCL(body *light.Body) (*Schema, error) {
 	for _, block := range body.Blocks {
 		switch block.Type {
 		case "discriminator":
-			s.Discriminator, err = bodyToDiscriminator(block.Bdy)
+			s.Discriminator = bodyToDiscriminator(block.Bdy)
 		case "externalDocs":
-			s.ExternalDocs, err = bodyToExternalDocs(block.Bdy)
+			s.ExternalDocs = bodyToExternalDocs(block.Bdy)
 		case "xml":
-			s.Xml, err = bodyToXML(block.Bdy)
+			s.Xml = bodyToXML(block.Bdy)
 		case "specificationExtension":
 			s.SpecificationExtension = bodyToAnyMap(block.Bdy)
+		default:
 		}
-		if err != nil {
-			return nil, err
+	}
+
+	for k, v := range body.Attributes {
+		switch k {
+		case "not":
+			s.Not, err = ExpressionToSchemaOrReference(v.Expr)
+			if err != nil {
+				return nil, err
+			}
+		case "example":
+			s.Example = anyFromHCL(v.Expr)
+		case "nullable":
+			s.Nullable = *literalValueExprToBoolean(v.Expr)
+		case "readOnly":
+			s.ReadOnly = *literalValueExprToBoolean(v.Expr)
+		case "writeOnly":
+			s.WriteOnly = *literalValueExprToBoolean(v.Expr)
+		case "deprecated":
+			s.Deprecated = *literalValueExprToBoolean(v.Expr)
+		case "title":
+			s.Title = *textValueExprToString(v.Expr)
+		case "description":
+			s.Description = *textValueExprToString(v.Expr)
+		default:
 		}
 	}
 
