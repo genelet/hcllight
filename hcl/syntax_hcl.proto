@@ -402,9 +402,9 @@ message Schema {
   SchemaAllOf all_of = 26;
   SchemaOneOf one_of = 27;
   SchemaAnyOf any_of = 28;
+
   SchemaOrReference not = 29;
   Discriminator discriminator = 30;
-
   map<string,Any> specification_extension = 36;
 }
 

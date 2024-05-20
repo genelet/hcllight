@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/genelet/hcllight/light"
+	"google.golang.org/protobuf/types/known/anypb"
 )
 
 func (self *Components) toHCL() (*light.Body, error) {
@@ -96,22 +97,11 @@ func (self *Components) toHCL() (*light.Body, error) {
 	return body, nil
 }
 
-func (self *DefaultType) toExpression() *light.Expression {
-	switch self.Oneof.(type) {
-	case *DefaultType_Boolean:
-		t := self.GetBoolean()
-		return booleanToLiteralValueExpr(t)
-	case *DefaultType_Number:
-		t := self.GetNumber()
-		return float64ToLiteralValueExpr(t)
-	case *DefaultType_String_:
-		t := self.GetString_()
-		return stringToTextValueExpr(t)
-	default:
+/*
+	func (self *DefaultType) toExpression() *light.Expression {
+		return defaultTypeToExpression(self)
 	}
-	return nil
-}
-
+*/
 func (self *SecuritySchemeOrReference) toHCL() (*light.Body, error) {
 	switch self.Oneof.(type) {
 	case *SecuritySchemeOrReference_SecurityScheme:
@@ -734,6 +724,26 @@ func (self *Any) toExpression(how ...bool) *light.Expression {
 			},
 		},
 	}
+}
+
+func anyFromHCL(expr *light.Expression) *Any {
+	if expr == nil {
+		return nil
+	}
+	switch expr.ExpressionClause.(type) {
+	case *light.Expression_Texpr:
+		return &Any{
+			Yaml: expr.GetTexpr().Parts[0].GetLvexpr().GetVal().GetStringValue(),
+		}
+	case *light.Expression_Lvexpr:
+		return &Any{
+			Value: &anypb.Any{
+				Value: []byte(fmt.Sprintf("%v", expr.GetLvexpr().Val)),
+			},
+		}
+	default:
+	}
+	return nil
 }
 
 func (self *Expression) toExpression() *light.Expression {
