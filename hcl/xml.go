@@ -45,30 +45,41 @@ func (self *Xml) toHCL() (*light.Body, error) {
 	return body, nil
 }
 
-func bodyToXML(body *light.Body) *Xml {
+func xmlFromHCL(body *light.Body) (*Xml, error) {
 	if body == nil {
-		return nil
+		return nil, nil
 	}
 	xml := &Xml{}
+	var found bool
 	for k, v := range body.Attributes {
 		switch k {
 		case "name":
 			xml.Name = *textValueExprToString(v.Expr)
+			found = true
 		case "namespace":
 			xml.Namespace = *textValueExprToString(v.Expr)
+			found = true
 		case "prefix":
 			xml.Prefix = *textValueExprToString(v.Expr)
+			found = true
 		case "attribute":
 			xml.Attribute = *literalValueExprToBoolean(v.Expr)
+			found = true
 		case "wrapped":
 			xml.Wrapped = *literalValueExprToBoolean(v.Expr)
+			found = true
 		default:
 		}
 	}
 	for _, v := range body.Blocks {
 		if v.Type == "specificationExtension" {
 			xml.SpecificationExtension = bodyToAnyMap(v.Bdy)
+			found = true
 		}
 	}
-	return xml
+
+	if !found {
+		return nil, nil
+	}
+	return xml, nil
 }

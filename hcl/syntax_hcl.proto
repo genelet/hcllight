@@ -26,7 +26,7 @@ message AnyOrExpression {
 }
 
 message Callback {
-  map<string,PathItem> path = 1;
+  map<string,PathItemOrReference> path = 1;
 }
 
 message CallbackOrReference {
@@ -74,7 +74,7 @@ message Document {
   string openapi = 1;
   Info info = 2;
   repeated Server servers = 3;
-  map<string,PathItem> paths = 4;
+  map<string,PathItemOrReference> paths = 4;
   Components components = 5;
   repeated SecurityRequirement security = 6;
   repeated Tag tags = 7;
@@ -236,21 +236,14 @@ message ParameterOrReference {
   }
 }
 
-/*
-message Oprations {
-  map<string,Opration> operations = 1;
-}
-
-message PathItem {
+message PathItemOrReference {
   oneof oneof {
-    Operations operationItems = 1;
+    PathItem item = 1;
     Reference reference = 2;
   }
 }
-*/
 
 message PathItem {
-  string _ref = 1;
   string summary = 2;
   string description = 3;
   Operation get = 4;

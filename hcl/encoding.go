@@ -4,7 +4,6 @@ import (
 	"github.com/genelet/hcllight/light"
 )
 
-
 func (self *Encoding) toHCL() (*light.Body, error) {
 	body := new(light.Body)
 	attrs := make(map[string]*light.Attribute)
@@ -33,13 +32,7 @@ func (self *Encoding) toHCL() (*light.Body, error) {
 			}
 		}
 	}
-	if self.SpecificationExtension != nil && len(self.SpecificationExtension) > 0 {
-		expr := anyMapToBody(self.SpecificationExtension)
-		blocks = append(blocks, &light.Block{
-			Type: "specificationExtension",
-			Bdy:  expr,
-		})
-	}
+	addSpecificationBlock(self.SpecificationExtension, &blocks)
 
 	if self.Headers != nil {
 		blks, err := headerOrReferenceMapToBlocks(self.Headers)
@@ -57,3 +50,72 @@ func (self *Encoding) toHCL() (*light.Body, error) {
 	return body, nil
 }
 
+func encodingFromHCL(body *light.Body) (*Encoding, error) {
+	if body == nil {
+		return nil, nil
+	}
+
+	self := &Encoding{}
+	var err error
+	var found bool
+	for k, v := range body.Attributes {
+		switch k {
+		case "contentType":
+			self.ContentType = *textValueExprToString(v.Expr)
+			found = true
+		case "style":
+			self.Style = *textValueExprToString(v.Expr)
+			found = true
+		case "explode":
+			self.Explode = *literalValueExprToBoolean(v.Expr)
+			found = true
+		case "allowReserved":
+			self.AllowReserved = *literalValueExprToBoolean(v.Expr)
+			found = true
+		}
+	}
+	for _, block := range body.Blocks {
+		switch block.Labels[0] {
+		case "header":
+			self.Headers, err = blocksToHeaderOrReferenceMap(block.Bdy.Blocks)
+			if err != nil {
+				return nil, err
+			}
+			found = true
+		case "specification":
+			self.SpecificationExtension = bodyToAnyMap(block.Bdy)
+			found = true
+		}
+	}
+
+	if found {
+		return self, nil
+	}
+	return nil, nil
+}
+
+func encodingMapToBlocks(encodings map[string]*Encoding) ([]*light.Block, error) {
+	if encodings == nil {
+		return nil, nil
+	}
+	hash := make(map[string]AbleHCL)
+	for k, v := range encodings {
+		hash[k] = v
+	}
+	return ableMapToBlocks(hash, "encoding")
+}
+
+func blocksToEncodingMap(blocks []*light.Block) (map[string]*Encoding, error) {
+	if blocks == nil {
+		return nil, nil
+	}
+	hash := make(map[string]*Encoding)
+	for _, block := range blocks {
+		able, err := encodingFromHCL(block.Bdy)
+		if err != nil {
+			return nil, err
+		}
+		hash[block.Labels[0]] = able
+	}
+	return hash, nil
+}

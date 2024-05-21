@@ -34,7 +34,7 @@ func (self *ServerVariable) toHCL() (*light.Body, error) {
 	return body, nil
 }
 
-func serverVariableFromBody(body *light.Body) (*ServerVariable, error) {
+func serverVariableFromHCL(body *light.Body) (*ServerVariable, error) {
 	if body == nil {
 		return nil, nil
 	}
@@ -64,4 +64,30 @@ func serverVariableFromBody(body *light.Body) (*ServerVariable, error) {
 		return self, nil
 	}
 	return nil, nil
+}
+
+func serverVariableMapToBlocks(serverVariables map[string]*ServerVariable) ([]*light.Block, error) {
+	if serverVariables == nil {
+		return nil, nil
+	}
+	hash := make(map[string]AbleHCL)
+	for k, v := range serverVariables {
+		hash[k] = v
+	}
+	return ableMapToBlocks(hash, "serverVariable")
+}
+
+func blocksToServerVariableMap(blocks []*light.Block) (map[string]*ServerVariable, error) {
+	if blocks == nil {
+		return nil, nil
+	}
+	hash := make(map[string]*ServerVariable)
+	for _, block := range blocks {
+		able, err := serverVariableFromHCL(block.Bdy)
+		if err != nil {
+			return nil, err
+		}
+		hash[block.Labels[0]] = able
+	}
+	return hash, nil
 }

@@ -8,19 +8,13 @@ func (s *SchemaOrReference) toHCL() (*light.Body, error) {
 	switch s.Oneof.(type) {
 	case *SchemaOrReference_Schema:
 		return s.GetSchema().toHCL()
-		case *SchemaOrReference_Reference:
-		return s.GetReference().toBody()
+	case *SchemaOrReference_Reference:
+		return s.GetReference().toHCL()
 	default: // we ignore all other types, meaning we have to assign type Schema when parsing Components.Schemas
 	}
 
-
 	return nil, nil
 }
-
-func schemaOrReferenceFromHCL(b *light.Body) (*SchemaOrReference, error) {
-	if b == nil {
-		return nil, nil
-	}
 
 func SchemaOrReferenceToExpression(self *SchemaOrReference) (*light.Expression, error) {
 	if self == nil {

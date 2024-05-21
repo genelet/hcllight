@@ -4,7 +4,6 @@ import (
 	"github.com/genelet/hcllight/light"
 )
 
-
 func (self *Operation) toHCL() (*light.Body, error) {
 	body := new(light.Body)
 	attrs := make(map[string]*light.Attribute)
@@ -102,3 +101,109 @@ func (self *Operation) toHCL() (*light.Body, error) {
 	return body, nil
 }
 
+func operationFromHCL(body *light.Body) (*Operation, error) {
+	if body == nil {
+		return nil, nil
+	}
+
+	self := &Operation{}
+	var err error
+	var found bool
+	for k, v := range body.Attributes {
+		switch k {
+		case "deprecated":
+			self.Deprecated = *literalValueExprToBoolean(v.Expr)
+			found = true
+		case "summary":
+			self.Summary = *textValueExprToString(v.Expr)
+			found = true
+		case "description":
+			self.Description = *textValueExprToString(v.Expr)
+			found = true
+		case "operationId":
+			self.OperationId = *textValueExprToString(v.Expr)
+			found = true
+		case "tags":
+			self.Tags = tupleConsExprToStringArray(v.Expr)
+			found = true
+		case "security":
+			self.Security, err = expressionToSecurityRequirement(v.Expr)
+			if err != nil {
+				return nil, err
+			}
+			found = true
+		case "servers":
+			self.Servers, err = expressionToServers(v.Expr)
+			if err != nil {
+				return nil, err
+			}
+			found = true
+		default:
+		}
+	}
+	for _, block := range body.Blocks {
+		switch block.Type {
+		case "parameters":
+			parameters, err := blocksToParameterOrReferenceMap(block.Bdy.Blocks)
+			if err != nil {
+				return nil, err
+			}
+			self.Parameters = hashParameterToArray(parameters)
+			found = true
+		case "requestBody":
+			self.RequestBody, err = requestBodyOrReferenceFromHCL(block.Bdy)
+			if err != nil {
+				return nil, err
+			}
+			found = true
+		case "responses":
+			responses, err := blocksToResponseOrReferenceMap(block.Bdy.Blocks)
+			if err != nil {
+				return nil, err
+			}
+			self.Responses = responses
+			found = true
+		case "callbacks":
+			callbacks, err := blocksToCallbackOrReferenceMap(block.Bdy.Blocks)
+			if err != nil {
+				return nil, err
+			}
+			self.Callbacks = callbacks
+			found = true
+		case "specification":
+			self.SpecificationExtension = bodyToAnyMap(block.Bdy)
+			found = true
+		}
+	}
+	if !found {
+		return nil, nil
+	}
+	return self, nil
+}
+
+func operationMapToBlocks(op map[string]*Operation) ([]*light.Block, error) {
+	if op == nil {
+		return nil, nil
+	}
+	hash := make(map[string]AbleHCL)
+	for k, v := range op {
+		hash[k] = v
+	}
+	return ableMapToBlocks(hash, "op")
+}
+
+func blocksToOperationMap(blocks []*light.Block) (map[string]*Operation, error) {
+	if blocks == nil {
+		return nil, nil
+	}
+	hash := make(map[string]*Operation)
+	for _, block := range blocks {
+		able, err := operationFromHCL(block.Bdy)
+		if err != nil {
+			return nil, err
+		}
+		hash[block.Type] = able
+	}
+
+	return hash, nil
+}

@@ -40,15 +40,17 @@ func (self *Discriminator) toHCL() (*light.Body, error) {
 	return body, nil
 }
 
-func bodyToDiscriminator(body *light.Body) *Discriminator {
+func discriminatorFromHCL(body *light.Body) (*Discriminator, error) {
 	if body == nil {
-		return nil
+		return nil, nil
 	}
 	discriminator := &Discriminator{}
+	var found bool
 	for k, v := range body.Attributes {
 		switch k {
 		case "propertyName":
 			discriminator.PropertyName = *textValueExprToString(v.Expr)
+			found = true
 		}
 	}
 	for _, v := range body.Blocks {
@@ -58,7 +60,12 @@ func bodyToDiscriminator(body *light.Body) *Discriminator {
 			for k, v := range v.Bdy.Attributes {
 				discriminator.Mapping[k] = *textValueExprToString(v.Expr)
 			}
+			found = true
 		}
 	}
-	return discriminator
+
+	if !found {
+		return nil, nil
+	}
+	return discriminator, nil
 }

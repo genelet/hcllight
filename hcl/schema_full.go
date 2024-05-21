@@ -153,11 +153,20 @@ func schemaFullFromHCL(body *light.Body) (*Schema, error) {
 	for _, block := range body.Blocks {
 		switch block.Type {
 		case "discriminator":
-			s.Discriminator = bodyToDiscriminator(block.Bdy)
+			s.Discriminator, err = discriminatorFromHCL(block.Bdy)
+			if err != nil {
+				return nil, err
+			}
 		case "externalDocs":
-			s.ExternalDocs = bodyToExternalDocs(block.Bdy)
+			s.ExternalDocs, err = externalDocsFromHCL(block.Bdy)
+			if err != nil {
+				return nil, err
+			}
 		case "xml":
-			s.Xml = bodyToXML(block.Bdy)
+			s.Xml, err = xmlFromHCL(block.Bdy)
+			if err != nil {
+				return nil, err
+			}
 		case "specificationExtension":
 			s.SpecificationExtension = bodyToAnyMap(block.Bdy)
 		default:

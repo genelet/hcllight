@@ -4,17 +4,46 @@ import (
 	"github.com/genelet/hcllight/light"
 )
 
-
 func (self *RequestBodyOrReference) toHCL() (*light.Body, error) {
 	switch self.Oneof.(type) {
 	case *RequestBodyOrReference_RequestBody:
 		return self.GetRequestBody().toHCL()
 	case *RequestBodyOrReference_Reference:
-		body := self.GetReference().toBody()
-		return body, nil
+		return self.GetReference().toHCL()
 	default:
 	}
 	return nil, nil
+}
+
+func requestBodyOrReferenceFromHCL(body *light.Body) (*RequestBodyOrReference, error) {
+	if body == nil {
+		return nil, nil
+	}
+
+	reference, err := referenceFromHCL(body)
+	if err != nil {
+		return nil, err
+	}
+	if reference != nil {
+		return &RequestBodyOrReference{
+			Oneof: &RequestBodyOrReference_Reference{
+				Reference: reference,
+			},
+		}, nil
+	}
+
+	requestBody, err := requestBodyFromHCL(body)
+	if err != nil {
+		return nil, err
+	}
+	if requestBody == nil {
+		return nil, nil
+	}
+	return &RequestBodyOrReference{
+		Oneof: &RequestBodyOrReference_RequestBody{
+			RequestBody: requestBody,
+		},
+	}, nil
 }
 
 func (self *RequestBody) toHCL() (*light.Body, error) {
@@ -33,13 +62,7 @@ func (self *RequestBody) toHCL() (*light.Body, error) {
 			Expr: booleanToLiteralValueExpr(self.Required),
 		}
 	}
-	if self.SpecificationExtension != nil && len(self.SpecificationExtension) > 0 {
-		expr := anyMapToBody(self.SpecificationExtension)
-		blocks = append(blocks, &light.Block{
-			Type: "specificationExtension",
-			Bdy:  expr,
-		})
-	}
+	addSpecificationBlock(self.SpecificationExtension, &blocks)
 
 	if self.Content != nil {
 		blks, err := mediaTypeMapToBlocks(self.Content)
@@ -59,3 +82,64 @@ func (self *RequestBody) toHCL() (*light.Body, error) {
 	return body, nil
 }
 
+func requestBodyFromHCL(body *light.Body) (*RequestBody, error) {
+	if body == nil {
+		return nil, nil
+	}
+
+	requestBody := new(RequestBody)
+	var found bool
+	for k, v := range body.Attributes {
+		switch k {
+		case "description":
+			requestBody.Description = *textValueExprToString(v.Expr)
+		case "required":
+			requestBody.Required = *literalValueExprToBoolean(v.Expr)
+		default:
+		}
+	}
+	for _, block := range body.Blocks {
+		switch block.Labels[0] {
+		case "content":
+			content, err := blocksToMediaTypeMap(block.Bdy.Blocks)
+			if err != nil {
+				return nil, err
+			}
+			requestBody.Content = content
+		case "specification":
+			requestBody.SpecificationExtension = bodyToAnyMap(block.Bdy)
+		default:
+		}
+	}
+
+	if !found {
+		return nil, nil
+	}
+	return requestBody, nil
+}
+
+func requestBodyOrReferenceMapToBlocks(requestBodies map[string]*RequestBodyOrReference) ([]*light.Block, error) {
+	if requestBodies == nil {
+		return nil, nil
+	}
+	hash := make(map[string]AbleHCL)
+	for k, v := range requestBodies {
+		hash[k] = v
+	}
+	return ableMapToBlocks(hash, "requestBody")
+}
+
+func blocksToRequestBodyOrReferenceMap(blocks []*light.Block) (map[string]*RequestBodyOrReference, error) {
+	if blocks == nil {
+		return nil, nil
+	}
+	hash := make(map[string]*RequestBodyOrReference)
+	for _, block := range blocks {
+		able, err := requestBodyOrReferenceFromHCL(block.Bdy)
+		if err != nil {
+			return nil, err
+		}
+		hash[block.Labels[0]] = able
+	}
+	return hash, nil
+}

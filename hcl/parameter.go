@@ -4,16 +4,46 @@ import (
 	"github.com/genelet/hcllight/light"
 )
 
-
 func (self *ParameterOrReference) toHCL() (*light.Body, error) {
 	switch self.Oneof.(type) {
 	case *ParameterOrReference_Parameter:
 		return self.GetParameter().toHCL()
 	case *ParameterOrReference_Reference:
-		return self.GetReference().toBody()
+		return self.GetReference().toHCL()
 	default:
 	}
 	return nil, nil
+}
+
+func parameterOrReferenceFromHCL(body *light.Body) (*ParameterOrReference, error) {
+	if body == nil {
+		return nil, nil
+	}
+
+	reference, err := referenceFromHCL(body)
+	if err != nil {
+		return nil, err
+	}
+	if reference != nil {
+		return &ParameterOrReference{
+			Oneof: &ParameterOrReference_Reference{
+				Reference: reference,
+			},
+		}, nil
+	}
+
+	parameter, err := parameterFromHCL(body)
+	if err != nil {
+		return nil, err
+	}
+	if parameter == nil {
+		return nil, nil
+	}
+	return &ParameterOrReference{
+		Oneof: &ParameterOrReference_Parameter{
+			Parameter: parameter,
+		},
+	}, nil
 }
 
 func (self *Parameter) toHCL() (*light.Body, error) {
@@ -91,7 +121,110 @@ func (self *Parameter) toHCL() (*light.Body, error) {
 	return body, nil
 }
 
+func parameterFromHCL(body *light.Body) (*Parameter, error) {
+	if body == nil {
+		return nil, nil
+	}
 
+	parameter := new(Parameter)
+	var err error
+	var found bool
+	for k, v := range body.Attributes {
+		switch k {
+		case "required":
+			parameter.Required = *literalValueExprToBoolean(v.Expr)
+			found = true
+		case "deprecated":
+			parameter.Deprecated = *literalValueExprToBoolean(v.Expr)
+			found = true
+		case "allowEmptyValue":
+			parameter.AllowEmptyValue = *literalValueExprToBoolean(v.Expr)
+			found = true
+		case "explode":
+			parameter.Explode = *literalValueExprToBoolean(v.Expr)
+			found = true
+		case "allowReserved":
+			parameter.AllowReserved = *literalValueExprToBoolean(v.Expr)
+			found = true
+		case "name":
+			parameter.Name = *textValueExprToString(v.Expr)
+			found = true
+		case "in":
+			parameter.In = *textValueExprToString(v.Expr)
+			found = true
+		case "description":
+			parameter.Description = *textValueExprToString(v.Expr)
+			found = true
+		case "style":
+			parameter.Style = *textValueExprToString(v.Expr)
+			found = true
+		case "example":
+			parameter.Example = anyFromHCL(v.Expr)
+			found = true
+		case "schema":
+			parameter.Schema, err = ExpressionToSchemaOrReference(v.Expr)
+			if err != nil {
+				return nil, err
+			}
+			found = true
+		default:
+		}
+		for _, block := range body.Blocks {
+			switch block.Type {
+			case "examples":
+				parameter.Examples, err = blocksToExampleOrReferenceMap(block.Bdy.Blocks)
+				if err != nil {
+					return nil, err
+				}
+				found = true
+			case "content":
+				parameter.Content, err = blocksToMediaTypeMap(block.Bdy.Blocks)
+				if err != nil {
+					return nil, err
+				}
+				found = true
+			case "specification":
+				parameter.SpecificationExtension = bodyToAnyMap(block.Bdy)
+			}
+		}
+	}
+	if !found {
+		return nil, nil
+	}
+	return parameter, nil
+}
+
+/*
+	func parametersToTupleConsExpr(parameters []*ParameterOrReference) (*light.Expression, error) {
+		if parameters == nil || len(parameters) == 0 {
+			return nil, nil
+		}
+
+		var arr []AbleHCL
+		for _, v := range parameters {
+			arr = append(arr, v)
+		}
+		return ableToTupleConsExpr(arr)
+	}
+
+	func expressionToParameters(expr *light.Expression) ([]*ParameterOrReference, error) {
+		if expr == nil {
+			return nil, nil
+		}
+
+		ables, err := tupleConsExprToAble(expr, func(expr *light.ObjectConsExpr) (AbleHCL, error) {
+			return parameterOrReferenceFromHCL(expr.ToBody())
+		})
+		if err != nil {
+			return nil, err
+		}
+		var parameters []*ParameterOrReference
+		for _, able := range ables {
+			parameters = append(parameters, able.(*ParameterOrReference))
+		}
+		return parameters, nil
+	}
+*/
 func arrayParameterToHash(array []*ParameterOrReference) map[string]*ParameterOrReference {
 	hash := make(map[string]*ParameterOrReference)
 	for _, v := range array {
@@ -108,4 +241,49 @@ func arrayParameterToHash(array []*ParameterOrReference) map[string]*ParameterOr
 		}
 	}
 	return hash
+}
+
+func hashParameterToArray(hash map[string]*ParameterOrReference) []*ParameterOrReference {
+	if hash == nil {
+		return nil
+	}
+
+	var array []*ParameterOrReference
+	for k, v := range hash {
+		switch v.Oneof.(type) {
+		case *ParameterOrReference_Parameter:
+			v.GetParameter().Name = k
+		case *ParameterOrReference_Reference:
+			v.GetReference().XRef = k
+		default:
+		}
+		array = append(array, v)
+	}
+	return array
+}
+
+func parameterOrReferenceMapToBlocks(parameters map[string]*ParameterOrReference) ([]*light.Block, error) {
+	if parameters == nil {
+		return nil, nil
+	}
+	hash := make(map[string]AbleHCL)
+	for k, v := range parameters {
+		hash[k] = v
+	}
+	return ableMapToBlocks(hash, "parameters")
+}
+
+func blocksToParameterOrReferenceMap(blocks []*light.Block) (map[string]*ParameterOrReference, error) {
+	if blocks == nil {
+		return nil, nil
+	}
+	hash := make(map[string]*ParameterOrReference)
+	for _, block := range blocks {
+		able, err := parameterOrReferenceFromHCL(block.Bdy)
+		if err != nil {
+			return nil, err
+		}
+		hash[block.Labels[0]] = able
+	}
+	return hash, nil
 }

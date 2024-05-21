@@ -16,9 +16,9 @@ func DocumentToHcl(doc *openapiv3.Document) *Document {
 		d.Servers = append(d.Servers, serverToHcl(s))
 	}
 	if doc.Paths != nil {
-		d.Paths = make(map[string]*PathItem)
+		d.Paths = make(map[string]*PathItemOrReference)
 		for _, v := range doc.Paths.Path {
-			d.Paths[v.Name] = PathItemToHcl(v.Value)
+			d.Paths[v.Name] = PathItemOrReferenceToHcl(v.Value)
 		}
 	}
 
@@ -56,7 +56,7 @@ func DocumentToApi(document *Document) *openapiv3.Document {
 	if document.Paths != nil {
 		for k, v := range document.Paths {
 			d.Paths.Path = append(d.Paths.Path,
-				&openapiv3.NamedPathItem{Name: k, Value: PathItemToApi(v)},
+				&openapiv3.NamedPathItem{Name: k, Value: PathItemOrReferenceToApi(v)},
 			)
 		}
 	}
@@ -209,9 +209,23 @@ func ReferenceToApi(reference *Reference) *openapiv3.Reference {
 	}
 }
 
-func PathItemToHcl(path *openapiv3.PathItem) *PathItem {
+func PathItemOrReferenceToHcl(path *openapiv3.PathItem) *PathItemOrReference {
+	if path == nil {
+		return nil
+	}
+	if reference := path.XRef; reference != "" {
+		return &PathItemOrReference{
+			Oneof: &PathItemOrReference_Reference{
+				Reference: ReferenceToHcl(&openapiv3.Reference{
+					XRef:        reference,
+					Summary:     path.Summary,
+					Description: path.Description,
+				}),
+			},
+		}
+	}
+
 	p := &PathItem{
-		XRef:                   path.XRef,
 		Summary:                path.Summary,
 		Description:            path.Description,
 		Get:                    operationToHcl(path.Get),
@@ -230,15 +244,27 @@ func PathItemToHcl(path *openapiv3.PathItem) *PathItem {
 	for _, s := range path.Parameters {
 		p.Parameters = append(p.Parameters, parameterOrReferenceToHcl(s))
 	}
-	return p
+	return &PathItemOrReference{
+		Oneof: &PathItemOrReference_Item{
+			Item: p,
+		},
+	}
 }
 
-func PathItemToApi(pathItem *PathItem) *openapiv3.PathItem {
-	if pathItem == nil {
+func PathItemOrReferenceToApi(item *PathItemOrReference) *openapiv3.PathItem {
+	if item == nil {
 		return nil
 	}
+	if x := item.GetReference(); x != nil {
+		return &openapiv3.PathItem{
+			XRef:        x.XRef,
+			Summary:     x.Summary,
+			Description: x.Description,
+		}
+	}
+
+	pathItem := item.GetItem()
 	p := &openapiv3.PathItem{
-		XRef:                   pathItem.XRef,
 		Summary:                pathItem.Summary,
 		Description:            pathItem.Description,
 		SpecificationExtension: extensionToApi(pathItem.SpecificationExtension),
@@ -1187,10 +1213,10 @@ func callbackOrReferenceToHcl(callback *openapiv3.CallbackOrReference) *Callback
 		}
 	}
 
-	cs := make(map[string]*PathItem)
+	cs := make(map[string]*PathItemOrReference)
 	call := callback.GetCallback()
 	for _, v := range call.Path {
-		cs[v.Name] = PathItemToHcl(v.Value)
+		cs[v.Name] = PathItemOrReferenceToHcl(v.Value)
 	}
 
 	return &CallbackOrReference{
@@ -1217,7 +1243,7 @@ func callbackOrReferenceToApi(callbackOrReference *CallbackOrReference) *openapi
 	c := callbackOrReference.GetCallback()
 	var cs []*openapiv3.NamedPathItem
 	for k, v := range c.Path {
-		cs = append(cs, &openapiv3.NamedPathItem{Name: k, Value: PathItemToApi(v)})
+		cs = append(cs, &openapiv3.NamedPathItem{Name: k, Value: PathItemOrReferenceToApi(v)})
 	}
 	return &openapiv3.CallbackOrReference{
 		Oneof: &openapiv3.CallbackOrReference_Callback{

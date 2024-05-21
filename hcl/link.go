@@ -9,11 +9,41 @@ func (self *LinkOrReference) toHCL() (*light.Body, error) {
 	case *LinkOrReference_Link:
 		return self.GetLink().toHCL()
 	case *LinkOrReference_Reference:
-		body := self.GetReference().toBody()
-		return body, nil
+		return self.GetReference().toHCL()
 	default:
 	}
 	return nil, nil
+}
+
+func linkOrReferenceFromHCL(body *light.Body) (*LinkOrReference, error) {
+	if body == nil {
+		return nil, nil
+	}
+
+	reference, err := referenceFromHCL(body)
+	if err != nil {
+		return nil, err
+	}
+	if reference != nil {
+		return &LinkOrReference{
+			Oneof: &LinkOrReference_Reference{
+				Reference: reference,
+			},
+		}, nil
+	}
+
+	link, err := linkFromHCL(body)
+	if err != nil {
+		return nil, err
+	}
+	if link == nil {
+		return nil, nil
+	}
+	return &LinkOrReference{
+		Oneof: &LinkOrReference_Link{
+			Link: link,
+		},
+	}, nil
 }
 
 func (self *Link) toHCL() (*light.Body, error) {
@@ -43,13 +73,7 @@ func (self *Link) toHCL() (*light.Body, error) {
 			Bdy:  bdy,
 		})
 	}
-	if self.SpecificationExtension != nil && len(self.SpecificationExtension) > 0 {
-		expr := anyMapToBody(self.SpecificationExtension)
-		blocks = append(blocks, &light.Block{
-			Type: "specificationExtension",
-			Bdy:  expr,
-		})
-	}
+	addSpecificationBlock(self.SpecificationExtension, &blocks)
 
 	if self.Parameters != nil {
 		attrs["parameters"] = &light.Attribute{
@@ -72,3 +96,74 @@ func (self *Link) toHCL() (*light.Body, error) {
 	return body, nil
 }
 
+func linkFromHCL(body *light.Body) (*Link, error) {
+	if body == nil {
+		return nil, nil
+	}
+
+	link := new(Link)
+	var found bool
+	for k, v := range body.Attributes {
+		switch k {
+		case "operationRef":
+			link.OperationRef = *textValueExprToString(v.Expr)
+			found = true
+		case "operationId":
+			link.OperationId = *textValueExprToString(v.Expr)
+			found = true
+		case "description":
+			link.Description = *textValueExprToString(v.Expr)
+			found = true
+		case "parameters":
+			link.Parameters = anyOrExpressionFromHCL(v.Expr)
+			found = true
+		case "requestBody":
+			link.RequestBody = anyOrExpressionFromHCL(v.Expr)
+			found = true
+		default:
+		}
+	}
+	for _, block := range body.Blocks {
+		switch block.Type {
+		case "server":
+			server, err := serverFromHCL(block.Bdy)
+			if err != nil {
+				return nil, err
+			}
+			link.Server = server
+		default:
+			link.SpecificationExtension = bodyToAnyMap(body)
+		}
+	}
+
+	if found {
+		return link, nil
+	}
+	return nil, nil
+}
+
+func linkOrReferenceMapToBlocks(links map[string]*LinkOrReference) ([]*light.Block, error) {
+	if links == nil {
+		return nil, nil
+	}
+	hash := make(map[string]AbleHCL)
+	for k, v := range links {
+		hash[k] = v
+	}
+	return ableMapToBlocks(hash, "link")
+}
+
+func blocksToLinkOrReferenceMap(blocks []*light.Block) (map[string]*LinkOrReference, error) {
+	if blocks == nil {
+		return nil, nil
+	}
+	hash := make(map[string]*LinkOrReference)
+	for _, block := range blocks {
+		able, err := linkOrReferenceFromHCL(block.Bdy)
+		if err != nil {
+			return nil, err
+		}
+		hash[block.Labels[0]] = able
+	}
+	return hash, nil
+}

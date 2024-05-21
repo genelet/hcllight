@@ -4,7 +4,6 @@ import (
 	"github.com/genelet/hcllight/light"
 )
 
-
 func (self *Tag) toHCL() (*light.Body, error) {
 	body := new(light.Body)
 	attrs := make(map[string]*light.Attribute)
@@ -34,4 +33,69 @@ func (self *Tag) toHCL() (*light.Body, error) {
 		body.Attributes = attrs
 	}
 	return body, nil
+}
+
+func tagFromHCL(body *light.Body) (*Tag, error) {
+	if body == nil {
+		return nil, nil
+	}
+
+	self := &Tag{}
+	var found bool
+	//if attr, ok := body.Attributes["name"]; ok {
+	//	self.Name = *literalValueExprToString(attr.Expr)
+	//	found = true
+	//}
+	if attr, ok := body.Attributes["description"]; ok {
+		self.Description = *literalValueExprToString(attr.Expr)
+		found = true
+	}
+	for _, block := range body.Blocks {
+		switch block.Type {
+		case "externalDocs":
+			blk, err := externalDocsFromHCL(block.Bdy)
+			if err != nil {
+				return nil, err
+			}
+			self.ExternalDocs = blk
+			found = true
+		}
+	}
+	if !found {
+		return nil, nil
+	}
+	return self, nil
+}
+
+func tagsToTupleConsExpr(tags []*Tag) (*light.Expression, error) {
+	if tags == nil || len(tags) == 0 {
+		return nil, nil
+	}
+	var arr []AbleHCL
+	for _, tag := range tags {
+		arr = append(arr, tag)
+	}
+	return ableToTupleConsExpr(arr)
+}
+
+func expressionToTags(expr *light.Expression) ([]*Tag, error) {
+	if expr == nil {
+		return nil, nil
+	}
+
+	ables, err := tupleConsExprToAble(expr, func(expr *light.ObjectConsExpr) (AbleHCL, error) {
+		return tagFromHCL(expr.ToBody())
+	})
+	if err != nil {
+		return nil, err
+	}
+	var tags []*Tag
+	for _, able := range ables {
+		tag, ok := able.(*Tag)
+		if !ok {
+			return nil, ErrInvalidType()
+		}
+		tags = append(tags, tag)
+	}
+	return tags, nil
 }

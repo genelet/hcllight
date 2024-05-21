@@ -8,7 +8,7 @@ import (
 )
 
 // reference
-func (self *Reference) toBody() (*light.Body, error) {
+func (self *Reference) toHCL() (*light.Body, error) {
 	body := &light.Body{
 		Attributes: map[string]*light.Attribute{
 			"XRef": {
@@ -32,26 +32,32 @@ func (self *Reference) toBody() (*light.Body, error) {
 	return body, nil
 }
 
-func referenceFromBody(body *light.Body) (*Reference, error) {
+func referenceFromHCL(body *light.Body) (*Reference, error) {
 	if body == nil {
 		return nil, nil
 	}
 
 	self := &Reference{}
+	var found bool
 	if attr, ok := body.Attributes["XRef"]; ok {
 		if attr.Expr != nil {
-			self.XRef = *literalValueExprToString(attr.Expr)
+			self.XRef = *textValueExprToString(attr.Expr)
+			found = true
 		}
 	}
 	if attr, ok := body.Attributes["summary"]; ok {
 		if attr.Expr != nil {
-			self.Summary = *literalValueExprToString(attr.Expr)
+			self.Summary = *textValueExprToString(attr.Expr)
 		}
 	}
 	if attr, ok := body.Attributes["description"]; ok {
 		if attr.Expr != nil {
-			self.Description = *literalValueExprToString(attr.Expr)
+			self.Description = *textValueExprToString(attr.Expr)
 		}
+	}
+
+	if !found {
+		return nil, nil
 	}
 	return self, nil
 }
@@ -113,8 +119,8 @@ func referenceFromExpression(expr *light.Expression) (*Reference, error) {
 		found = true
 	}
 
-	if found {
-		return reference, nil
+	if !found {
+		return nil, nil
 	}
-	return nil, nil
+	return reference, nil
 }

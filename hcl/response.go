@@ -9,11 +9,41 @@ func (self *ResponseOrReference) toHCL() (*light.Body, error) {
 	case *ResponseOrReference_Response:
 		return self.GetResponse().toHCL()
 	case *ResponseOrReference_Reference:
-		body := self.GetReference().toBody()
-		return body, nil
+		return self.GetReference().toHCL()
 	default:
 	}
 	return nil, nil
+}
+
+func responseOrReferenceFromHCL(body *light.Body) (*ResponseOrReference, error) {
+	if body == nil {
+		return nil, nil
+	}
+
+	reference, err := referenceFromHCL(body)
+	if err != nil {
+		return nil, err
+	}
+	if reference != nil {
+		return &ResponseOrReference{
+			Oneof: &ResponseOrReference_Reference{
+				Reference: reference,
+			},
+		}, nil
+	}
+
+	response, err := responseFromHCL(body)
+	if err != nil {
+		return nil, err
+	}
+	if response == nil {
+		return nil, nil
+	}
+	return &ResponseOrReference{
+		Oneof: &ResponseOrReference_Response{
+			Response: response,
+		},
+	}, nil
 }
 
 func (self *Response) toHCL() (*light.Body, error) {
@@ -28,14 +58,7 @@ func (self *Response) toHCL() (*light.Body, error) {
 			},
 		}
 	}
-	if self.SpecificationExtension != nil && len(self.SpecificationExtension) > 0 {
-		expr := anyMapToBody(self.SpecificationExtension)
-		blocks = append(blocks, &light.Block{
-			Type: "specificationExtension",
-			Bdy:  expr,
-		})
-	}
-
+	addSpecificationBlock(self.SpecificationExtension, &blocks)
 	if self.Content != nil {
 		blks, err := mediaTypeMapToBlocks(self.Content)
 		if err != nil {
@@ -67,3 +90,74 @@ func (self *Response) toHCL() (*light.Body, error) {
 	return body, nil
 }
 
+func responseFromHCL(body *light.Body) (*Response, error) {
+	if body == nil {
+		return nil, nil
+	}
+	response := new(Response)
+	var err error
+	var found bool
+	for k, v := range body.Attributes {
+		switch k {
+		case "description":
+			response.Description = *textValueExprToString(v.Expr)
+			found = true
+		default:
+		}
+	}
+	for _, block := range body.Blocks {
+		switch block.Type {
+		case "specification":
+			response.SpecificationExtension = bodyToAnyMap(block.Bdy)
+			found = true
+		case "content":
+			response.Content, err = blocksToMediaTypeMap(block.Bdy.Blocks)
+			if err != nil {
+				return nil, err
+			}
+			found = true
+		case "header":
+			response.Headers, err = blocksToHeaderOrReferenceMap(block.Bdy.Blocks)
+			if err != nil {
+				return nil, err
+			}
+			found = true
+		case "link":
+			response.Links, err = blocksToLinkOrReferenceMap(block.Bdy.Blocks)
+			if err != nil {
+				return nil, err
+			}
+		default:
+		}
+	}
+	if !found {
+		return nil, nil
+	}
+	return response, nil
+}
+
+func responseOrReferenceMapToBlocks(responses map[string]*ResponseOrReference) ([]*light.Block, error) {
+	if responses == nil {
+		return nil, nil
+	}
+	hash := make(map[string]AbleHCL)
+	for k, v := range responses {
+		hash[k] = v
+	}
+	return ableMapToBlocks(hash, "response")
+}
+
+func blocksToResponseOrReferenceMap(blocks []*light.Block) (map[string]*ResponseOrReference, error) {
+	if blocks == nil {
+		return nil, nil
+	}
+	hash := make(map[string]*ResponseOrReference)
+	for _, block := range blocks {
+		able, err := responseOrReferenceFromHCL(block.Bdy)
+		if err != nil {
+			return nil, err
+		}
+		hash[block.Labels[0]] = able
+	}
+	return hash, nil
+}

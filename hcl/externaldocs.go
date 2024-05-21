@@ -30,18 +30,25 @@ func (self *ExternalDocs) toHCL() (*light.Body, error) {
 	return body, nil
 }
 
-func bodyToExternalDocs(body *light.Body) *ExternalDocs {
+func externalDocsFromHCL(body *light.Body) (*ExternalDocs, error) {
 	if body == nil {
-		return nil
+		return nil, nil
 	}
 	externalDocs := &ExternalDocs{}
+	var found bool
 	for k, v := range body.Attributes {
 		switch k {
 		case "url":
 			externalDocs.Url = *textValueExprToString(v.Expr)
+			found = true
 		case "description":
 			externalDocs.Description = *textValueExprToString(v.Expr)
+			found = true
 		}
 	}
-	return externalDocs
+
+	if found {
+		return externalDocs, nil
+	}
+	return nil, nil
 }

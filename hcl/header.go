@@ -9,10 +9,41 @@ func (self *HeaderOrReference) toHCL() (*light.Body, error) {
 	case *HeaderOrReference_Header:
 		return self.GetHeader().toHCL()
 	case *HeaderOrReference_Reference:
-		return self.GetReference().toBody(), nil
+		return self.GetReference().toHCL()
 	default:
 	}
 	return nil, nil
+}
+
+func headerOrReferenceFromHCL(body *light.Body) (*HeaderOrReference, error) {
+	if body == nil {
+		return nil, nil
+	}
+
+	reference, err := referenceFromHCL(body)
+	if err != nil {
+		return nil, err
+	}
+	if reference != nil {
+		return &HeaderOrReference{
+			Oneof: &HeaderOrReference_Reference{
+				Reference: reference,
+			},
+		}, nil
+	}
+
+	header, err := headerFromHCL(body)
+	if err != nil {
+		return nil, err
+	}
+	if header == nil {
+		return nil, nil
+	}
+	return &HeaderOrReference{
+		Oneof: &HeaderOrReference_Header{
+			Header: header,
+		},
+	}, nil
 }
 
 func (self *Header) toHCL() (*light.Body, error) {
@@ -59,17 +90,15 @@ func (self *Header) toHCL() (*light.Body, error) {
 		}
 		blocks = append(blocks, blk...)
 	}
-	if self.SpecificationExtension != nil && len(self.SpecificationExtension) > 0 {
-		expr := anyMapToBody(self.SpecificationExtension)
-		blocks = append(blocks, &light.Block{
-			Type: "specificationExtension",
-			Bdy:  expr,
-		})
-	}
+	addSpecificationBlock(self.SpecificationExtension, &blocks)
 	if self.Schema != nil {
+		expr, err := SchemaOrReferenceToExpression(self.Schema)
+		if err != nil {
+			return nil, err
+		}
 		attrs["schema"] = &light.Attribute{
 			Name: "schema",
-			Expr: self.Schema.toExpression(),
+			Expr: expr,
 		}
 	}
 	if self.Content != nil {
@@ -88,3 +117,97 @@ func (self *Header) toHCL() (*light.Body, error) {
 	return body, nil
 }
 
+func headerFromHCL(body *light.Body) (*Header, error) {
+	if body == nil {
+		return nil, nil
+	}
+
+	self := new(Header)
+	var found bool
+	var err error
+	for k, v := range body.Attributes {
+		switch k {
+		case "required":
+			self.Required = *literalValueExprToBoolean(v.Expr)
+			found = true
+		case "deprecated":
+			self.Deprecated = *literalValueExprToBoolean(v.Expr)
+			found = true
+		case "allowEmptyValue":
+			self.AllowEmptyValue = *literalValueExprToBoolean(v.Expr)
+			found = true
+		case "explode":
+			self.Explode = *literalValueExprToBoolean(v.Expr)
+			found = true
+		case "allowReserved":
+			self.AllowReserved = *literalValueExprToBoolean(v.Expr)
+			found = true
+		case "description":
+			self.Description = *literalValueExprToString(v.Expr)
+			found = true
+		case "style":
+			self.Style = *literalValueExprToString(v.Expr)
+			found = true
+		case "example":
+			self.Example = anyFromHCL(v.Expr)
+			found = true
+		case "schema":
+			self.Schema, err = ExpressionToSchemaOrReference(v.Expr)
+			if err != nil {
+				return nil, err
+			}
+			found = true
+		default:
+		}
+	}
+	for _, block := range body.Blocks {
+		switch block.Type {
+		case "examples":
+			self.Examples, err = blocksToExampleOrReferenceMap(block.Bdy.Blocks)
+			if err != nil {
+				return nil, err
+			}
+			found = true
+		case "content":
+			self.Content, err = blocksToMediaTypeMap(block.Bdy.Blocks)
+			if err != nil {
+				return nil, err
+			}
+			found = true
+		case "specification":
+			self.SpecificationExtension = bodyToAnyMap(block.Bdy)
+			found = true
+		default:
+		}
+	}
+	if found {
+		return self, nil
+	}
+	return nil, nil
+}
+
+func headerOrReferenceMapToBlocks(headers map[string]*HeaderOrReference) ([]*light.Block, error) {
+	if headers == nil {
+		return nil, nil
+	}
+	hash := make(map[string]AbleHCL)
+	for k, v := range headers {
+		hash[k] = v
+	}
+	return ableMapToBlocks(hash, "header")
+}
+
+func blocksToHeaderOrReferenceMap(blocks []*light.Block) (map[string]*HeaderOrReference, error) {
+	if blocks == nil {
+		return nil, nil
+	}
+	hash := make(map[string]*HeaderOrReference)
+	for _, block := range blocks {
+		able, err := headerOrReferenceFromHCL(block.Bdy)
+		if err != nil {
+			return nil, err
+		}
+		hash[block.Labels[0]] = able
+	}
+	return hash, nil
+}
