@@ -364,39 +364,6 @@ func tupleConsExprToAble(expr *light.Expression, fromHCL func(*light.ObjectConsE
 	return tags, nil
 }
 
-func tagsToTupleConsExpr(tags []*Tag) (*light.Expression, error) {
-	if tags == nil || len(tags) == 0 {
-		return nil, nil
-	}
-	var arr []AbleHCL
-	for _, tag := range tags {
-		arr = append(arr, tag)
-	}
-	return ableToTupleConsExpr(arr)
-}
-
-var ErrInvalidType = func() error {
-	return fmt.Errorf("%s", "invalid type")
-}
-
-func expressionToTags(expr *light.Expression) ([]*Tag, error) {
-	if expr == nil {
-		return nil, nil
-	}
-	ables, err := tupleConsExprToAble(expr, tagFromHCL)
-	if err != nil {
-		return nil, err
-	}
-	var tags []*Tag
-	for _, able := range ables {
-		tag, ok := able.(*Tag)
-		if !ok {
-			return nil, ErrInvalidType()
-		}
-		tags = append(tags, tag)
-	}
-	return tags, nil
-}
 
 func serversToTupleConsExpr(servers []*Server) (*light.Expression, error) {
 	if servers == nil || len(servers) == 0 {
