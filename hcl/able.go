@@ -14,10 +14,10 @@ type AbleHCL interface {
 	toHCL() (*light.Body, error)
 }
 
-func ableToTupleConsExpr(tags []AbleHCL) (*light.Expression, error) {
+func ableToTupleConsExpr(items []AbleHCL) (*light.Expression, error) {
 	tcexpr := &light.TupleConsExpr{}
-	for _, tag := range tags {
-		body, err := tag.toHCL()
+	for _, item := range items {
+		body, err := item.toHCL()
 		if err != nil {
 			return nil, err
 		}
@@ -46,23 +46,23 @@ func tupleConsExprToAble(expr *light.Expression, fromHCL func(*light.ObjectConsE
 		return nil, nil
 	}
 
-	var tags []AbleHCL
+	var items []AbleHCL
 	for _, expr := range exprs {
-		tag, err := fromHCL(expr.GetOcexpr())
+		item, err := fromHCL(expr.GetOcexpr())
 		if err != nil {
 			return nil, err
 		}
-		tags = append(tags, tag)
+		items = append(items, item)
 	}
-	return tags, nil
+	return items, nil
 }
 
-func ableMapToBlocks(encodings map[string]AbleHCL, label string) ([]*light.Block, error) {
-	if encodings == nil {
+func ableMapToBlocks(hash map[string]AbleHCL, label string) ([]*light.Block, error) {
+	if hash == nil {
 		return nil, nil
 	}
 	var blocks []*light.Block
-	for k, v := range encodings {
+	for k, v := range hash {
 		bdy, err := v.toHCL()
 		if err != nil {
 			return nil, err
@@ -123,14 +123,14 @@ type OrHCL interface {
 	toExpression() (*light.Expression, error)
 }
 
-func orMapToBody(encodings map[string]OrHCL, label string) (*light.Body, error) {
-	if encodings == nil {
+func orMapToBody(hash map[string]OrHCL, label string) (*light.Body, error) {
+	if hash == nil {
 		return nil, nil
 	}
 
 	blocks := make([]*light.Block, 0)
 	attrs := make(map[string]*light.Attribute)
-	for k, v := range encodings {
+	for k, v := range hash {
 		expr, err := v.toExpression()
 		if err != nil {
 			return nil, err

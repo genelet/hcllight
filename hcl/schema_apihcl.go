@@ -18,6 +18,9 @@ func SchemaOrReferenceToHcl(schema *openapiv3.SchemaOrReference, force ...bool) 
 	}
 
 	s := schema.GetSchema()
+	if s == nil {
+		return nil
+	}
 	if (force != nil && force[0]) || isFull(s) { // force to parse to Schema
 		return &SchemaOrReference{
 			Oneof: &SchemaOrReference_Schema{
