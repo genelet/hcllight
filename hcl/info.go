@@ -4,7 +4,6 @@ import (
 	"github.com/genelet/hcllight/light"
 )
 
-
 func (self *Info) toHCL() (*light.Body, error) {
 	body := new(light.Body)
 	attrs := make(map[string]*light.Attribute)
@@ -50,3 +49,54 @@ func (self *Info) toHCL() (*light.Body, error) {
 	return body, nil
 }
 
+func infoFromHCL(body *light.Body) (*Info, error) {
+	if body == nil {
+		return nil, nil
+	}
+
+	info := new(Info)
+	var found bool
+	for k, v := range body.Attributes {
+		switch k {
+		case "title":
+			info.Title = *textValueExprToString(v.Expr)
+			found = true
+		case "description":
+			info.Description = *textValueExprToString(v.Expr)
+			found = true
+		case "termsOfService":
+			info.TermsOfService = *textValueExprToString(v.Expr)
+			found = true
+		case "version":
+			info.Version = *textValueExprToString(v.Expr)
+			found = true
+		}
+	}
+	for _, block := range body.Blocks {
+		switch block.Type {
+		case "contact":
+			contact, err := contactFromHCL(block.Bdy)
+			if err != nil {
+				return nil, err
+			}
+			info.Contact = contact
+			found = true
+		case "license":
+			license, err := licenseFromHCL(block.Bdy)
+			if err != nil {
+				return nil, err
+			}
+			info.License = license
+			found = true
+		case "specification":
+			info.SpecificationExtension = bodyToAnyMap(block.Bdy)
+			found = true
+		default:
+		}
+	}
+
+	if !found {
+		return nil, nil
+	}
+	return info, nil
+}

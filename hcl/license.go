@@ -4,7 +4,6 @@ import (
 	"github.com/genelet/hcllight/light"
 )
 
-
 func (self *License) toHCL() (*light.Body, error) {
 	body := new(light.Body)
 	attrs := make(map[string]*light.Attribute)
@@ -27,3 +26,28 @@ func (self *License) toHCL() (*light.Body, error) {
 	return body, nil
 }
 
+func licenseFromHCL(body *light.Body) (*License, error) {
+	if body == nil {
+		return nil, nil
+	}
+
+	self := &License{}
+	var found bool
+	if attr, ok := body.Attributes["name"]; ok {
+		if attr.Expr != nil {
+			self.Name = *textValueExprToString(attr.Expr)
+			found = true
+		}
+	}
+	if attr, ok := body.Attributes["url"]; ok {
+		if attr.Expr != nil {
+			self.Url = *textValueExprToString(attr.Expr)
+		}
+	}
+
+	if !found {
+		return nil, nil
+	}
+
+	return self, nil
+}

@@ -266,6 +266,60 @@ func parameterOrReferenceMapToBlocks(parameters map[string]*ParameterOrReference
 	if parameters == nil {
 		return nil, nil
 	}
+
+	hash := make(map[string]OrHCL)
+	for k, v := range parameters {
+		hash[k] = v
+	}
+	return orMapToBlocks(hash, "parameters")
+}
+
+func blocksToParameterOrReferenceMap(blocks []*light.Block) (map[string]*ParameterOrReference, error) {
+	if blocks == nil {
+		return nil, nil
+	}
+
+	orMap, err := blocksToOrMap(blocks, "parameters", func(reference *Reference) OrHCL {
+		return &ParameterOrReference{
+			Oneof: &ParameterOrReference_Reference{
+				Reference: reference,
+			},
+		}
+	}, func(body *light.Body) (OrHCL, error) {
+		parameter, err := parameterFromHCL(body)
+		if err != nil {
+			return nil, err
+		}
+		if parameter != nil {
+			return &ParameterOrReference{
+				Oneof: &ParameterOrReference_Parameter{
+					Parameter: parameter,
+				},
+			}, nil
+		}
+		return nil, nil
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	if orMap == nil {
+		return nil, nil
+	}
+
+	hash := make(map[string]*ParameterOrReference)
+	for k, v := range orMap {
+		hash[k] = v.(*ParameterOrReference)
+	}
+
+	return hash, nil
+}
+
+/*
+func parameterOrReferenceMapToBlocks(parameters map[string]*ParameterOrReference) ([]*light.Block, error) {
+	if parameters == nil {
+		return nil, nil
+	}
 	hash := make(map[string]AbleHCL)
 	for k, v := range parameters {
 		hash[k] = v
@@ -287,3 +341,4 @@ func blocksToParameterOrReferenceMap(blocks []*light.Block) (map[string]*Paramet
 	}
 	return hash, nil
 }
+*/

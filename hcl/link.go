@@ -146,24 +146,51 @@ func linkOrReferenceMapToBlocks(links map[string]*LinkOrReference) ([]*light.Blo
 	if links == nil {
 		return nil, nil
 	}
-	hash := make(map[string]AbleHCL)
+
+	hash := make(map[string]OrHCL)
 	for k, v := range links {
 		hash[k] = v
 	}
-	return ableMapToBlocks(hash, "link")
+	return orMapToBlocks(hash, "links")
 }
 
 func blocksToLinkOrReferenceMap(blocks []*light.Block) (map[string]*LinkOrReference, error) {
 	if blocks == nil {
 		return nil, nil
 	}
-	hash := make(map[string]*LinkOrReference)
-	for _, block := range blocks {
-		able, err := linkOrReferenceFromHCL(block.Bdy)
+
+	orMap, err := blocksToOrMap(blocks, "links", func(reference *Reference) OrHCL {
+		return &LinkOrReference{
+			Oneof: &LinkOrReference_Reference{
+				Reference: reference,
+			},
+		}
+	}, func(body *light.Body) (OrHCL, error) {
+		link, err := linkFromHCL(body)
 		if err != nil {
 			return nil, err
 		}
-		hash[block.Labels[0]] = able
+		if link != nil {
+			return &LinkOrReference{
+				Oneof: &LinkOrReference_Link{
+					Link: link,
+				},
+			}, nil
+		}
+		return nil, nil
+	})
+	if err != nil {
+		return nil, err
 	}
+
+	if orMap == nil {
+		return nil, nil
+	}
+
+	hash := make(map[string]*LinkOrReference)
+	for k, v := range orMap {
+		hash[k] = v.(*LinkOrReference)
+	}
+
 	return hash, nil
 }

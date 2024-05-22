@@ -51,49 +51,6 @@ func expressionToPathItemOrReference(expr *light.Expression) (*PathItemOrReferen
 	}, err
 }
 
-/*
-	func (self *PathItemOrReference) toHCL() (*light.Body, error) {
-		switch self.Oneof.(type) {
-		case *PathItemOrReference_Item:
-			return self.GetItem().toHCL()
-		case *PathItemOrReference_Reference:
-			return self.GetReference().toHCL()
-		default:
-		}
-		return nil, nil
-	}
-
-	func pathItemOrReferenceFromHCL(body *light.Body) (*PathItemOrReference, error) {
-		if body == nil {
-			return nil, nil
-		}
-
-		reference, err := referenceFromHCL(body)
-		if err != nil {
-			return nil, err
-		}
-		if reference != nil {
-			return &PathItemOrReference{
-				Oneof: &PathItemOrReference_Reference{
-					Reference: reference,
-				},
-			}, nil
-		}
-
-		item, err := pathItemFromHCL(body)
-		if err != nil {
-			return nil, err
-		}
-		if item == nil {
-			return nil, nil
-		}
-		return &PathItemOrReference{
-			Oneof: &PathItemOrReference_Item{
-				Item: item,
-			},
-		}, nil
-	}
-*/
 func (self *PathItem) toHCL() (*light.Body, error) {
 	hash := self.toOperationMap()
 	blocks := make([]*light.Block, 0)

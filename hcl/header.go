@@ -190,24 +190,51 @@ func headerOrReferenceMapToBlocks(headers map[string]*HeaderOrReference) ([]*lig
 	if headers == nil {
 		return nil, nil
 	}
-	hash := make(map[string]AbleHCL)
+
+	hash := make(map[string]OrHCL)
 	for k, v := range headers {
 		hash[k] = v
 	}
-	return ableMapToBlocks(hash, "header")
+	return orMapToBlocks(hash, "headers")
 }
 
 func blocksToHeaderOrReferenceMap(blocks []*light.Block) (map[string]*HeaderOrReference, error) {
 	if blocks == nil {
 		return nil, nil
 	}
-	hash := make(map[string]*HeaderOrReference)
-	for _, block := range blocks {
-		able, err := headerOrReferenceFromHCL(block.Bdy)
+
+	orMap, err := blocksToOrMap(blocks, "headers", func(reference *Reference) OrHCL {
+		return &HeaderOrReference{
+			Oneof: &HeaderOrReference_Reference{
+				Reference: reference,
+			},
+		}
+	}, func(body *light.Body) (OrHCL, error) {
+		header, err := headerFromHCL(body)
 		if err != nil {
 			return nil, err
 		}
-		hash[block.Labels[0]] = able
+		if header != nil {
+			return &HeaderOrReference{
+				Oneof: &HeaderOrReference_Header{
+					Header: header,
+				},
+			}, nil
+		}
+		return nil, nil
+	})
+	if err != nil {
+		return nil, err
 	}
+
+	if orMap == nil {
+		return nil, nil
+	}
+
+	hash := make(map[string]*HeaderOrReference)
+	for k, v := range orMap {
+		hash[k] = v.(*HeaderOrReference)
+	}
+
 	return hash, nil
 }

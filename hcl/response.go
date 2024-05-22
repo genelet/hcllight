@@ -140,6 +140,60 @@ func responseOrReferenceMapToBlocks(responses map[string]*ResponseOrReference) (
 	if responses == nil {
 		return nil, nil
 	}
+
+	hash := make(map[string]OrHCL)
+	for k, v := range responses {
+		hash[k] = v
+	}
+	return orMapToBlocks(hash, "responses")
+}
+
+func blocksToResponseOrReferenceMap(blocks []*light.Block) (map[string]*ResponseOrReference, error) {
+	if blocks == nil {
+		return nil, nil
+	}
+
+	orMap, err := blocksToOrMap(blocks, "responses", func(reference *Reference) OrHCL {
+		return &ResponseOrReference{
+			Oneof: &ResponseOrReference_Reference{
+				Reference: reference,
+			},
+		}
+	}, func(body *light.Body) (OrHCL, error) {
+		response, err := responseFromHCL(body)
+		if err != nil {
+			return nil, err
+		}
+		if response != nil {
+			return &ResponseOrReference{
+				Oneof: &ResponseOrReference_Response{
+					Response: response,
+				},
+			}, nil
+		}
+		return nil, nil
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	if orMap == nil {
+		return nil, nil
+	}
+
+	hash := make(map[string]*ResponseOrReference)
+	for k, v := range orMap {
+		hash[k] = v.(*ResponseOrReference)
+	}
+
+	return hash, nil
+}
+
+/*
+func responseOrReferenceMapToBlocks(responses map[string]*ResponseOrReference) ([]*light.Block, error) {
+	if responses == nil {
+		return nil, nil
+	}
 	hash := make(map[string]AbleHCL)
 	for k, v := range responses {
 		hash[k] = v
@@ -161,3 +215,4 @@ func blocksToResponseOrReferenceMap(blocks []*light.Block) (map[string]*Response
 	}
 	return hash, nil
 }
+*/
