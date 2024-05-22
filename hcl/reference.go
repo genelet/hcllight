@@ -62,13 +62,24 @@ func referenceFromHCL(body *light.Body) (*Reference, error) {
 	return self, nil
 }
 
+func xrefToTraversal(xref string) (*light.Expression, error) {
+	arr := strings.Split(xref, "#/")
+	if len(arr) != 2 {
+		return nil, fmt.Errorf("invalid reference: %s", xref)
+	}
+	return stringToTraversal(arr[1]), nil
+}
+
+func traversalToXref(expr *light.Expression) (string, error) {
+	if expr == nil {
+		return "", nil
+	}
+	return "#/" + *traversalToString(expr), nil
+}
+
 func (self *Reference) toExpression() (*light.Expression, error) {
 	if self.Summary == "" && self.Description == "" {
-		arr := strings.Split(self.XRef, "#/")
-		if len(arr) != 2 {
-			return nil, fmt.Errorf("invalid reference: %s", self.XRef)
-		}
-		return stringToTraversal(arr[1]), nil
+		return xrefToTraversal(self.XRef)
 	}
 
 	args := []*light.Expression{
@@ -96,8 +107,16 @@ func expressionToReference(expr *light.Expression) (*Reference, error) {
 	}
 
 	reference := &Reference{}
-	var found bool
-	if x := expr.GetFcexpr(); x != nil {
+	switch expr.ExpressionClause.(type) {
+	case *light.Expression_Stexpr:
+		str, err := traversalToXref(expr)
+		if err != nil {
+			return nil, err
+		}
+		reference.XRef = str
+		return reference, nil
+	case *light.Expression_Fcexpr:
+		x := expr.GetFcexpr()
 		if x.Name == "reference" {
 			if len(x.Args) < 1 {
 				return nil, fmt.Errorf("invalid reference expression: %#v", expr)
@@ -112,15 +131,13 @@ func expressionToReference(expr *light.Expression) (*Reference, error) {
 				arg = x.Args[2]
 				reference.Description = *textValueExprToString(arg)
 			}
-			found = true
+			return reference, nil
 		}
-	} else if x := expr.GetLvexpr(); x != nil {
-		reference.XRef = "#/" + *traversalToString(expr)
-		found = true
+	case *light.Expression_Ocexpr:
+		x := expr.GetOcexpr()
+		return referenceFromHCL(x.ToBody())
+	default:
 	}
 
-	if !found {
-		return nil, nil
-	}
-	return reference, nil
+	return nil, nil
 }

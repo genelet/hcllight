@@ -117,24 +117,51 @@ func exampleOrReferenceMapToBlocks(examples map[string]*ExampleOrReference) ([]*
 	if examples == nil {
 		return nil, nil
 	}
-	hash := make(map[string]AbleHCL)
+
+	hash := make(map[string]OrHCL)
 	for k, v := range examples {
 		hash[k] = v
 	}
-	return ableMapToBlocks(hash, "example")
+	return orMapToBlocks(hash, "examples")
 }
 
 func blocksToExampleOrReferenceMap(blocks []*light.Block) (map[string]*ExampleOrReference, error) {
 	if blocks == nil {
 		return nil, nil
 	}
-	hash := make(map[string]*ExampleOrReference)
-	for _, block := range blocks {
-		able, err := exampleOrReferenceFromHCL(block.Bdy)
+
+	orMap, err := blocksToOrMap(blocks, "examples", func(reference *Reference) OrHCL {
+		return &ExampleOrReference{
+			Oneof: &ExampleOrReference_Reference{
+				Reference: reference,
+			},
+		}
+	}, func(body *light.Body) (OrHCL, error) {
+		example, err := exampleFromHCL(body)
 		if err != nil {
 			return nil, err
 		}
-		hash[block.Labels[0]] = able
+		if example != nil {
+			return &ExampleOrReference{
+				Oneof: &ExampleOrReference_Example{
+					Example: example,
+				},
+			}, nil
+		}
+		return nil, nil
+	})
+	if err != nil {
+		return nil, err
 	}
+
+	if orMap == nil {
+		return nil, nil
+	}
+
+	hash := make(map[string]*ExampleOrReference)
+	for k, v := range orMap {
+		hash[k] = v.(*ExampleOrReference)
+	}
+
 	return hash, nil
 }

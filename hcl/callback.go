@@ -78,24 +78,50 @@ func callbackOrReferenceMapToBlocks(callbacks map[string]*CallbackOrReference) (
 	if callbacks == nil {
 		return nil, nil
 	}
-	hash := make(map[string]AbleHCL)
+
+	hash := make(map[string]OrHCL)
 	for k, v := range callbacks {
 		hash[k] = v
 	}
-	return ableMapToBlocks(hash, "callback")
+	return orMapToBlocks(hash, "callbacks")
 }
 
 func blocksToCallbackOrReferenceMap(blocks []*light.Block) (map[string]*CallbackOrReference, error) {
 	if blocks == nil {
 		return nil, nil
 	}
-	hash := make(map[string]*CallbackOrReference)
-	for _, block := range blocks {
-		able, err := callbackOrReferenceFromHCL(block.Bdy)
+
+	orMap, err := blocksToOrMap(blocks, "callbacks", func(reference *Reference) OrHCL {
+		return &CallbackOrReference{
+			Oneof: &CallbackOrReference_Reference{
+				Reference: reference,
+			},
+		}
+	}, func(body *light.Body) (OrHCL, error) {
+		callback, err := callbackFromHCL(body)
 		if err != nil {
 			return nil, err
 		}
-		hash[block.Type] = able
+		if callback != nil {
+			return &CallbackOrReference{
+				Oneof: &CallbackOrReference_Callback{
+					Callback: callback,
+				},
+			}, nil
+		}
+		return nil, nil
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	if orMap == nil {
+		return nil, nil
+	}
+
+	hash := make(map[string]*CallbackOrReference)
+	for k, v := range orMap {
+		hash[k] = v.(*CallbackOrReference)
 	}
 
 	return hash, nil
