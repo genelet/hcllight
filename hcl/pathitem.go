@@ -4,48 +4,96 @@ import (
 	"github.com/genelet/hcllight/light"
 )
 
-func (self *PathItemOrReference) toHCL() (*light.Body, error) {
+func (self *PathItemOrReference) toExpression() (*light.Expression, error) {
 	switch self.Oneof.(type) {
 	case *PathItemOrReference_Item:
-		return self.GetItem().toHCL()
+		body, err := self.GetItem().toHCL()
+		if err != nil {
+			return nil, err
+		}
+		return &light.Expression{
+			ExpressionClause: &light.Expression_Ocexpr{
+				Ocexpr: body.ToObjectConsExpr(),
+			},
+		}, nil
 	case *PathItemOrReference_Reference:
-		return self.GetReference().toHCL()
+		return self.GetReference().toExpression()
 	default:
 	}
 	return nil, nil
 }
 
-func pathItemOrReferenceFromHCL(body *light.Body) (*PathItemOrReference, error) {
-	if body == nil {
+func expressionToPathItemOrReference(expr *light.Expression) (*PathItemOrReference, error) {
+	if expr == nil {
 		return nil, nil
 	}
 
-	reference, err := referenceFromHCL(body)
-	if err != nil {
-		return nil, err
-	}
-	if reference != nil {
+	switch expr.ExpressionClause.(type) {
+	case *light.Expression_Ocexpr:
+		body := expr.GetOcexpr().ToBody()
+		item, err := pathItemFromHCL(body)
+		if err != nil {
+			return nil, err
+		}
 		return &PathItemOrReference{
-			Oneof: &PathItemOrReference_Reference{
-				Reference: reference,
+			Oneof: &PathItemOrReference_Item{
+				Item: item,
+			},
+		}, nil
+	default:
+	}
+
+	reference, err := expressionToReference(expr)
+	return &PathItemOrReference{
+		Oneof: &PathItemOrReference_Reference{
+			Reference: reference,
+		},
+	}, err
+}
+
+/*
+	func (self *PathItemOrReference) toHCL() (*light.Body, error) {
+		switch self.Oneof.(type) {
+		case *PathItemOrReference_Item:
+			return self.GetItem().toHCL()
+		case *PathItemOrReference_Reference:
+			return self.GetReference().toHCL()
+		default:
+		}
+		return nil, nil
+	}
+
+	func pathItemOrReferenceFromHCL(body *light.Body) (*PathItemOrReference, error) {
+		if body == nil {
+			return nil, nil
+		}
+
+		reference, err := referenceFromHCL(body)
+		if err != nil {
+			return nil, err
+		}
+		if reference != nil {
+			return &PathItemOrReference{
+				Oneof: &PathItemOrReference_Reference{
+					Reference: reference,
+				},
+			}, nil
+		}
+
+		item, err := pathItemFromHCL(body)
+		if err != nil {
+			return nil, err
+		}
+		if item == nil {
+			return nil, nil
+		}
+		return &PathItemOrReference{
+			Oneof: &PathItemOrReference_Item{
+				Item: item,
 			},
 		}, nil
 	}
-
-	item, err := pathItemFromHCL(body)
-	if err != nil {
-		return nil, err
-	}
-	if item == nil {
-		return nil, nil
-	}
-	return &PathItemOrReference{
-		Oneof: &PathItemOrReference_Item{
-			Item: item,
-		},
-	}, nil
-}
-
+*/
 func (self *PathItem) toHCL() (*light.Body, error) {
 	hash := self.toOperationMap()
 	blocks := make([]*light.Block, 0)
@@ -163,30 +211,34 @@ func pathItemFromOperationMap(hash map[string]*Operation) *PathItem {
 }
 
 func pathItemOrReferenceMapToBlocks(paths map[string]*PathItemOrReference) ([]*light.Block, error) {
-	blocks := make([]*light.Block, 0)
-	for k, v := range paths {
-		if x := v.GetReference(); x != nil {
-			blocks = append(blocks, &light.Block{
-				Type:   "paths",
-				Labels: []string{k, x.XRef},
-				Bdy:    &light.Body{},
-			},
-			)
-			continue
-		}
+	if paths == nil || len(paths) == 0 {
+		return nil, nil
+	}
 
-		item := v.GetItem()
-		hash := item.toOperationMap()
-		for k2, v2 := range hash {
-			bdy, err := v2.toHCL()
-			if err != nil {
-				return nil, err
-			}
+	blocks := make([]*light.Block, 0)
+
+	for k, v := range paths {
+		switch v.Oneof.(type) {
+		case *PathItemOrReference_Reference:
+			reference := v.GetReference().XRef
 			blocks = append(blocks, &light.Block{
-				Type:   "paths",
-				Labels: []string{k, k2},
-				Bdy:    bdy,
+				Type:   k,
+				Labels: []string{reference},
 			})
+		default:
+			item := v.GetItem()
+			hash := item.toOperationMap()
+			for k2, v2 := range hash {
+				bdy, err := v2.toHCL()
+				if err != nil {
+					return nil, err
+				}
+				blocks = append(blocks, &light.Block{
+					Type:   k,
+					Labels: []string{k2},
+					Bdy:    bdy,
+				})
+			}
 		}
 	}
 
@@ -201,27 +253,28 @@ func blocksToPathItemOrReferenceMap(blocks []*light.Block) (map[string]*PathItem
 	hash1 := make(map[string]*PathItemOrReference)
 	hash2 := make(map[string]map[string]*Operation)
 	for _, block := range blocks {
-		if block.Type == "paths" {
-			if len(block.Labels) == 2 {
-				hash1[block.Labels[0]] = &PathItemOrReference{
-					Oneof: &PathItemOrReference_Reference{
-						Reference: &Reference{
-							XRef: block.Labels[1],
-						},
+		k := block.Type
+		if block.Labels == nil {
+			return nil, ErrInvalidType()
+		}
+		method := block.Labels[0]
+		switch method {
+		case "get", "put", "post", "delete", "options", "head", "patch", "trace", "common":
+			if _, ok := hash2[method]; !ok {
+				hash2[method] = make(map[string]*Operation)
+			}
+			operation, err := operationFromHCL(block.Bdy)
+			if err != nil {
+				return nil, err
+			}
+			hash2[k][method] = operation
+		default:
+			hash1[k] = &PathItemOrReference{
+				Oneof: &PathItemOrReference_Reference{
+					Reference: &Reference{
+						XRef: method,
 					},
-				}
-			} else {
-				if len(block.Labels) < 2 {
-					return nil, ErrInvalidType()
-				}
-				if _, ok := hash2[block.Labels[0]]; !ok {
-					hash2[block.Labels[0]] = make(map[string]*Operation)
-				}
-				operation, err := operationFromHCL(block.Bdy)
-				if err != nil {
-					return nil, err
-				}
-				hash2[block.Labels[0]][block.Labels[1]] = operation
+				},
 			}
 		}
 	}
@@ -271,75 +324,3 @@ func blocksToPathItemOrReferenceMap(blocks []*light.Block) (map[string]*PathItem
 
 	return hash1, nil
 }
-
-/*
-func pathItemOrReferenceMapToBlocks(path map[string]*PathItemOrReference) ([]*light.Block, error) {
-	if path == nil {
-		return nil, nil
-	}
-	hash := make(map[string]AbleHCL)
-	for k, v := range path {
-		hash[k] = v
-	}
-	return ableMapToBlocks(hash, "path")
-}
-
-func blocksToPathItemOrReferenceMap(blocks []*light.Block) (map[string]*PathItemOrReference, error) {
-	if blocks == nil {
-		return nil, nil
-	}
-	hash := make(map[string]*PathItemOrReference)
-	for _, block := range blocks {
-		able, err := pathItemOrReferenceFromHCL(block.Bdy)
-		if err != nil {
-			return nil, err
-		}
-		hash[block.Type] = able
-	}
-
-	return hash, nil
-}
-*/
-/*
-func tupleConsExprToAble(expr *light.Expression, fromHCL func(*light.ObjectConsExpr) (AbleHCL, error)) ([]AbleHCL, error) {
-	if expr == nil {
-		return nil, nil
-	}
-	if expr.GetTcexpr() == nil {
-		return nil, nil
-	}
-	exprs := expr.GetTcexpr().Exprs
-	if len(exprs) == 0 {
-		return nil, nil
-	}
-
-	var items []AbleHCL
-	for _, expr := range exprs {
-		item, err := fromHCL(expr.GetOcexpr())
-		if err != nil {
-			return nil, err
-		}
-		items = append(items, item)
-	}
-	return items, nil
-}
-
-func ableMapToBlocks(hash map[string]AbleHCL, label string) ([]*light.Block, error) {
-	if hash == nil {
-		return nil, nil
-	}
-	var blocks []*light.Block
-	for k, v := range hash {
-		bdy, err := v.toHCL()
-		if err != nil {
-			return nil, err
-		}
-		blocks = append(blocks, &light.Block{
-			Type:   label,
-			Labels: []string{k},
-			Bdy:    bdy,
-		})
-	}
-	return blocks, nil
-}
-*/

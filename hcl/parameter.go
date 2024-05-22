@@ -96,7 +96,7 @@ func (self *Parameter) toHCL() (*light.Body, error) {
 	addSpecificationBlock(self.SpecificationExtension, &blocks)
 
 	if self.Schema != nil {
-		expr, err := SchemaOrReferenceToExpression(self.Schema)
+		expr, err := self.Schema.toExpression()
 		if err != nil {
 			return nil, err
 		}

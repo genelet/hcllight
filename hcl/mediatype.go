@@ -23,7 +23,7 @@ func (self *MediaType) toHCL() (*light.Body, error) {
 	}
 
 	if self.Schema != nil {
-		expr, err := SchemaOrReferenceToExpression(self.Schema)
+		expr, err := self.Schema.toExpression()
 		if err != nil {
 			return nil, err
 		}

@@ -78,7 +78,7 @@ func (self *Schema) toHCL() (*light.Body, error) {
 		})
 	}
 	if self.Not != nil {
-		expr, err := SchemaOrReferenceToExpression(self.Not)
+		expr, err := self.Not.toExpression()
 		if err != nil {
 			return nil, err
 		}

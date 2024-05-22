@@ -90,7 +90,7 @@ func (self *Reference) toExpression() (*light.Expression, error) {
 	}, nil
 }
 
-func referenceFromExpression(expr *light.Expression) (*Reference, error) {
+func expressionToReference(expr *light.Expression) (*Reference, error) {
 	if expr == nil {
 		return nil, nil
 	}

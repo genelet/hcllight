@@ -4,19 +4,20 @@ import (
 	"github.com/genelet/hcllight/light"
 )
 
-func (s *SchemaOrReference) toHCL() (*light.Body, error) {
-	switch s.Oneof.(type) {
-	case *SchemaOrReference_Schema:
-		return s.GetSchema().toHCL()
-	case *SchemaOrReference_Reference:
-		return s.GetReference().toHCL()
-	default: // we ignore all other types, meaning we have to assign type Schema when parsing Components.Schemas
+/*
+	func (s *SchemaOrReference) toHCL() (*light.Body, error) {
+		switch s.Oneof.(type) {
+		case *SchemaOrReference_Schema:
+			return s.GetSchema().toHCL()
+		case *SchemaOrReference_Reference:
+			return s.GetReference().toHCL()
+		default: // we ignore all other types, meaning we have to assign type Schema when parsing Components.Schemas
+		}
+
+		return nil, nil
 	}
-
-	return nil, nil
-}
-
-func SchemaOrReferenceToExpression(self *SchemaOrReference) (*light.Expression, error) {
+*/
+func (self *SchemaOrReference) toExpression() (*light.Expression, error) {
 	if self == nil {
 		return nil, nil
 	}
@@ -78,18 +79,15 @@ func ExpressionToSchemaOrReference(self *light.Expression) (*SchemaOrReference, 
 	case *light.Expression_Ocexpr:
 		bdy := self.GetOcexpr().ToBody()
 		s, err := schemaFullFromHCL(bdy)
-		if err != nil {
-			return nil, err
-		}
 		return &SchemaOrReference{
 			Oneof: &SchemaOrReference_Schema{
 				Schema: s,
 			},
-		}, nil
+		}, err
 	default:
 	}
 
-	ref, err := referenceFromExpression(self)
+	ref, err := expressionToReference(self)
 	if err != nil {
 		return nil, err
 	}
@@ -190,7 +188,7 @@ func mapSchemaOrReferenceToObjectConsExpr(m map[string]*SchemaOrReference) (*lig
 	}
 	var exprs []*light.ObjectConsItem
 	for k, v := range m {
-		expr, err := SchemaOrReferenceToExpression(v)
+		expr, err := v.toExpression()
 		if err != nil {
 			return nil, err
 		}
@@ -241,7 +239,7 @@ func mapSchemaOrReferenceToBody(m map[string]*SchemaOrReference) (*light.Body, e
 				Bdy:  bdy,
 			})
 		default:
-			expr, err := SchemaOrReferenceToExpression(v)
+			expr, err := v.toExpression()
 			if err != nil {
 				return nil, err
 			}

@@ -68,17 +68,29 @@ func (self *Document) toHCL() (*light.Body, error) {
 		if err != nil {
 			return nil, err
 		}
-		blocks = append(blocks, blks...)
+		for _, block := range blks {
+			blocks = append(blocks, &light.Block{
+				Type: "paths",
+				Labels: []string{
+					block.Type,
+					block.Labels[0],
+				},
+				Bdy: block.Bdy,
+			})
+		}
 	}
 	if self.Components != nil {
 		bdy, err := self.Components.toHCL()
 		if err != nil {
 			return nil, err
 		}
-		blocks = append(blocks, &light.Block{
-			Type: "components",
-			Bdy:  bdy,
-		})
+		for _, block := range bdy.Blocks {
+			blocks = append(blocks, &light.Block{
+				Type:   "components",
+				Labels: []string{block.Type, block.Labels[0]},
+				Bdy:    block.Bdy,
+			})
+		}
 	}
 	if self.Security != nil {
 		expr, err := securityRequirementToTupleConsExpr(self.Security)

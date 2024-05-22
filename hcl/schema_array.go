@@ -10,7 +10,7 @@ func arrayToTupleConsExpr(items []*SchemaOrReference) (*light.TupleConsExpr, err
 	}
 	var exprs []*light.Expression
 	for _, item := range items {
-		expr, err := SchemaOrReferenceToExpression(item)
+		expr, err := item.toExpression()
 		if err != nil {
 			return nil, err
 		}

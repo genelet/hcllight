@@ -9,21 +9,25 @@ func (self *Components) toHCL() (*light.Body, error) {
 	attrs := make(map[string]*light.Attribute)
 	blocks := make([]*light.Block, 0)
 	if self.Schemas != nil {
-		/*
-			blks, err := schemaOrReferenceMapToBlocks(self.Schemas)
-			if err != nil {
-				return nil, err
-			}
-			blocks = append(blocks, blks...)
-		*/
 		bdy, err := mapSchemaOrReferenceToBody(self.Schemas)
 		if err != nil {
 			return nil, err
 		}
-		for k, v := range bdy.Attributes {
-			attrs[k] = v
+		if bdy.Attributes != nil {
+			blocks = append(blocks, &light.Block{
+				Type: "schemas",
+				Bdy: &light.Body{
+					Attributes: bdy.Attributes,
+				},
+			})
 		}
-		blocks = append(blocks, bdy.Blocks...)
+		for _, block := range bdy.Blocks {
+			blocks = append(blocks, &light.Block{
+				Type:   "schemas",
+				Labels: []string{block.Type},
+				Bdy:    block.Bdy,
+			})
+		}
 	}
 	if self.Responses != nil {
 		blks, err := responseOrReferenceMapToBlocks(self.Responses)

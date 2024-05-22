@@ -6,7 +6,7 @@ import (
 
 func schemaOrBooleanToExpression(item *AdditionalPropertiesItem) (*light.Expression, error) {
 	if x := item.GetSchemaOrReference(); x != nil {
-		return SchemaOrReferenceToExpression(x)
+		return x.toExpression()
 	} else {
 		return booleanToLiteralValueExpr(item.GetBoolean()), nil
 	}
