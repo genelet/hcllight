@@ -91,6 +91,107 @@ func blocksToAbleMap(blocks []*light.Block, fromHCL func(*light.Body) (AbleHCL, 
 	return hash, nil
 }
 
+type OrHCL interface {
+	GetReference() *Reference
+	toHCL() (*light.Body, error)
+}
+
+func orMapToBlocks(hash map[string]OrHCL, label string) ([]*light.Block, error) {
+	if hash == nil {
+		return nil, nil
+	}
+	var blocks []*light.Block
+	attrs := make(map[string]*light.Attribute)
+	for k, v := range hash {
+		if x := v.GetReference(); x != nil {
+			if x.Summary == "" && x.Description == "" {
+				expr, err := xrefToTraversal(x.XRef)
+				if err != nil {
+					return nil, err
+				}
+				attrs[k] = &light.Attribute{
+					Name: k,
+					Expr: expr,
+				}
+				continue
+			} else {
+				body, err := x.toHCL()
+				if err != nil {
+					return nil, err
+				}
+				blocks = append(blocks, &light.Block{
+					Type:   label,
+					Labels: []string{k},
+					Bdy:    body,
+				})
+				continue
+			}
+		}
+
+		bdy, err := v.toHCL()
+		if err != nil {
+			return nil, err
+		}
+		blocks = append(blocks, &light.Block{
+			Type:   label,
+			Labels: []string{k},
+			Bdy:    bdy,
+		})
+	}
+	if len(attrs) > 0 {
+		blocks = append(blocks, &light.Block{
+			Type: label,
+			Bdy:  &light.Body{Attributes: attrs},
+		})
+	}
+	return blocks, nil
+}
+
+func blocksToOrMap(blocks []*light.Block, label string, fromReference func(*Reference) OrHCL, fromHCL func(*light.Body) (OrHCL, error)) (map[string]OrHCL, error) {
+	if blocks == nil {
+		return nil, nil
+	}
+
+	hash := make(map[string]OrHCL)
+	for _, block := range blocks {
+		if label != block.Type {
+			return nil, nil
+		}
+		if block.Bdy == nil || len(block.Bdy.Attributes) == 0 {
+			return nil, ErrInvalidType()
+		}
+		if len(block.Labels) == 0 {
+			for k, v := range block.Bdy.Attributes {
+				str, err := traversalToXref(v.Expr)
+				if err != nil {
+
+				}
+				hash[k] = fromReference(&Reference{XRef: str})
+			}
+			continue
+		}
+		k := block.Labels[0]
+		reference, err := referenceFromHCL(block.Bdy)
+		if err != nil {
+			return nil, err
+		}
+		if reference != nil {
+			hash[k] = fromReference(reference)
+			continue
+		}
+		able, err := fromHCL(block.Bdy)
+		if err != nil {
+			return nil, err
+		}
+		hash[k] = able
+	}
+
+	if len(hash) == 0 {
+		return nil, nil
+	}
+	return hash, nil
+}
+
 /*
 func schemaOrReferenceMapToBlocks(schemas map[string]*SchemaOrReference) ([]*light.Block, error) {
 	if schemas == nil {
