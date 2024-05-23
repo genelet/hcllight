@@ -89,7 +89,13 @@ func (self *Schema) toHCL() (*light.Body, error) {
 			if err = stringToAttributes(self.String_, attrs); err == nil {
 				if err = arrayToAttributes(self.Array, attrs); err == nil {
 					if err = objectToAttributesBlocks(self.Object, attrs, &blocks); err == nil {
-						err = mapToAttributes(self.Map, attrs)
+						if err = mapToAttributes(self.Map, attrs); err == nil {
+							if err = oneOfToAttributes(self.OneOf, attrs); err == nil {
+								if err = allOfToAttributes(self.AllOf, attrs); err == nil {
+									err = anyOfToAttributes(self.AnyOf, attrs)
+								}
+							}
+						}
 					}
 				}
 			}

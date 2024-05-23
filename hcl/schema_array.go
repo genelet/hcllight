@@ -41,6 +41,90 @@ func tupleConsExprToArray(t *light.TupleConsExpr) ([]*SchemaOrReference, error) 
 	return items, nil
 }
 
+func itemsToAttributes(items []*SchemaOrReference, name string, attrs map[string]*light.Attribute) error {
+	if items == nil || len(items) == 0 {
+		return nil
+	}
+
+	expr, err := arrayToTupleConsExpr(items)
+	if err != nil {
+		return err
+	}
+	attrs[name] = &light.Attribute{
+		Name: name,
+		Expr: &light.Expression{
+			ExpressionClause: &light.Expression_Tcexpr{
+				Tcexpr: expr,
+			},
+		},
+	}
+	return nil
+}
+
+func attributesToItems(attrs map[string]*light.Attribute, name string) ([]*SchemaOrReference, error) {
+	if attrs == nil {
+		return nil, nil
+	}
+	if v, ok := attrs[name]; ok {
+		return tupleConsExprToArray(v.Expr.GetTcexpr())
+	}
+	return nil, nil
+}
+
+func oneOfToAttributes(self *SchemaOneOf, attrs map[string]*light.Attribute) error {
+	if self == nil {
+		return nil
+	}
+	return itemsToAttributes(self.Items, "oneOf", attrs)
+}
+
+func attributesToOneOf(attrs map[string]*light.Attribute) (*SchemaOneOf, error) {
+	if items, err := attributesToItems(attrs, "oneOf"); err != nil {
+		return nil, err
+	} else if items != nil {
+		return &SchemaOneOf{
+			Items: items,
+		}, nil
+	}
+	return nil, nil
+}
+
+func allOfToAttributes(self *SchemaAllOf, attrs map[string]*light.Attribute) error {
+	if self == nil {
+		return nil
+	}
+	return itemsToAttributes(self.Items, "allOf", attrs)
+}
+
+func attributesToAllOf(attrs map[string]*light.Attribute) (*SchemaAllOf, error) {
+	if items, err := attributesToItems(attrs, "allOf"); err != nil {
+		return nil, err
+	} else if items != nil {
+		return &SchemaAllOf{
+			Items: items,
+		}, nil
+	}
+	return nil, nil
+}
+
+func anyOfToAttributes(self *SchemaAnyOf, attrs map[string]*light.Attribute) error {
+	if self == nil {
+		return nil
+	}
+	return itemsToAttributes(self.Items, "anyOf", attrs)
+}
+
+func attributesToAnyOf(attrs map[string]*light.Attribute) (*SchemaAnyOf, error) {
+	if items, err := attributesToItems(attrs, "anyOf"); err != nil {
+		return nil, err
+	} else if items != nil {
+		return &SchemaAnyOf{
+			Items: items,
+		}, nil
+	}
+	return nil, nil
+}
+
 func arrayToAttributes(self *SchemaArray, attrs map[string]*light.Attribute) error {
 	if self == nil || attrs == nil {
 		return nil
@@ -64,21 +148,8 @@ func arrayToAttributes(self *SchemaArray, attrs map[string]*light.Attribute) err
 			Expr: booleanToLiteralValueExpr(self.UniqueItems),
 		}
 	}
-	if self.Items != nil {
-		expr, err := arrayToTupleConsExpr(self.Items)
-		if err != nil {
-			return err
-		}
-		attrs["items"] = &light.Attribute{
-			Name: "items",
-			Expr: &light.Expression{
-				ExpressionClause: &light.Expression_Tcexpr{
-					Tcexpr: expr,
-				},
-			},
-		}
-	}
-	return nil
+
+	return itemsToAttributes(self.Items, "items", attrs)
 }
 
 func attributesToArray(attrs map[string]*light.Attribute) (*SchemaArray, error) {
@@ -87,6 +158,7 @@ func attributesToArray(attrs map[string]*light.Attribute) (*SchemaArray, error) 
 	}
 
 	var found bool
+	var err error
 	array := &SchemaArray{}
 	if v, ok := attrs["minItems"]; ok {
 		array.MinItems = *literalValueExprToInt64(v.Expr)
@@ -100,12 +172,10 @@ func attributesToArray(attrs map[string]*light.Attribute) (*SchemaArray, error) 
 		array.UniqueItems = *literalValueExprToBoolean(v.Expr)
 		found = true
 	}
-	if v, ok := attrs["items"]; ok {
-		items, err := tupleConsExprToArray(v.Expr.GetTcexpr())
-		if err != nil {
-			return nil, err
-		}
-		array.Items = items
+
+	if array.Items, err = attributesToItems(attrs, "items"); err != nil {
+		return nil, err
+	} else if array.Items != nil {
 		found = true
 	}
 
