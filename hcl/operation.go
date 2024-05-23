@@ -50,7 +50,7 @@ func (self *Operation) toHCL() (*light.Body, error) {
 		blocks = append(blocks, body.Blocks...)
 	}
 	if self.RequestBody != nil {
-		bdy, err := self.RequestBody.toHCL()
+		bdy, err := self.RequestBody.getAble().toHCL()
 		if err != nil {
 			return nil, err
 		}
@@ -192,7 +192,7 @@ func operationMapToBlocks(op map[string]*Operation) ([]*light.Block, error) {
 	if op == nil {
 		return nil, nil
 	}
-	hash := make(map[string]AbleHCL)
+	hash := make(map[string]ableHCL)
 	for k, v := range op {
 		hash[k] = v
 	}

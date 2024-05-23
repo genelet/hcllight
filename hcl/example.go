@@ -4,15 +4,8 @@ import (
 	"github.com/genelet/hcllight/light"
 )
 
-func (self *ExampleOrReference) toHCL() (*light.Body, error) {
-	switch self.Oneof.(type) {
-	case *ExampleOrReference_Example:
-		return self.GetExample().toHCL()
-	case *ExampleOrReference_Reference:
-		return self.GetReference().toHCL()
-	default:
-	}
-	return nil, nil
+func (self *ExampleOrReference) getAble() ableHCL {
+	return self.GetExample()
 }
 
 func exampleOrReferenceFromHCL(body *light.Body) (*ExampleOrReference, error) {
@@ -131,7 +124,7 @@ func exampleOrReferenceMapToBlocks(examples map[string]*ExampleOrReference) ([]*
 		return nil, nil
 	}
 
-	hash := make(map[string]OrHCL)
+	hash := make(map[string]orHCL)
 	for k, v := range examples {
 		hash[k] = v
 	}
@@ -143,13 +136,13 @@ func blocksToExampleOrReferenceMap(blocks []*light.Block) (map[string]*ExampleOr
 		return nil, nil
 	}
 
-	orMap, err := blocksToOrMap(blocks, "examples", func(reference *Reference) OrHCL {
+	orMap, err := blocksToOrMap(blocks, "examples", func(reference *Reference) orHCL {
 		return &ExampleOrReference{
 			Oneof: &ExampleOrReference_Reference{
 				Reference: reference,
 			},
 		}
-	}, func(body *light.Body) (OrHCL, error) {
+	}, func(body *light.Body) (orHCL, error) {
 		example, err := exampleFromHCL(body)
 		if err != nil {
 			return nil, err

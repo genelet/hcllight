@@ -4,15 +4,8 @@ import (
 	"github.com/genelet/hcllight/light"
 )
 
-func (self *ResponseOrReference) toHCL() (*light.Body, error) {
-	switch self.Oneof.(type) {
-	case *ResponseOrReference_Response:
-		return self.GetResponse().toHCL()
-	case *ResponseOrReference_Reference:
-		return self.GetReference().toHCL()
-	default:
-	}
-	return nil, nil
+func (self *ResponseOrReference) getAble() ableHCL {
+	return self.GetResponse()
 }
 
 func responseOrReferenceFromHCL(body *light.Body) (*ResponseOrReference, error) {
@@ -147,7 +140,7 @@ func responseOrReferenceMapToBlocks(responses map[string]*ResponseOrReference) (
 		return nil, nil
 	}
 
-	hash := make(map[string]OrHCL)
+	hash := make(map[string]orHCL)
 	for k, v := range responses {
 		hash[k] = v
 	}
@@ -159,13 +152,13 @@ func blocksToResponseOrReferenceMap(blocks []*light.Block) (map[string]*Response
 		return nil, nil
 	}
 
-	orMap, err := blocksToOrMap(blocks, "responses", func(reference *Reference) OrHCL {
+	orMap, err := blocksToOrMap(blocks, "responses", func(reference *Reference) orHCL {
 		return &ResponseOrReference{
 			Oneof: &ResponseOrReference_Reference{
 				Reference: reference,
 			},
 		}
-	}, func(body *light.Body) (OrHCL, error) {
+	}, func(body *light.Body) (orHCL, error) {
 		response, err := responseFromHCL(body)
 		if err != nil {
 			return nil, err
@@ -194,31 +187,3 @@ func blocksToResponseOrReferenceMap(blocks []*light.Block) (map[string]*Response
 
 	return hash, nil
 }
-
-/*
-func responseOrReferenceMapToBlocks(responses map[string]*ResponseOrReference) ([]*light.Block, error) {
-	if responses == nil {
-		return nil, nil
-	}
-	hash := make(map[string]AbleHCL)
-	for k, v := range responses {
-		hash[k] = v
-	}
-	return ableMapToBlocks(hash, "response")
-}
-
-func blocksToResponseOrReferenceMap(blocks []*light.Block) (map[string]*ResponseOrReference, error) {
-	if blocks == nil {
-		return nil, nil
-	}
-	hash := make(map[string]*ResponseOrReference)
-	for _, block := range blocks {
-		able, err := responseOrReferenceFromHCL(block.Bdy)
-		if err != nil {
-			return nil, err
-		}
-		hash[block.Labels[0]] = able
-	}
-	return hash, nil
-}
-*/

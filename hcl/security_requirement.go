@@ -37,7 +37,7 @@ func securityRequirementToTupleConsExpr(security []*SecurityRequirement) (*light
 	if security == nil || len(security) == 0 {
 		return nil, nil
 	}
-	var arr []AbleHCL
+	var arr []ableHCL
 	for _, item := range security {
 		arr = append(arr, item)
 	}
@@ -48,7 +48,7 @@ func expressionToSecurityRequirement(expr *light.Expression) ([]*SecurityRequire
 	if expr == nil {
 		return nil, nil
 	}
-	ables, err := tupleConsExprToAble(expr, func(expr *light.ObjectConsExpr) (AbleHCL, error) {
+	ables, err := tupleConsExprToAble(expr, func(expr *light.ObjectConsExpr) (ableHCL, error) {
 		return securityRequirementFromHCL(expr.ToBody())
 	})
 	if err != nil {

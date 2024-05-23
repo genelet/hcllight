@@ -10,11 +10,11 @@ var ErrInvalidType = func(e any) error {
 	return fmt.Errorf("invalid type %v", e)
 }
 
-type AbleHCL interface {
+type ableHCL interface {
 	toHCL() (*light.Body, error)
 }
 
-func ableToTupleConsExpr(items []AbleHCL) (*light.Expression, error) {
+func ableToTupleConsExpr(items []ableHCL) (*light.Expression, error) {
 	tcexpr := &light.TupleConsExpr{}
 	for _, item := range items {
 		body, err := item.toHCL()
@@ -34,7 +34,7 @@ func ableToTupleConsExpr(items []AbleHCL) (*light.Expression, error) {
 	}, nil
 }
 
-func tupleConsExprToAble(expr *light.Expression, fromHCL func(*light.ObjectConsExpr) (AbleHCL, error)) ([]AbleHCL, error) {
+func tupleConsExprToAble(expr *light.Expression, fromHCL func(*light.ObjectConsExpr) (ableHCL, error)) ([]ableHCL, error) {
 	if expr == nil {
 		return nil, nil
 	}
@@ -46,7 +46,7 @@ func tupleConsExprToAble(expr *light.Expression, fromHCL func(*light.ObjectConsE
 		return nil, nil
 	}
 
-	var items []AbleHCL
+	var items []ableHCL
 	for _, expr := range exprs {
 		item, err := fromHCL(expr.GetOcexpr())
 		if err != nil {
@@ -57,7 +57,7 @@ func tupleConsExprToAble(expr *light.Expression, fromHCL func(*light.ObjectConsE
 	return items, nil
 }
 
-func ableMapToBlocks(hash map[string]AbleHCL, label string) ([]*light.Block, error) {
+func ableMapToBlocks(hash map[string]ableHCL, label string) ([]*light.Block, error) {
 	if hash == nil {
 		return nil, nil
 	}
@@ -76,11 +76,11 @@ func ableMapToBlocks(hash map[string]AbleHCL, label string) ([]*light.Block, err
 	return blocks, nil
 }
 
-func blocksToAbleMap(blocks []*light.Block, fromHCL func(*light.Body) (AbleHCL, error)) (map[string]AbleHCL, error) {
+func blocksToAbleMap(blocks []*light.Block, fromHCL func(*light.Body) (ableHCL, error)) (map[string]ableHCL, error) {
 	if blocks == nil {
 		return nil, nil
 	}
-	hash := make(map[string]AbleHCL)
+	hash := make(map[string]ableHCL)
 	for _, block := range blocks {
 		able, err := fromHCL(block.Bdy)
 		if err != nil {
@@ -91,12 +91,12 @@ func blocksToAbleMap(blocks []*light.Block, fromHCL func(*light.Body) (AbleHCL, 
 	return hash, nil
 }
 
-type OrHCL interface {
+type orHCL interface {
 	GetReference() *Reference
-	toHCL() (*light.Body, error)
+	getAble() ableHCL
 }
 
-func orMapToBlocks(hash map[string]OrHCL, label string) ([]*light.Block, error) {
+func orMapToBlocks(hash map[string]orHCL, label string) ([]*light.Block, error) {
 	if hash == nil {
 		return nil, nil
 	}
@@ -128,7 +128,7 @@ func orMapToBlocks(hash map[string]OrHCL, label string) ([]*light.Block, error) 
 			}
 		}
 
-		bdy, err := v.toHCL()
+		bdy, err := v.getAble().toHCL()
 		if err != nil {
 			return nil, err
 		}
@@ -147,12 +147,12 @@ func orMapToBlocks(hash map[string]OrHCL, label string) ([]*light.Block, error) 
 	return blocks, nil
 }
 
-func blocksToOrMap(blocks []*light.Block, label string, fromReference func(*Reference) OrHCL, fromHCL func(*light.Body) (OrHCL, error)) (map[string]OrHCL, error) {
+func blocksToOrMap(blocks []*light.Block, label string, fromReference func(*Reference) orHCL, fromHCL func(*light.Body) (orHCL, error)) (map[string]orHCL, error) {
 	if blocks == nil {
 		return nil, nil
 	}
 
-	hash := make(map[string]OrHCL)
+	hash := make(map[string]orHCL)
 	for _, block := range blocks {
 		if label != block.Type {
 			return nil, nil
@@ -191,62 +191,3 @@ func blocksToOrMap(blocks []*light.Block, label string, fromReference func(*Refe
 	}
 	return hash, nil
 }
-
-/*
-func schemaOrReferenceMapToBlocks(schemas map[string]*SchemaOrReference) ([]*light.Block, error) {
-	if schemas == nil {
-		return nil, nil
-	}
-	hash := make(map[string]AbleHCL)
-	for k, v := range schemas {
-		hash[k] = v
-	}
-	return ableMapToBlocks(hash, "schema")
-}
-
-func blocksToSchemaOrReferenceMap(blocks []*light.Block) (map[string]*SchemaOrReference, error) {
-	if blocks == nil {
-		return nil, nil
-	}
-	hash := make(map[string]*SchemaOrReference)
-	for _, block := range blocks {
-		able, err := schemaOrReferenceFromHCL(block.Bdy)
-		if err != nil {
-			return nil, err
-		}
-		hash[block.Labels[0]] = able
-	}
-	return hash, nil
-}
-*/
-/*
-type OrHCL interface {
-	toExpression() (*light.Expression, error)
-}
-
-func orMapToBody(hash map[string]OrHCL, label string) (*light.Body, error) {
-	if hash == nil {
-		return nil, nil
-	}
-
-	blocks := make([]*light.Block, 0)
-	attrs := make(map[string]*light.Attribute)
-	for k, v := range hash {
-		expr, err := v.toExpression()
-		if err != nil {
-			return nil, err
-		}
-		switch expr.ExpressionClause.(type) {
-		case *light.Expression_Stexpr:
-			attrs[k] = &light.Attribute{
-				Name:  k,
-				Value: expr,
-		blocks = append(blocks, &light.Block{
-			Type:   label,
-			Labels: []string{k},
-			Bdy:    bdy,
-		})
-	}
-	return blocks, nil
-}
-*/

@@ -115,6 +115,27 @@ func SchemaOrReferenceToApi(schema *SchemaOrReference) *openapiv3.SchemaOrRefere
 				Reference: ReferenceToApi(x),
 			},
 		}
+	case *SchemaOrReference_AllOf:
+		x := schema.GetAllOf()
+		return &openapiv3.SchemaOrReference{
+			Oneof: &openapiv3.SchemaOrReference_Schema{
+				Schema: allOfToApi(x),
+			},
+		}
+	case *SchemaOrReference_OneOf:
+		x := schema.GetOneOf()
+		return &openapiv3.SchemaOrReference{
+			Oneof: &openapiv3.SchemaOrReference_Schema{
+				Schema: oneOfToApi(x),
+			},
+		}
+	case *SchemaOrReference_AnyOf:
+		x := schema.GetAnyOf()
+		return &openapiv3.SchemaOrReference{
+			Oneof: &openapiv3.SchemaOrReference_Schema{
+				Schema: anyOfToApi(x),
+			},
+		}
 	case *SchemaOrReference_Schema:
 		s := schema.GetSchema()
 		return &openapiv3.SchemaOrReference{
@@ -865,16 +886,3 @@ func schemaToApi(schema *Schema) *openapiv3.Schema {
 
 	return s
 }
-
-/*
-func schemaToSchemaOrReference(schema *Schema) *SchemaOrReference {
-	if schema == nil {
-		return nil
-	}
-	return &SchemaOrReference{
-		Oneof: &SchemaOrReference_Schema{
-			Schema: schema,
-		},
-	}
-}
-*/

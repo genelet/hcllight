@@ -4,15 +4,8 @@ import (
 	"github.com/genelet/hcllight/light"
 )
 
-func (self *CallbackOrReference) toHCL() (*light.Body, error) {
-	switch self.Oneof.(type) {
-	case *CallbackOrReference_Callback:
-		return self.GetCallback().toHCL()
-	case *CallbackOrReference_Reference:
-		return self.GetReference().toHCL()
-	default:
-	}
-	return nil, nil
+func (self *CallbackOrReference) getAble() ableHCL {
+	return self.GetCallback()
 }
 
 func callbackOrReferenceFromHCL(body *light.Body) (*CallbackOrReference, error) {
@@ -79,7 +72,7 @@ func callbackOrReferenceMapToBlocks(callbacks map[string]*CallbackOrReference) (
 		return nil, nil
 	}
 
-	hash := make(map[string]OrHCL)
+	hash := make(map[string]orHCL)
 	for k, v := range callbacks {
 		hash[k] = v
 	}
@@ -91,13 +84,13 @@ func blocksToCallbackOrReferenceMap(blocks []*light.Block) (map[string]*Callback
 		return nil, nil
 	}
 
-	orMap, err := blocksToOrMap(blocks, "callbacks", func(reference *Reference) OrHCL {
+	orMap, err := blocksToOrMap(blocks, "callbacks", func(reference *Reference) orHCL {
 		return &CallbackOrReference{
 			Oneof: &CallbackOrReference_Reference{
 				Reference: reference,
 			},
 		}
-	}, func(body *light.Body) (OrHCL, error) {
+	}, func(body *light.Body) (orHCL, error) {
 		callback, err := callbackFromHCL(body)
 		if err != nil {
 			return nil, err

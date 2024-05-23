@@ -82,7 +82,7 @@ func serversToTupleConsExpr(servers []*Server) (*light.Expression, error) {
 	if servers == nil || len(servers) == 0 {
 		return nil, nil
 	}
-	var arr []AbleHCL
+	var arr []ableHCL
 	for _, server := range servers {
 		arr = append(arr, server)
 	}
@@ -93,7 +93,7 @@ func expressionToServers(expr *light.Expression) ([]*Server, error) {
 	if expr == nil {
 		return nil, nil
 	}
-	ables, err := tupleConsExprToAble(expr, func(expr *light.ObjectConsExpr) (AbleHCL, error) {
+	ables, err := tupleConsExprToAble(expr, func(expr *light.ObjectConsExpr) (ableHCL, error) {
 		return serverFromHCL(expr.ToBody())
 	})
 	if err != nil {

@@ -4,15 +4,8 @@ import (
 	"github.com/genelet/hcllight/light"
 )
 
-func (self *ParameterOrReference) toHCL() (*light.Body, error) {
-	switch self.Oneof.(type) {
-	case *ParameterOrReference_Parameter:
-		return self.GetParameter().toHCL()
-	case *ParameterOrReference_Reference:
-		return self.GetReference().toHCL()
-	default:
-	}
-	return nil, nil
+func (self *ParameterOrReference) getAble() ableHCL {
+	return self.GetParameter()
 }
 
 func parameterOrReferenceFromHCL(body *light.Body) (*ParameterOrReference, error) {
@@ -315,7 +308,7 @@ func parameterOrReferenceMapToBlocks(parameters map[string]*ParameterOrReference
 		return nil, nil
 	}
 
-	hash := make(map[string]OrHCL)
+	hash := make(map[string]orHCL)
 	for k, v := range parameters {
 		hash[k] = v
 	}
@@ -327,13 +320,13 @@ func blocksToParameterOrReferenceMap(blocks []*light.Block) (map[string]*Paramet
 		return nil, nil
 	}
 
-	orMap, err := blocksToOrMap(blocks, "parameters", func(reference *Reference) OrHCL {
+	orMap, err := blocksToOrMap(blocks, "parameters", func(reference *Reference) orHCL {
 		return &ParameterOrReference{
 			Oneof: &ParameterOrReference_Reference{
 				Reference: reference,
 			},
 		}
-	}, func(body *light.Body) (OrHCL, error) {
+	}, func(body *light.Body) (orHCL, error) {
 		parameter, err := parameterFromHCL(body)
 		if err != nil {
 			return nil, err
@@ -368,7 +361,7 @@ func parameterOrReferenceMapToBlocks(parameters map[string]*ParameterOrReference
 	if parameters == nil {
 		return nil, nil
 	}
-	hash := make(map[string]AbleHCL)
+	hash := make(map[string]ableHCL)
 	for k, v := range parameters {
 		hash[k] = v
 	}

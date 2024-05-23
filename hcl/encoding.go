@@ -100,7 +100,7 @@ func encodingMapToBlocks(encodings map[string]*Encoding) ([]*light.Block, error)
 	if encodings == nil {
 		return nil, nil
 	}
-	hash := make(map[string]AbleHCL)
+	hash := make(map[string]ableHCL)
 	for k, v := range encodings {
 		hash[k] = v
 	}

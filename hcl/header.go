@@ -4,15 +4,8 @@ import (
 	"github.com/genelet/hcllight/light"
 )
 
-func (self *HeaderOrReference) toHCL() (*light.Body, error) {
-	switch self.Oneof.(type) {
-	case *HeaderOrReference_Header:
-		return self.GetHeader().toHCL()
-	case *HeaderOrReference_Reference:
-		return self.GetReference().toHCL()
-	default:
-	}
-	return nil, nil
+func (self *HeaderOrReference) getAble() ableHCL {
+	return self.GetHeader()
 }
 
 func headerOrReferenceFromHCL(body *light.Body) (*HeaderOrReference, error) {
@@ -203,7 +196,7 @@ func headerOrReferenceMapToBlocks(headers map[string]*HeaderOrReference) ([]*lig
 		return nil, nil
 	}
 
-	hash := make(map[string]OrHCL)
+	hash := make(map[string]orHCL)
 	for k, v := range headers {
 		hash[k] = v
 	}
@@ -215,13 +208,13 @@ func blocksToHeaderOrReferenceMap(blocks []*light.Block) (map[string]*HeaderOrRe
 		return nil, nil
 	}
 
-	orMap, err := blocksToOrMap(blocks, "headers", func(reference *Reference) OrHCL {
+	orMap, err := blocksToOrMap(blocks, "headers", func(reference *Reference) orHCL {
 		return &HeaderOrReference{
 			Oneof: &HeaderOrReference_Reference{
 				Reference: reference,
 			},
 		}
-	}, func(body *light.Body) (OrHCL, error) {
+	}, func(body *light.Body) (orHCL, error) {
 		header, err := headerFromHCL(body)
 		if err != nil {
 			return nil, err

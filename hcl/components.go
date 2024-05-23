@@ -80,7 +80,7 @@ func (self *Components) toHCL() (*light.Body, error) {
 	}
 	if self.Callbacks != nil && len(self.Callbacks) > 0 {
 		for k, v := range self.Callbacks {
-			bdy, err := v.toHCL()
+			bdy, err := v.getAble().toHCL()
 			if err != nil {
 				return nil, err
 			}

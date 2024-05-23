@@ -71,7 +71,7 @@ func tagsToTupleConsExpr(tags []*Tag) (*light.Expression, error) {
 	if tags == nil || len(tags) == 0 {
 		return nil, nil
 	}
-	var arr []AbleHCL
+	var arr []ableHCL
 	for _, tag := range tags {
 		arr = append(arr, tag)
 	}
@@ -83,7 +83,7 @@ func expressionToTags(expr *light.Expression) ([]*Tag, error) {
 		return nil, nil
 	}
 
-	ables, err := tupleConsExprToAble(expr, func(expr *light.ObjectConsExpr) (AbleHCL, error) {
+	ables, err := tupleConsExprToAble(expr, func(expr *light.ObjectConsExpr) (ableHCL, error) {
 		return tagFromHCL(expr.ToBody())
 	})
 	if err != nil {

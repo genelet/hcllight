@@ -108,7 +108,7 @@ func mediaTypeMapToBlocks(content map[string]*MediaType) ([]*light.Block, error)
 	if content == nil {
 		return nil, nil
 	}
-	hash := make(map[string]AbleHCL)
+	hash := make(map[string]ableHCL)
 	for k, v := range content {
 		hash[k] = v
 	}

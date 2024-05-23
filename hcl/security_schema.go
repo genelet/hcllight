@@ -150,7 +150,7 @@ func securitySchemeOrReferenceMapToBlocks(securitySchemes map[string]*SecuritySc
 	if securitySchemes == nil {
 		return nil, nil
 	}
-	hash := make(map[string]AbleHCL)
+	hash := make(map[string]ableHCL)
 	for k, v := range securitySchemes {
 		hash[k] = v
 	}

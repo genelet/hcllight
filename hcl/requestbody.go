@@ -4,15 +4,8 @@ import (
 	"github.com/genelet/hcllight/light"
 )
 
-func (self *RequestBodyOrReference) toHCL() (*light.Body, error) {
-	switch self.Oneof.(type) {
-	case *RequestBodyOrReference_RequestBody:
-		return self.GetRequestBody().toHCL()
-	case *RequestBodyOrReference_Reference:
-		return self.GetReference().toHCL()
-	default:
-	}
-	return nil, nil
+func (self *RequestBodyOrReference) getAble() ableHCL {
+	return self.GetRequestBody()
 }
 
 func requestBodyOrReferenceFromHCL(body *light.Body) (*RequestBodyOrReference, error) {
@@ -129,7 +122,7 @@ func requestBodyOrReferenceMapToBlocks(requestBodys map[string]*RequestBodyOrRef
 		return nil, nil
 	}
 
-	hash := make(map[string]OrHCL)
+	hash := make(map[string]orHCL)
 	for k, v := range requestBodys {
 		hash[k] = v
 	}
@@ -141,13 +134,13 @@ func blocksToRequestBodyOrReferenceMap(blocks []*light.Block) (map[string]*Reque
 		return nil, nil
 	}
 
-	orMap, err := blocksToOrMap(blocks, "requestBodys", func(reference *Reference) OrHCL {
+	orMap, err := blocksToOrMap(blocks, "requestBodys", func(reference *Reference) orHCL {
 		return &RequestBodyOrReference{
 			Oneof: &RequestBodyOrReference_Reference{
 				Reference: reference,
 			},
 		}
-	}, func(body *light.Body) (OrHCL, error) {
+	}, func(body *light.Body) (orHCL, error) {
 		requestBody, err := requestBodyFromHCL(body)
 		if err != nil {
 			return nil, err
