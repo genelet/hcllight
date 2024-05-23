@@ -81,21 +81,21 @@ func fcexprToSchemaString(fcexpr *light.FunctionCallExpr) (*SchemaString, error)
 			expr := arg.GetFcexpr()
 			switch expr.Name {
 			case "maxLength":
-				max, err := exprToInt64(expr.Args[0])
+				max, err := literalExprToInt64(expr.Args[0])
 				if err != nil {
 					return nil, err
 				}
 				s.MaxLength = max
 				found = true
 			case "minLength":
-				min, err := exprToInt64(expr.Args[0])
+				min, err := literalExprToInt64(expr.Args[0])
 				if err != nil {
 					return nil, err
 				}
 				s.MinLength = min
 				found = true
 			case "pattern":
-				pattern, err := exprToTextString(expr.Args[0])
+				pattern, err := textExprToString(expr.Args[0])
 				if err != nil {
 					return nil, err
 				}

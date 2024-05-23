@@ -122,14 +122,14 @@ func fcexprToSchemaObject(fcexpr *light.FunctionCallExpr) (*SchemaObject, error)
 			expr := arg.GetFcexpr()
 			switch expr.Name {
 			case "maxProperties":
-				max, err := exprToInt64(expr.Args[0])
+				max, err := literalExprToInt64(expr.Args[0])
 				if err != nil {
 					return nil, err
 				}
 				s.MaxProperties = max
 				found = true
 			case "minProperties":
-				min, err := exprToInt64(expr.Args[0])
+				min, err := literalExprToInt64(expr.Args[0])
 				if err != nil {
 					return nil, err
 				}

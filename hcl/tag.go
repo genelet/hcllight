@@ -93,7 +93,7 @@ func expressionToTags(expr *light.Expression) ([]*Tag, error) {
 	for _, able := range ables {
 		tag, ok := able.(*Tag)
 		if !ok {
-			return nil, ErrInvalidType()
+			return nil, ErrInvalidType(able)
 		}
 		tags = append(tags, tag)
 	}

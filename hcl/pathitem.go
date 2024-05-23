@@ -212,7 +212,7 @@ func blocksToPathItemOrReferenceMap(blocks []*light.Block) (map[string]*PathItem
 	for _, block := range blocks {
 		k := block.Type
 		if block.Labels == nil {
-			return nil, ErrInvalidType()
+			return nil, ErrInvalidType(block)
 		}
 		method := block.Labels[0]
 		switch method {

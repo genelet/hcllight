@@ -6,8 +6,8 @@ import (
 	"github.com/genelet/hcllight/light"
 )
 
-var ErrInvalidType = func() error {
-	return fmt.Errorf("%s", "invalid type")
+var ErrInvalidType = func(e any) error {
+	return fmt.Errorf("invalid type %v", e)
 }
 
 type AbleHCL interface {
@@ -158,7 +158,7 @@ func blocksToOrMap(blocks []*light.Block, label string, fromReference func(*Refe
 			return nil, nil
 		}
 		if block.Bdy == nil || len(block.Bdy.Attributes) == 0 {
-			return nil, ErrInvalidType()
+			return nil, ErrInvalidType(block)
 		}
 		if len(block.Labels) == 0 {
 			for k, v := range block.Bdy.Attributes {

@@ -58,7 +58,7 @@ func expressionToSecurityRequirement(expr *light.Expression) ([]*SecurityRequire
 	for _, able := range ables {
 		item, ok := able.(*SecurityRequirement)
 		if !ok {
-			return nil, ErrInvalidType()
+			return nil, ErrInvalidType(able)
 		}
 		security = append(security, item)
 	}

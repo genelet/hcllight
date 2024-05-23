@@ -110,35 +110,35 @@ func fcexprToSchemaNumber(fcexpr *light.FunctionCallExpr) (*SchemaNumber, error)
 			expr := arg.GetFcexpr()
 			switch expr.Name {
 			case "minimum":
-				min, err := exprToFloat64(expr.Args[0])
+				min, err := literalExprToFloat64(expr.Args[0])
 				if err != nil {
 					return nil, err
 				}
 				s.Minimum = min
 				found = true
 			case "maximum":
-				max, err := exprToFloat64(expr.Args[0])
+				max, err := literalExprToFloat64(expr.Args[0])
 				if err != nil {
 					return nil, err
 				}
 				s.Maximum = max
 				found = true
 			case "exclusiveMinimum":
-				excl, err := exprToBoolean(expr.Args[0])
+				excl, err := literalExprToBoolean(expr.Args[0])
 				if err != nil {
 					return nil, err
 				}
 				s.ExclusiveMinimum = excl
 				found = true
 			case "exclusiveMaximum":
-				excl, err := exprToBoolean(expr.Args[0])
+				excl, err := literalExprToBoolean(expr.Args[0])
 				if err != nil {
 					return nil, err
 				}
 				s.ExclusiveMaximum = excl
 				found = true
 			case "multipleOf":
-				mul, err := exprToFloat64(expr.Args[0])
+				mul, err := literalExprToFloat64(expr.Args[0])
 				if err != nil {
 					return nil, err
 				}

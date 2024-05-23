@@ -285,14 +285,14 @@ func fcexprToCommon(fcexpr *light.FunctionCallExpr) (*SchemaCommon, error) {
 			expr := arg.GetFcexpr()
 			switch expr.Name {
 			case "format":
-				format, err := exprToTextString(expr.Args[0])
+				format, err := textExprToString(expr.Args[0])
 				if err != nil {
 					return nil, err
 				}
 				common.Format = format
 				found = true
 			case "description":
-				description, err := exprToTextString(expr.Args[0])
+				description, err := textExprToString(expr.Args[0])
 				if err != nil {
 					return nil, err
 				}

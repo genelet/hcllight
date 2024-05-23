@@ -21,7 +21,7 @@ func stringToTextExpr(key, value string) *light.Expression {
 	return shortToExpr(key, stringToTextValueExpr(value))
 }
 
-func exprToTextString(expr *light.Expression) (string, error) {
+func textExprToString(expr *light.Expression) (string, error) {
 	if expr == nil {
 		return "", nil
 	}
@@ -32,18 +32,14 @@ func exprToTextString(expr *light.Expression) (string, error) {
 		return expr.GetLvexpr().Val.GetStringValue(), nil
 	default:
 	}
-	return "", fmt.Errorf("2 invalid expression: %#v", expr)
-}
-
-func stringToLiteralExpr(key, value string) *light.Expression {
-	return shortToExpr(key, stringToLiteralValueExpr(value))
+	return "", ErrInvalidType(expr)
 }
 
 func float64ToLiteralExpr(key string, f float64) *light.Expression {
 	return shortToExpr(key, float64ToLiteralValueExpr(f))
 }
 
-func exprToFloat64(expr *light.Expression) (float64, error) {
+func literalExprToFloat64(expr *light.Expression) (float64, error) {
 	if expr == nil {
 		return 0, nil
 	}
@@ -59,7 +55,7 @@ func int64ToLiteralExpr(key string, i int64) *light.Expression {
 	return shortToExpr(key, int64ToLiteralValueExpr(i))
 }
 
-func exprToInt64(expr *light.Expression) (int64, error) {
+func literalExprToInt64(expr *light.Expression) (int64, error) {
 	if expr == nil {
 		return 0, nil
 	}
@@ -75,7 +71,7 @@ func booleanToLiteralExpr(key string, b bool) *light.Expression {
 	return shortToExpr(key, booleanToLiteralValueExpr(b))
 }
 
-func exprToBoolean(expr *light.Expression) (bool, error) {
+func literalExprToBoolean(expr *light.Expression) (bool, error) {
 	if expr == nil {
 		return false, nil
 	}

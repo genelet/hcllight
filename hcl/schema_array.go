@@ -154,21 +154,21 @@ func fcexprToSchemaArray(fcexpr *light.FunctionCallExpr) (*SchemaArray, error) {
 			expr := arg.GetFcexpr()
 			switch expr.Name {
 			case "maxItems":
-				max, err := exprToInt64(expr.Args[0])
+				max, err := literalExprToInt64(expr.Args[0])
 				if err != nil {
 					return nil, err
 				}
 				s.MaxItems = max
 				found = true
 			case "minItems":
-				min, err := exprToInt64(expr.Args[0])
+				min, err := literalExprToInt64(expr.Args[0])
 				if err != nil {
 					return nil, err
 				}
 				s.MinItems = min
 				found = true
 			case "uniqueItems":
-				unique, err := exprToBoolean(expr.Args[0])
+				unique, err := literalExprToBoolean(expr.Args[0])
 				if err != nil {
 					return nil, err
 				}

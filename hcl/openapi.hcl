@@ -1,10 +1,9 @@
 
-  openapi = "3.0.2"
   servers = [{
     url = "/api/v3"
   }]
+  openapi = "3.0.2"
   info {
-    version = "1.0.19"
     title = "Swagger Petstore - OpenAPI 3.0"
     description = "This is a sample Pet Store Server based on the OpenAPI 3.0 specification.  You can find out more about
 Swagger at [http://swagger.io](http://swagger.io). In the third iteration of the pet store, we've switched to the design first approach!
@@ -15,12 +14,13 @@ Some useful links:
 - [The Pet Store repository](https://github.com/swagger-api/swagger-petstore)
 - [The source API definition for the Pet Store](https://github.com/swagger-api/swagger-petstore/blob/master/src/main/resources/openapi.yaml)"
     termsOfService = "http://swagger.io/terms/"
+    version = "1.0.19"
     contact {
       email = "apiteam@swagger.io"
     }
     license {
-      name = "Apache 2.0"
       url = "http://www.apache.org/licenses/LICENSE-2.0.html"
+      name = "Apache 2.0"
     }
   }
   tags "pet" {
@@ -44,33 +44,357 @@ Some useful links:
     url = "http://swagger.io"
     description = "Find out more about Swagger"
   }
+  paths "/pet/findByTags" "get" {
+    security = [{
+      petstore_auth = ["write:pets", "read:pets"]
+    }]
+    summary = "Finds Pets by tags"
+    description = "Multiple tags can be provided with comma separated strings. Use tag1, tag2, tag3 for testing."
+    operationId = "findPetsByTags"
+    tags = ["pet"]
+    parameters "tags" {
+      explode = true
+      in = "query"
+      description = "Tags to filter by"
+      schema = array([string()])
+    }
+    responses "200" {
+      description = "successful operation"
+      content "application/json" {
+        schema = array([components.schemas.Pet])
+      }
+      content "application/xml" {
+        schema = array([components.schemas.Pet])
+      }
+    }
+    responses "400" {
+      description = "Invalid tag value"
+    }
+  }
+  paths "/pet/{petId}" "get" {
+    summary = "Find pet by ID"
+    description = "Returns a single pet"
+    operationId = "getPetById"
+    tags = ["pet"]
+    security = [{
+      api_key = []
+    }, {
+      petstore_auth = ["write:pets", "read:pets"]
+    }]
+    parameters "petId" {
+      required = true
+      in = "path"
+      description = "ID of pet to return"
+      schema = integer(format("int64"))
+    }
+    responses "404" {
+      description = "Pet not found"
+    }
+    responses "200" {
+      description = "successful operation"
+      content "application/json" {
+        schema = components.schemas.Pet
+      }
+      content "application/xml" {
+        schema = components.schemas.Pet
+      }
+    }
+    responses "400" {
+      description = "Invalid ID supplied"
+    }
+  }
+  paths "/pet/{petId}" "post" {
+    summary = "Updates a pet in the store with form data"
+    operationId = "updatePetWithForm"
+    tags = ["pet"]
+    security = [{
+      petstore_auth = ["write:pets", "read:pets"]
+    }]
+    parameters "petId" {
+      required = true
+      in = "path"
+      description = "ID of pet that needs to be updated"
+      schema = integer(format("int64"))
+    }
+    parameters "name" {
+      in = "query"
+      description = "Name of pet that needs to be updated"
+      schema = string()
+    }
+    parameters "status" {
+      in = "query"
+      description = "Status of pet that needs to be updated"
+      schema = string()
+    }
+    responses "405" {
+      description = "Invalid input"
+    }
+  }
+  paths "/pet/{petId}" "delete" {
+    summary = "Deletes a pet"
+    operationId = "deletePet"
+    tags = ["pet"]
+    security = [{
+      petstore_auth = ["write:pets", "read:pets"]
+    }]
+    parameters "api_key" {
+      in = "header"
+      schema = string()
+    }
+    parameters "petId" {
+      required = true
+      in = "path"
+      description = "Pet id to delete"
+      schema = integer(format("int64"))
+    }
+    responses "400" {
+      description = "Invalid pet value"
+    }
+  }
+  paths "/user/logout" "get" {
+    operationId = "logoutUser"
+    summary = "Logs out current logged in user session"
+    tags = ["user"]
+    responses "default" {
+      description = "successful operation"
+    }
+  }
+  paths "/user/{username}" "get" {
+    summary = "Get user by user name"
+    operationId = "getUserByName"
+    tags = ["user"]
+    parameters "username" {
+      description = "The name that needs to be fetched. Use user1 for testing. "
+      in = "path"
+      schema = string()
+      required = true
+    }
+    responses "404" {
+      description = "User not found"
+    }
+    responses "200" {
+      description = "successful operation"
+      content "application/json" {
+        schema = components.schemas.User
+      }
+      content "application/xml" {
+        schema = components.schemas.User
+      }
+    }
+    responses "400" {
+      description = "Invalid username supplied"
+    }
+  }
+  paths "/user/{username}" "put" {
+    tags = ["user"]
+    summary = "Update user"
+    description = "This can only be done by the logged in user."
+    operationId = "updateUser"
+    parameters "username" {
+      required = true
+      in = "path"
+      description = "name that needs to be updated"
+      schema = string()
+    }
+    requestBody {
+      description = "Update an existent user in the store"
+      content "application/json" {
+        schema = components.schemas.User
+      }
+      content "application/xml" {
+        schema = components.schemas.User
+      }
+      content "application/x-www-form-urlencoded" {
+        schema = components.schemas.User
+      }
+    }
+    responses "default" {
+      description = "successful operation"
+    }
+  }
+  paths "/user/{username}" "delete" {
+    tags = ["user"]
+    summary = "Delete user"
+    description = "This can only be done by the logged in user."
+    operationId = "deleteUser"
+    parameters "username" {
+      schema = string()
+      required = true
+      in = "path"
+      description = "The name that needs to be deleted"
+    }
+    responses "400" {
+      description = "Invalid username supplied"
+    }
+    responses "404" {
+      description = "User not found"
+    }
+  }
+  paths "/pet/findByStatus" "get" {
+    tags = ["pet"]
+    security = [{
+      petstore_auth = ["write:pets", "read:pets"]
+    }]
+    summary = "Finds Pets by status"
+    description = "Multiple status values can be provided with comma separated strings"
+    operationId = "findPetsByStatus"
+    parameters "status" {
+      explode = true
+      in = "query"
+      description = "Status values that need to be considered for filter"
+      schema = string(default("available"), enum("available", "pending", "sold"))
+    }
+    responses "400" {
+      description = "Invalid status value"
+    }
+    responses "200" {
+      description = "successful operation"
+      content "application/xml" {
+        schema = array([components.schemas.Pet])
+      }
+      content "application/json" {
+        schema = array([components.schemas.Pet])
+      }
+    }
+  }
+  paths "/store/order" "post" {
+    operationId = "placeOrder"
+    tags = ["store"]
+    summary = "Place an order for a pet"
+    description = "Place a new order in the store"
+    requestBody {
+      content "application/json" {
+        schema = components.schemas.Order
+      }
+      content "application/xml" {
+        schema = components.schemas.Order
+      }
+      content "application/x-www-form-urlencoded" {
+        schema = components.schemas.Order
+      }
+    }
+    responses "200" {
+      description = "successful operation"
+      content "application/json" {
+        schema = components.schemas.Order
+      }
+    }
+    responses "405" {
+      description = "Invalid input"
+    }
+  }
+  paths "/user" "post" {
+    summary = "Create user"
+    description = "This can only be done by the logged in user."
+    operationId = "createUser"
+    tags = ["user"]
+    requestBody {
+      description = "Created user object"
+      content "application/json" {
+        schema = components.schemas.User
+      }
+      content "application/xml" {
+        schema = components.schemas.User
+      }
+      content "application/x-www-form-urlencoded" {
+        schema = components.schemas.User
+      }
+    }
+    responses "default" {
+      description = "successful operation"
+      content "application/json" {
+        schema = components.schemas.User
+      }
+      content "application/xml" {
+        schema = components.schemas.User
+      }
+    }
+  }
+  paths "/user/createWithList" "post" {
+    description = "Creates list of users with given input array"
+    operationId = "createUsersWithListInput"
+    tags = ["user"]
+    summary = "Creates list of users with given input array"
+    requestBody {
+      content "application/json" {
+        schema = array([components.schemas.User])
+      }
+    }
+    responses "200" {
+      description = "Successful operation"
+      content "application/xml" {
+        schema = components.schemas.User
+      }
+      content "application/json" {
+        schema = components.schemas.User
+      }
+    }
+    responses "default" {
+      description = "successful operation"
+    }
+  }
+  paths "/user/login" "get" {
+    summary = "Logs user into the system"
+    operationId = "loginUser"
+    tags = ["user"]
+    parameters "username" {
+      description = "The user name for login"
+      schema = string()
+      in = "query"
+    }
+    parameters "password" {
+      in = "query"
+      description = "The password for login in clear text"
+      schema = string()
+    }
+    responses "200" {
+      description = "successful operation"
+      content "application/xml" {
+        schema = string()
+      }
+      content "application/json" {
+        schema = string()
+      }
+      headers "X-Rate-Limit" {
+        description = "calls per hour allowed by the user"
+        schema = integer(format("int32"))
+      }
+      headers "X-Expires-After" {
+        description = "date in UTC when token expires"
+        schema = string(format("date-time"))
+      }
+    }
+    responses "400" {
+      description = "Invalid username/password supplied"
+    }
+  }
   paths "/pet" "put" {
-    summary = "Update an existing pet"
     description = "Update an existing pet by Id"
     operationId = "updatePet"
     tags = ["pet"]
     security = [{
       petstore_auth = ["write:pets", "read:pets"]
     }]
+    summary = "Update an existing pet"
     requestBody {
       description = "Update an existent pet in the store"
       required = true
-      content "application/xml" {
-        schema = components.schemas.Pet
-      }
       content "application/x-www-form-urlencoded" {
         schema = components.schemas.Pet
       }
       content "application/json" {
         schema = components.schemas.Pet
       }
-    }
-    responses "200" {
-      description = "Successful operation"
       content "application/xml" {
         schema = components.schemas.Pet
       }
+    }
+    responses "200" {
+      description = "Successful operation"
       content "application/json" {
+        schema = components.schemas.Pet
+      }
+      content "application/xml" {
         schema = components.schemas.Pet
       }
     }
@@ -86,12 +410,12 @@ Some useful links:
   }
   paths "/pet" "post" {
     summary = "Add a new pet to the store"
+    description = "Add a new pet to the store"
+    operationId = "addPet"
     tags = ["pet"]
     security = [{
       petstore_auth = ["write:pets", "read:pets"]
     }]
-    description = "Add a new pet to the store"
-    operationId = "addPet"
     requestBody {
       description = "Create a new pet in the store"
       required = true
@@ -118,41 +442,14 @@ Some useful links:
       description = "Invalid input"
     }
   }
-  paths "/pet/findByStatus" "get" {
-    summary = "Finds Pets by status"
-    description = "Multiple status values can be provided with comma separated strings"
-    operationId = "findPetsByStatus"
-    tags = ["pet"]
-    security = [{
-      petstore_auth = ["write:pets", "read:pets"]
-    }]
-    parameters "status" {
-      explode = true
-      in = "query"
-      description = "Status values that need to be considered for filter"
-      schema = string(default("available"), enum("available", "pending", "sold"))
-    }
-    responses "200" {
-      description = "successful operation"
-      content "application/xml" {
-        schema = array([components.schemas.Pet])
-      }
-      content "application/json" {
-        schema = array([components.schemas.Pet])
-      }
-    }
-    responses "400" {
-      description = "Invalid status value"
-    }
-  }
   paths "/store/inventory" "get" {
+    summary = "Returns pet inventories by status"
+    description = "Returns a map of status codes to quantities"
+    operationId = "getInventory"
+    tags = ["store"]
     security = [{
       api_key = []
     }]
-    operationId = "getInventory"
-    summary = "Returns pet inventories by status"
-    description = "Returns a map of status codes to quantities"
-    tags = ["store"]
     responses "200" {
       description = "successful operation"
       content "application/json" {
@@ -160,183 +457,18 @@ Some useful links:
       }
     }
   }
-  paths "/user/createWithList" "post" {
-    operationId = "createUsersWithListInput"
-    tags = ["user"]
-    summary = "Creates list of users with given input array"
-    description = "Creates list of users with given input array"
-    requestBody {
-      content "application/json" {
-        schema = array([components.schemas.User])
-      }
-    }
-    responses "default" {
-      description = "successful operation"
-    }
-    responses "200" {
-      description = "Successful operation"
-      content "application/xml" {
-        schema = components.schemas.User
-      }
-      content "application/json" {
-        schema = components.schemas.User
-      }
-    }
-  }
-  paths "/user/login" "get" {
-    summary = "Logs user into the system"
-    operationId = "loginUser"
-    tags = ["user"]
-    parameters "username" {
-      in = "query"
-      description = "The user name for login"
-      schema = string()
-    }
-    parameters "password" {
-      in = "query"
-      description = "The password for login in clear text"
-      schema = string()
-    }
-    responses "400" {
-      description = "Invalid username/password supplied"
-    }
-    responses "200" {
-      description = "successful operation"
-      content "application/xml" {
-        schema = string()
-      }
-      content "application/json" {
-        schema = string()
-      }
-      headers "X-Rate-Limit" {
-        description = "calls per hour allowed by the user"
-        schema = integer(format("int32"))
-      }
-      headers "X-Expires-After" {
-        description = "date in UTC when token expires"
-        schema = string(format("date-time"))
-      }
-    }
-  }
-  paths "/pet/findByTags" "get" {
-    security = [{
-      petstore_auth = ["write:pets", "read:pets"]
-    }]
-    summary = "Finds Pets by tags"
-    description = "Multiple tags can be provided with comma separated strings. Use tag1, tag2, tag3 for testing."
-    operationId = "findPetsByTags"
-    tags = ["pet"]
-    parameters "tags" {
-      explode = true
-      description = "Tags to filter by"
-      in = "query"
-      schema = array([string()])
-    }
-    responses "200" {
-      description = "successful operation"
-      content "application/xml" {
-        schema = array([components.schemas.Pet])
-      }
-      content "application/json" {
-        schema = array([components.schemas.Pet])
-      }
-    }
-    responses "400" {
-      description = "Invalid tag value"
-    }
-  }
-  paths "/pet/{petId}" "get" {
-    security = [{
-      api_key = []
-    }, {
-      petstore_auth = ["write:pets", "read:pets"]
-    }]
-    summary = "Find pet by ID"
-    description = "Returns a single pet"
-    operationId = "getPetById"
-    tags = ["pet"]
-    parameters "petId" {
-      schema = integer(format("int64"))
-      required = true
-      in = "path"
-      description = "ID of pet to return"
-    }
-    responses "400" {
-      description = "Invalid ID supplied"
-    }
-    responses "404" {
-      description = "Pet not found"
-    }
-    responses "200" {
-      description = "successful operation"
-      content "application/xml" {
-        schema = components.schemas.Pet
-      }
-      content "application/json" {
-        schema = components.schemas.Pet
-      }
-    }
-  }
-  paths "/pet/{petId}" "post" {
-    tags = ["pet"]
-    security = [{
-      petstore_auth = ["write:pets", "read:pets"]
-    }]
-    operationId = "updatePetWithForm"
-    summary = "Updates a pet in the store with form data"
-    parameters "name" {
-      in = "query"
-      description = "Name of pet that needs to be updated"
-      schema = string()
-    }
-    parameters "status" {
-      in = "query"
-      description = "Status of pet that needs to be updated"
-      schema = string()
-    }
-    parameters "petId" {
-      required = true
-      description = "ID of pet that needs to be updated"
-      in = "path"
-      schema = integer(format("int64"))
-    }
-    responses "405" {
-      description = "Invalid input"
-    }
-  }
-  paths "/pet/{petId}" "delete" {
-    security = [{
-      petstore_auth = ["write:pets", "read:pets"]
-    }]
-    operationId = "deletePet"
-    summary = "Deletes a pet"
-    tags = ["pet"]
-    parameters "api_key" {
-      in = "header"
-      schema = string()
-    }
-    parameters "petId" {
-      required = true
-      in = "path"
-      description = "Pet id to delete"
-      schema = integer(format("int64"))
-    }
-    responses "400" {
-      description = "Invalid pet value"
-    }
-  }
   paths "/pet/{petId}/uploadImage" "post" {
-    summary = "uploads an image"
     operationId = "uploadFile"
     tags = ["pet"]
     security = [{
       petstore_auth = ["write:pets", "read:pets"]
     }]
+    summary = "uploads an image"
     parameters "petId" {
-      description = "ID of pet to update"
-      schema = integer(format("int64"))
       required = true
       in = "path"
+      description = "ID of pet to update"
+      schema = integer(format("int64"))
     }
     parameters "additionalMetadata" {
       in = "query"
@@ -353,32 +485,6 @@ Some useful links:
       content "application/json" {
         schema = components.schemas.ApiResponse
       }
-    }
-  }
-  paths "/store/order" "post" {
-    description = "Place a new order in the store"
-    operationId = "placeOrder"
-    tags = ["store"]
-    summary = "Place an order for a pet"
-    requestBody {
-      content "application/xml" {
-        schema = components.schemas.Order
-      }
-      content "application/x-www-form-urlencoded" {
-        schema = components.schemas.Order
-      }
-      content "application/json" {
-        schema = components.schemas.Order
-      }
-    }
-    responses "200" {
-      description = "successful operation"
-      content "application/json" {
-        schema = components.schemas.Order
-      }
-    }
-    responses "405" {
-      description = "Invalid input"
     }
   }
   paths "/store/order/{orderId}" "get" {
@@ -409,127 +515,119 @@ Some useful links:
     }
   }
   paths "/store/order/{orderId}" "delete" {
-    summary = "Delete purchase order by ID"
-    description = "For valid response try integer IDs with value < 1000. Anything above 1000 or nonintegers will generate API errors"
     operationId = "deleteOrder"
     tags = ["store"]
+    summary = "Delete purchase order by ID"
+    description = "For valid response try integer IDs with value < 1000. Anything above 1000 or nonintegers will generate API errors"
     parameters "orderId" {
       required = true
-      in = "path"
       description = "ID of the order that needs to be deleted"
+      in = "path"
       schema = integer(format("int64"))
-    }
-    responses "404" {
-      description = "Order not found"
     }
     responses "400" {
       description = "Invalid ID supplied"
     }
-  }
-  paths "/user/{username}" "get" {
-    summary = "Get user by user name"
-    operationId = "getUserByName"
-    tags = ["user"]
-    parameters "username" {
-      required = true
-      in = "path"
-      description = "The name that needs to be fetched. Use user1 for testing. "
-      schema = string()
-    }
-    responses "400" {
-      description = "Invalid username supplied"
-    }
     responses "404" {
-      description = "User not found"
+      description = "Order not found"
     }
-    responses "200" {
-      description = "successful operation"
-      content "application/xml" {
-        schema = components.schemas.User
-      }
-      content "application/json" {
-        schema = components.schemas.User
+  }
+  components "schemas" "Customer" {
+    type = "object"
+    xml {
+      name = "customer"
+    }
+    properties {
+      id = integer(format("int64"), example(100000))
+      username = string(example("fehguy"))
+      address {
+        items = [components.schemas.Address]
+        type = "array"
+        xml {
+          name = "addresses"
+          wrapped = true
+        }
       }
     }
   }
-  paths "/user/{username}" "put" {
-    summary = "Update user"
-    description = "This can only be done by the logged in user."
-    operationId = "updateUser"
-    tags = ["user"]
-    parameters "username" {
-      in = "path"
-      description = "name that needs to be updated"
-      schema = string()
-      required = true
+  components "schemas" "Address" {
+    type = "object"
+    xml {
+      name = "address"
     }
-    requestBody {
-      description = "Update an existent user in the store"
-      content "application/json" {
-        schema = components.schemas.User
-      }
-      content "application/xml" {
-        schema = components.schemas.User
-      }
-      content "application/x-www-form-urlencoded" {
-        schema = components.schemas.User
-      }
-    }
-    responses "default" {
-      description = "successful operation"
+    properties {
+      street = string(example("437 Lytton"))
+      city = string(example("Palo Alto"))
+      state = string(example("CA"))
+      zip = string(example("94301"))
     }
   }
-  paths "/user/{username}" "delete" {
-    description = "This can only be done by the logged in user."
-    operationId = "deleteUser"
-    summary = "Delete user"
-    tags = ["user"]
-    parameters "username" {
-      required = true
-      in = "path"
-      description = "The name that needs to be deleted"
-      schema = string()
+  components "schemas" "Category" {
+    type = "object"
+    xml {
+      name = "category"
     }
-    responses "400" {
-      description = "Invalid username supplied"
-    }
-    responses "404" {
-      description = "User not found"
+    properties {
+      name = string(example("Dogs"))
+      id = integer(format("int64"), example(1))
     }
   }
-  paths "/user" "post" {
-    summary = "Create user"
-    description = "This can only be done by the logged in user."
-    operationId = "createUser"
-    tags = ["user"]
-    requestBody {
-      description = "Created user object"
-      content "application/x-www-form-urlencoded" {
-        schema = components.schemas.User
-      }
-      content "application/json" {
-        schema = components.schemas.User
-      }
-      content "application/xml" {
-        schema = components.schemas.User
-      }
+  components "schemas" "User" {
+    type = "object"
+    xml {
+      name = "user"
     }
-    responses "default" {
-      description = "successful operation"
-      content "application/json" {
-        schema = components.schemas.User
-      }
-      content "application/xml" {
-        schema = components.schemas.User
-      }
+    properties {
+      lastName = string(example("James"))
+      email = string(example("john@email.com"))
+      password = string(example("12345"))
+      phone = string(example("12345"))
+      userStatus = integer(format("int32"), description("User Status"), example(1))
+      id = integer(format("int64"), example(10))
+      username = string(example("theUser"))
+      firstName = string(example("John"))
     }
   }
-  paths "/user/logout" "get" {
-    operationId = "logoutUser"
-    summary = "Logs out current logged in user session"
-    tags = ["user"]
-    responses "default" {
-      description = "successful operation"
+  components "schemas" "Tag" {
+    type = "object"
+    xml {
+      name = "tag"
+    }
+    properties {
+      name = string()
+      id = integer(format("int64"))
+    }
+  }
+  components "schemas" "Pet" {
+    type = "object"
+    required = ["name", "photoUrls"]
+    xml {
+      name = "pet"
+    }
+    properties {
+      status = string(description("pet status in the store"), enum("available", "pending", "sold"))
+      id = integer(format("int64"), example(10))
+      name = string(example("doggie"))
+      category = components.schemas.Category
+      tags {
+        type = "array"
+        items = [components.schemas.Tag]
+        xml {
+          wrapped = true
+        }
+      }
+      photoUrls {
+        type = "array"
+        items = [{
+          type = "string",
+          xml = {
+            name = "photoUrl"
+          }
+        }]
+        xml {
+          wrapped = true
+        }
+      }
     }
   }
   components "schemas" "ApiResponse" {
@@ -553,120 +651,8 @@ Some useful links:
       petId = integer(format("int64"), example(198772))
       quantity = integer(format("int32"), example(7))
       shipDate = string(format("date-time"))
+      status = string(description("Order Status"), example("approved"), enum("placed", "approved", "delivered"))
       complete = boolean()
-      status {
-        enum = ["placed", "approved", "delivered"]
-        description = "Order Status"
-        type = "string"
-        example = "approved"
-      }
-    }
-  }
-  components "schemas" "Customer" {
-    type = "object"
-    xml {
-      name = "customer"
-    }
-    properties {
-      username = string(example("fehguy"))
-      id = integer(format("int64"), example(100000))
-      address {
-        type = "array"
-        items = [components.schemas.Address]
-        xml {
-          name = "addresses"
-          wrapped = true
-        }
-      }
-    }
-  }
-  components "schemas" "Address" {
-    type = "object"
-    xml {
-      name = "address"
-    }
-    properties {
-      city = string(example("Palo Alto"))
-      state = string(example("CA"))
-      zip = string(example(""94301""))
-      street = string(example("437 Lytton"))
-    }
-  }
-  components "schemas" "Category" {
-    type = "object"
-    xml {
-      name = "category"
-    }
-    properties {
-      name = string(example("Dogs"))
-      id = integer(format("int64"), example(1))
-    }
-  }
-  components "schemas" "User" {
-    type = "object"
-    xml {
-      name = "user"
-    }
-    properties {
-      email = string(example("john@email.com"))
-      password = string(example(""12345""))
-      phone = string(example(""12345""))
-      id = integer(format("int64"), example(10))
-      username = string(example("theUser"))
-      firstName = string(example("John"))
-      lastName = string(example("James"))
-      userStatus {
-        example = 1
-        description = "User Status"
-        type = "integer"
-        format = "int32"
-      }
-    }
-  }
-  components "schemas" "Tag" {
-    type = "object"
-    xml {
-      name = "tag"
-    }
-    properties {
-      id = integer(format("int64"))
-      name = string()
-    }
-  }
-  components "schemas" "Pet" {
-    required = ["name", "photoUrls"]
-    type = "object"
-    xml {
-      name = "pet"
-    }
-    properties {
-      name = string(example("doggie"))
-      category = components.schemas.Category
-      id = integer(format("int64"), example(10))
-      photoUrls {
-        type = "array"
-        items = [{
-          type = "string",
-          xml = {
-            name = "photoUrl"
-          }
-        }]
-        xml {
-          wrapped = true
-        }
-      }
-      tags {
-        type = "array"
-        items = [components.schemas.Tag]
-        xml {
-          wrapped = true
-        }
-      }
-      status {
-        description = "pet status in the store"
-        type = "string"
-        enum = ["available", "pending", "sold"]
-      }
     }
   }
   components "requestBodys" "Pet" {

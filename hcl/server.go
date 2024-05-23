@@ -103,7 +103,7 @@ func expressionToServers(expr *light.Expression) ([]*Server, error) {
 	for _, able := range ables {
 		server, ok := able.(*Server)
 		if !ok {
-			return nil, ErrInvalidType()
+			return nil, ErrInvalidType(able)
 		}
 		servers = append(servers, server)
 	}
