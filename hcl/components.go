@@ -91,7 +91,10 @@ func (self *Components) toHCL() (*light.Body, error) {
 			})
 		}
 	}
-	addSpecificationBlock(self.SpecificationExtension, &blocks)
+	if err := addSpecificationBlock(self.SpecificationExtension, &blocks); err != nil {
+		return nil, err
+	}
+
 	if len(attrs) > 0 {
 		body.Attributes = attrs
 	}

@@ -81,35 +81,60 @@ func schemaObjectToFcexpr(self *SchemaObject, expr *light.FunctionCallExpr) erro
 		return nil
 	}
 
+	if self.MaxProperties != 0 {
+		expr.Args = append(expr.Args, in64ToLiteralFcexpr("maxProperties", self.MaxProperties))
+	}
+	if self.MinProperties != 0 {
+		expr.Args = append(expr.Args, in64ToLiteralFcexpr("minProperties", self.MinProperties))
+	}
+	if self.Required != nil {
+		tcexpr := stringArrayToTupleConsEpr(self.Required)
+		expr.Args = append(expr.Args, shortToFcexpr("required", tcexpr))
+	}
 	if self.Properties != nil {
 		ex, err := mapSchemaOrReferenceToObjectConsExpr(self.Properties)
 		if err != nil {
 			return err
 		}
-		expr.Args = append([]*light.Expression{{
+		expr.Args = append(expr.Args, &light.Expression{
 			ExpressionClause: &light.Expression_Ocexpr{
 				Ocexpr: ex,
-			}}}, expr.Args...)
-	}
-
-	if self.MaxProperties != 0 {
-		expr.Args = append(expr.Args, int64ToLiteralExpr("maxProperties", self.MaxProperties))
-	}
-	if self.MinProperties != 0 {
-		expr.Args = append(expr.Args, int64ToLiteralExpr("minProperties", self.MinProperties))
-	}
-	if self.Required != nil {
-		expr.Args = append(expr.Args, stringArrayToTupleConsEpr(self.Required))
+			},
+		})
 	}
 	return nil
 }
 
 func fcexprToSchemaObject(fcexpr *light.FunctionCallExpr) (*SchemaObject, error) {
+	if fcexpr == nil {
+		return nil, nil
+	}
+
 	s := &SchemaObject{}
 	found := false
 
 	for _, arg := range fcexpr.Args {
 		switch arg.ExpressionClause.(type) {
+		case *light.Expression_Fcexpr:
+			expr := arg.GetFcexpr()
+			switch expr.Name {
+			case "maxProperties":
+				s.MaxProperties = *literalValueExprToInt64(expr.Args[0])
+				found = true
+			case "minProperties":
+				s.MinProperties = *literalValueExprToInt64(expr.Args[0])
+				found = true
+			case "required":
+				s.Required = tupleConsExprToStringArray(&light.Expression{
+					ExpressionClause: &light.Expression_Tcexpr{
+						Tcexpr: &light.TupleConsExpr{
+							Exprs: expr.Args,
+						},
+					},
+				})
+				found = true
+			default:
+			}
 		case *light.Expression_Ocexpr:
 			expr := arg.GetOcexpr()
 			properties, err := objectConsExprToMapSchemaOrReference(expr)
@@ -118,33 +143,12 @@ func fcexprToSchemaObject(fcexpr *light.FunctionCallExpr) (*SchemaObject, error)
 			}
 			s.Properties = properties
 			found = true
-		case *light.Expression_Fcexpr:
-			expr := arg.GetFcexpr()
-			switch expr.Name {
-			case "maxProperties":
-				max, err := literalExprToInt64(expr.Args[0])
-				if err != nil {
-					return nil, err
-				}
-				s.MaxProperties = max
-				found = true
-			case "minProperties":
-				min, err := literalExprToInt64(expr.Args[0])
-				if err != nil {
-					return nil, err
-				}
-				s.MinProperties = min
-				found = true
-			case "required":
-				s.Required = tupleConsExprToStringArray(expr.Args[0])
-				found = true
-			default:
-			}
 		default:
 		}
 	}
-	if found {
-		return s, nil
+
+	if !found {
+		return nil, nil
 	}
-	return nil, nil
+	return s, nil
 }

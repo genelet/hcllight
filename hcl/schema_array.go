@@ -189,6 +189,16 @@ func schemaArrayToFcexpr(self *SchemaArray, expr *light.FunctionCallExpr) error 
 	if self == nil {
 		return nil
 	}
+
+	if self.MaxItems != 0 {
+		expr.Args = append(expr.Args, in64ToLiteralFcexpr("maxItems", self.MaxItems))
+	}
+	if self.MinItems != 0 {
+		expr.Args = append(expr.Args, in64ToLiteralFcexpr("minItems", self.MinItems))
+	}
+	if self.UniqueItems {
+		expr.Args = append(expr.Args, booleanToLiteralFcexpr("uniqueItems", self.UniqueItems))
+	}
 	if self.Items != nil && len(self.Items) > 0 {
 		e, err := arrayToTupleConsExpr(self.Items)
 		if err != nil {
@@ -199,64 +209,47 @@ func schemaArrayToFcexpr(self *SchemaArray, expr *light.FunctionCallExpr) error 
 				Tcexpr: e,
 			},
 		}
-		expr.Args = append([]*light.Expression{ex}, expr.Args...)
-	}
-
-	if self.MaxItems != 0 {
-		expr.Args = append(expr.Args, int64ToLiteralExpr("maxItems", self.MaxItems))
-	}
-	if self.MinItems != 0 {
-		expr.Args = append(expr.Args, int64ToLiteralExpr("minItems", self.MinItems))
-	}
-	if self.UniqueItems {
-		expr.Args = append(expr.Args, booleanToLiteralExpr("uniqueItems", self.UniqueItems))
+		expr.Args = append(expr.Args, ex)
 	}
 	return nil
 }
 
 func fcexprToSchemaArray(fcexpr *light.FunctionCallExpr) (*SchemaArray, error) {
+	if fcexpr == nil {
+		return nil, nil
+	}
+
 	s := &SchemaArray{}
 	var found bool
-
 	for _, arg := range fcexpr.Args {
 		switch arg.ExpressionClause.(type) {
 		case *light.Expression_Fcexpr:
 			expr := arg.GetFcexpr()
 			switch expr.Name {
 			case "maxItems":
-				max, err := literalExprToInt64(expr.Args[0])
-				if err != nil {
-					return nil, err
-				}
-				s.MaxItems = max
+				s.MaxItems = *literalValueExprToInt64(expr.Args[0])
 				found = true
 			case "minItems":
-				min, err := literalExprToInt64(expr.Args[0])
-				if err != nil {
-					return nil, err
-				}
-				s.MinItems = min
+				s.MinItems = *literalValueExprToInt64(expr.Args[0])
 				found = true
 			case "uniqueItems":
-				unique, err := literalExprToBoolean(expr.Args[0])
-				if err != nil {
-					return nil, err
-				}
-				s.UniqueItems = unique
+				s.UniqueItems = *literalValueExprToBoolean(expr.Args[0])
 				found = true
 			default:
 			}
-		default:
+		case *light.Expression_Tcexpr:
 			items, err := tupleConsExprToArray(arg.GetTcexpr())
 			if err != nil {
 				return nil, err
 			}
 			s.Items = items
 			found = true
+		default:
 		}
 	}
-	if found {
-		return s, nil
+
+	if !found {
+		return nil, nil
 	}
-	return nil, nil
+	return s, nil
 }

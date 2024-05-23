@@ -44,15 +44,14 @@ func (self *Document) toHCL() (*light.Body, error) {
 	}
 	// we are changing Tags to be map[string]Tag
 	if self.Tags != nil && len(self.Tags) > 0 {
-		hash := make(map[string]ableHCL)
-		for _, tag := range self.Tags {
-			hash[tag.Name] = tag
-		}
-		blks, err := ableMapToBlocks(hash, "tags")
+		expr, err := tagsToTupleConsExpr(self.Tags)
 		if err != nil {
 			return nil, err
 		}
-		blocks = append(blocks, blks...)
+		attrs["tags"] = &light.Attribute{
+			Name: "tags",
+			Expr: expr,
+		}
 	}
 	if self.ExternalDocs != nil {
 		bdy, err := self.ExternalDocs.toHCL()
@@ -103,7 +102,9 @@ func (self *Document) toHCL() (*light.Body, error) {
 			Expr: expr,
 		}
 	}
-	addSpecificationBlock(self.SpecificationExtension, &blocks)
+	if err := addSpecificationBlock(self.SpecificationExtension, &blocks); err != nil {
+		return nil, err
+	}
 	if len(attrs) > 0 {
 		body.Attributes = attrs
 	}

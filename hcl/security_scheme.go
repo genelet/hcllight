@@ -4,15 +4,8 @@ import (
 	"github.com/genelet/hcllight/light"
 )
 
-func (self *SecuritySchemeOrReference) toHCL() (*light.Body, error) {
-	switch self.Oneof.(type) {
-	case *SecuritySchemeOrReference_SecurityScheme:
-		return self.GetSecurityScheme().toHCL()
-	case *SecuritySchemeOrReference_Reference:
-		return self.GetReference().toHCL()
-	default:
-	}
-	return nil, nil
+func (self *SecuritySchemeOrReference) getAble() ableHCL {
+	return self.GetSecurityScheme()
 }
 
 func securitySchemeOrReferenceFromHCL(body *light.Body) (*SecuritySchemeOrReference, error) {
@@ -150,24 +143,51 @@ func securitySchemeOrReferenceMapToBlocks(securitySchemes map[string]*SecuritySc
 	if securitySchemes == nil {
 		return nil, nil
 	}
-	hash := make(map[string]ableHCL)
+
+	hash := make(map[string]orHCL)
 	for k, v := range securitySchemes {
 		hash[k] = v
 	}
-	return ableMapToBlocks(hash, "securityScheme")
+	return orMapToBlocks(hash, "securitySchemes")
 }
 
 func blocksToSecuritySchemeOrReferenceMap(blocks []*light.Block) (map[string]*SecuritySchemeOrReference, error) {
 	if blocks == nil {
 		return nil, nil
 	}
-	hash := make(map[string]*SecuritySchemeOrReference)
-	for _, block := range blocks {
-		able, err := securitySchemeOrReferenceFromHCL(block.Bdy)
+
+	orMap, err := blocksToOrMap(blocks, "securitySchemes", func(reference *Reference) orHCL {
+		return &SecuritySchemeOrReference{
+			Oneof: &SecuritySchemeOrReference_Reference{
+				Reference: reference,
+			},
+		}
+	}, func(body *light.Body) (orHCL, error) {
+		securityScheme, err := securitySchemeFromHCL(body)
 		if err != nil {
 			return nil, err
 		}
-		hash[block.Labels[0]] = able
+		if securityScheme != nil {
+			return &SecuritySchemeOrReference{
+				Oneof: &SecuritySchemeOrReference_SecurityScheme{
+					SecurityScheme: securityScheme,
+				},
+			}, nil
+		}
+		return nil, nil
+	})
+	if err != nil {
+		return nil, err
 	}
+
+	if orMap == nil {
+		return nil, nil
+	}
+
+	hash := make(map[string]*SecuritySchemeOrReference)
+	for k, v := range orMap {
+		hash[k] = v.(*SecuritySchemeOrReference)
+	}
+
 	return hash, nil
 }

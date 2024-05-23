@@ -116,6 +116,18 @@ func schemaFullFromHCL(body *light.Body) (*Schema, error) {
 		return nil, nil
 	}
 
+	oneOf, err := attributesToOneOf(body.Attributes)
+	if err != nil {
+		return nil, err
+	}
+	allOf, err := attributesToAllOf(body.Attributes)
+	if err != nil {
+		return nil, err
+	}
+	anyOf, err := attributesToAnyOf(body.Attributes)
+	if err != nil {
+		return nil, err
+	}
 	common, err := attributesToCommon(body.Attributes)
 	if err != nil {
 		return nil, err
@@ -148,6 +160,9 @@ func schemaFullFromHCL(body *light.Body) (*Schema, error) {
 		Array:   arr,
 		Object:  obj,
 		Map:     m,
+		OneOf:   oneOf,
+		AllOf:   allOf,
+		AnyOf:   anyOf,
 	}
 
 	for _, block := range body.Blocks {

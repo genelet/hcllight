@@ -235,10 +235,10 @@ func commonToFcexpr(self *SchemaCommon) (*light.FunctionCallExpr, error) {
 		Name: typ,
 	}
 	if self.Format != "" {
-		fnc.Args = append(fnc.Args, stringToTextExpr("format", self.Format))
+		fnc.Args = append(fnc.Args, stringToTextFcexpr("format", self.Format))
 	}
 	if self.Description != "" {
-		fnc.Args = append(fnc.Args, stringToTextExpr("description", self.Description))
+		fnc.Args = append(fnc.Args, stringToTextFcexpr("description", self.Description))
 	}
 	if self.Default != nil {
 		fnc.Args = append(fnc.Args, defaultTypeToFcexpr(self.Default))
@@ -282,34 +282,26 @@ func fcexprToCommon(fcexpr *light.FunctionCallExpr) (*SchemaCommon, error) {
 	for _, arg := range fcexpr.Args {
 		switch arg.ExpressionClause.(type) {
 		case *light.Expression_Fcexpr:
-			expr := arg.GetFcexpr()
-			switch expr.Name {
+			name, items := fcexprToShort(arg)
+			switch name {
 			case "format":
-				format, err := textExprToString(expr.Args[0])
-				if err != nil {
-					return nil, err
-				}
-				common.Format = format
+				common.Format = *literalValueExprToString(items[0])
 				found = true
 			case "description":
-				description, err := textExprToString(expr.Args[0])
-				if err != nil {
-					return nil, err
-				}
-				common.Description = description
+				common.Description = *literalValueExprToString(items[0])
 				found = true
 			case "default":
-				common.Default = fcexprToDefaultType(expr.Args[0])
+				common.Default = expressionToDefaultType(items[0])
 				found = true
 			case "example":
-				common.Example, err = fcexprToAny(expr.Args[0])
+				common.Example, err = anyFromHCL(items[0])
 				if err != nil {
 					return nil, err
 				}
 				found = true
 			case "enum":
 				enum, err := tupleConsExprToEnum(&light.TupleConsExpr{
-					Exprs: expr.Args,
+					Exprs: items,
 				})
 				if err != nil {
 					return nil, err

@@ -61,13 +61,13 @@ func schemaStringToFcexpr(self *SchemaString, expr *light.FunctionCallExpr) erro
 		return nil
 	}
 	if self.MaxLength != 0 {
-		expr.Args = append(expr.Args, int64ToLiteralExpr("maxLength", self.MaxLength))
+		expr.Args = append(expr.Args, in64ToLiteralFcexpr("maxLength", self.MaxLength))
 	}
 	if self.MinLength != 0 {
-		expr.Args = append(expr.Args, int64ToLiteralExpr("minLength", self.MinLength))
+		expr.Args = append(expr.Args, in64ToLiteralFcexpr("minLength", self.MinLength))
 	}
 	if self.Pattern != "" {
-		expr.Args = append(expr.Args, stringToTextExpr("pattern", self.Pattern))
+		expr.Args = append(expr.Args, stringToTextFcexpr("pattern", self.Pattern))
 	}
 	return nil
 }
@@ -81,25 +81,13 @@ func fcexprToSchemaString(fcexpr *light.FunctionCallExpr) (*SchemaString, error)
 			expr := arg.GetFcexpr()
 			switch expr.Name {
 			case "maxLength":
-				max, err := literalExprToInt64(expr.Args[0])
-				if err != nil {
-					return nil, err
-				}
-				s.MaxLength = max
+				s.MaxLength = *literalValueExprToInt64(expr.Args[0])
 				found = true
 			case "minLength":
-				min, err := literalExprToInt64(expr.Args[0])
-				if err != nil {
-					return nil, err
-				}
-				s.MinLength = min
+				s.MinLength = *literalValueExprToInt64(expr.Args[0])
 				found = true
 			case "pattern":
-				pattern, err := textExprToString(expr.Args[0])
-				if err != nil {
-					return nil, err
-				}
-				s.Pattern = pattern
+				s.Pattern = *textValueExprToString(expr.Args[0])
 				found = true
 			default:
 			}

@@ -29,6 +29,36 @@ func (self *SchemaOrReference) toExpression() (*light.Expression, error) {
 	var expr *light.FunctionCallExpr
 	var err error
 	switch self.Oneof.(type) {
+	case *SchemaOrReference_OneOf:
+		x := self.GetOneOf()
+		tcexpr, err := arrayToTupleConsExpr(x.Items)
+		if err != nil {
+			return nil, err
+		}
+		expr = &light.FunctionCallExpr{
+			Name: "oneOf",
+			Args: tcexpr.Exprs,
+		}
+	case *SchemaOrReference_AllOf:
+		x := self.GetAllOf()
+		tcexpr, err := arrayToTupleConsExpr(x.Items)
+		if err != nil {
+			return nil, err
+		}
+		expr = &light.FunctionCallExpr{
+			Name: "allOf",
+			Args: tcexpr.Exprs,
+		}
+	case *SchemaOrReference_AnyOf:
+		x := self.GetAnyOf()
+		tcexpr, err := arrayToTupleConsExpr(x.Items)
+		if err != nil {
+			return nil, err
+		}
+		expr = &light.FunctionCallExpr{
+			Name: "anyOf",
+			Args: tcexpr.Exprs,
+		}
 	case *SchemaOrReference_Boolean:
 		x := self.GetBoolean()
 		expr, err = commonToFcexpr(x.GetCommon())
@@ -97,32 +127,67 @@ func ExpressionToSchemaOrReference(self *light.Expression) (*SchemaOrReference, 
 	}
 
 	expr := self.GetFcexpr()
+	switch expr.Name {
+	case "oneOf":
+		items, err := tupleConsExprToArray(&light.TupleConsExpr{
+			Exprs: expr.Args,
+		})
+		if err != nil {
+			return nil, err
+		}
+		return &SchemaOrReference{
+			Oneof: &SchemaOrReference_OneOf{
+				OneOf: &SchemaOneOf{
+					Items: items,
+				},
+			},
+		}, nil
+	case "allOf":
+		arr, err := tupleConsExprToArray(&light.TupleConsExpr{
+			Exprs: expr.Args,
+		})
+		if err != nil {
+			return nil, err
+		}
+		return &SchemaOrReference{
+			Oneof: &SchemaOrReference_AllOf{
+				AllOf: &SchemaAllOf{
+					Items: arr,
+				},
+			},
+		}, nil
+	case "anyOf":
+		arr, err := tupleConsExprToArray(&light.TupleConsExpr{
+			Exprs: expr.Args,
+		})
+		if err != nil {
+			return nil, err
+		}
+		return &SchemaOrReference{
+			Oneof: &SchemaOrReference_AnyOf{
+				AnyOf: &SchemaAnyOf{
+					Items: arr,
+				},
+			},
+		}, nil
+	default:
+	}
+
 	common, err := fcexprToCommon(expr)
 	if err != nil {
 		return nil, err
 	}
-	number, err := fcexprToSchemaNumber(expr)
-	if err != nil {
-		return nil, err
-	}
-	string_, err := fcexprToSchemaString(expr)
-	if err != nil {
-		return nil, err
-	}
-	array, err := fcexprToSchemaArray(expr)
-	if err != nil {
-		return nil, err
-	}
-	object, err := fcexprToSchemaObject(expr)
-	if err != nil {
-		return nil, err
-	}
-	m, err := fcexprToSchemaMap(expr)
-	if err != nil {
-		return nil, err
-	}
-
-	if number != nil {
+	switch common.Type {
+	case "boolean":
+		return &SchemaOrReference{
+			Oneof: &SchemaOrReference_Boolean{
+				Boolean: &OASBoolean{
+					Common: common,
+				},
+			},
+		}, nil
+	case "number":
+		number, err := fcexprToSchemaNumber(expr)
 		return &SchemaOrReference{
 			Oneof: &SchemaOrReference_Number{
 				Number: &OASNumber{
@@ -130,8 +195,9 @@ func ExpressionToSchemaOrReference(self *light.Expression) (*SchemaOrReference, 
 					Number: number,
 				},
 			},
-		}, nil
-	} else if string_ != nil {
+		}, err
+	case "string":
+		string_, err := fcexprToSchemaString(expr)
 		return &SchemaOrReference{
 			Oneof: &SchemaOrReference_String_{
 				String_: &OASString{
@@ -139,8 +205,9 @@ func ExpressionToSchemaOrReference(self *light.Expression) (*SchemaOrReference, 
 					String_: string_,
 				},
 			},
-		}, nil
-	} else if array != nil {
+		}, err
+	case "array":
+		array, err := fcexprToSchemaArray(expr)
 		return &SchemaOrReference{
 			Oneof: &SchemaOrReference_Array{
 				Array: &OASArray{
@@ -148,8 +215,9 @@ func ExpressionToSchemaOrReference(self *light.Expression) (*SchemaOrReference, 
 					Array:  array,
 				},
 			},
-		}, nil
-	} else if object != nil {
+		}, err
+	case "object":
+		object, err := fcexprToSchemaObject(expr)
 		return &SchemaOrReference{
 			Oneof: &SchemaOrReference_Object{
 				Object: &OASObject{
@@ -157,8 +225,9 @@ func ExpressionToSchemaOrReference(self *light.Expression) (*SchemaOrReference, 
 					Object: object,
 				},
 			},
-		}, nil
-	} else if m != nil {
+		}, err
+	case "map":
+		m, err := fcexprToSchemaMap(expr)
 		return &SchemaOrReference{
 			Oneof: &SchemaOrReference_Map{
 				Map: &OASMap{
@@ -166,16 +235,11 @@ func ExpressionToSchemaOrReference(self *light.Expression) (*SchemaOrReference, 
 					Map:    m,
 				},
 			},
-		}, nil
+		}, err
+	default:
 	}
 
-	return &SchemaOrReference{
-		Oneof: &SchemaOrReference_Boolean{
-			Boolean: &OASBoolean{
-				Common: common,
-			},
-		},
-	}, nil
+	return nil, nil
 }
 
 // use mapSchemaOrReferenceToBody instead

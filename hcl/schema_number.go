@@ -82,67 +82,50 @@ func schemaNumberToFcexpr(self *SchemaNumber, expr *light.FunctionCallExpr) erro
 		return nil
 	}
 	if self.Minimum != 0 {
-		expr.Args = append(expr.Args, float64ToLiteralExpr("minimum", self.Minimum))
+		expr.Args = append(expr.Args, float64ToLiteralFcexpr("minimum", self.Minimum))
 	}
 	if self.Maximum != 0 {
-		expr.Args = append(expr.Args, float64ToLiteralExpr("maximum", self.Maximum))
+		expr.Args = append(expr.Args, float64ToLiteralFcexpr("maximum", self.Maximum))
 	}
 	if self.ExclusiveMinimum {
-		expr.Args = append(expr.Args, booleanToLiteralExpr("exclusiveMinimum", self.ExclusiveMinimum))
+		expr.Args = append(expr.Args, booleanToLiteralFcexpr("exclusiveMinimum", self.ExclusiveMinimum))
 	}
 	if self.ExclusiveMaximum {
-		expr.Args = append(expr.Args, booleanToLiteralExpr("exclusiveMaximum", self.ExclusiveMaximum))
+		expr.Args = append(expr.Args, booleanToLiteralFcexpr("exclusiveMaximum", self.ExclusiveMaximum))
 	}
 	if self.MultipleOf != 0 {
-		expr.Args = append(expr.Args, float64ToLiteralExpr("multipoleOf", self.MultipleOf))
+		expr.Args = append(expr.Args, float64ToLiteralFcexpr("multipoleOf", self.MultipleOf))
 	}
 
 	return nil
 }
 
 func fcexprToSchemaNumber(fcexpr *light.FunctionCallExpr) (*SchemaNumber, error) {
+	if fcexpr == nil {
+		return nil, nil
+	}
+
 	s := &SchemaNumber{}
 	found := false
-
 	for _, arg := range fcexpr.Args {
 		switch arg.ExpressionClause.(type) {
 		case *light.Expression_Fcexpr:
 			expr := arg.GetFcexpr()
 			switch expr.Name {
 			case "minimum":
-				min, err := literalExprToFloat64(expr.Args[0])
-				if err != nil {
-					return nil, err
-				}
-				s.Minimum = min
+				s.Minimum = *literalValueExprToFloat64(expr.Args[0])
 				found = true
 			case "maximum":
-				max, err := literalExprToFloat64(expr.Args[0])
-				if err != nil {
-					return nil, err
-				}
-				s.Maximum = max
+				s.Maximum = *literalValueExprToFloat64(expr.Args[0])
 				found = true
 			case "exclusiveMinimum":
-				excl, err := literalExprToBoolean(expr.Args[0])
-				if err != nil {
-					return nil, err
-				}
-				s.ExclusiveMinimum = excl
+				s.ExclusiveMinimum = *literalValueExprToBoolean(expr.Args[0])
 				found = true
 			case "exclusiveMaximum":
-				excl, err := literalExprToBoolean(expr.Args[0])
-				if err != nil {
-					return nil, err
-				}
-				s.ExclusiveMaximum = excl
+				s.ExclusiveMaximum = *literalValueExprToBoolean(expr.Args[0])
 				found = true
 			case "multipleOf":
-				mul, err := literalExprToFloat64(expr.Args[0])
-				if err != nil {
-					return nil, err
-				}
-				s.MultipleOf = mul
+				s.MultipleOf = *literalValueExprToFloat64(expr.Args[0])
 				found = true
 			default:
 			}

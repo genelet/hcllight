@@ -8,7 +8,7 @@ func (self *Tag) toHCL() (*light.Body, error) {
 	body := new(light.Body)
 	attrs := make(map[string]*light.Attribute)
 	mapStrings := map[string]string{
-		//"name":        self.Name,
+		"name":        self.Name,
 		"description": self.Description,
 	}
 	for k, v := range mapStrings {
@@ -42,10 +42,6 @@ func tagFromHCL(body *light.Body) (*Tag, error) {
 
 	self := &Tag{}
 	var found bool
-	//if attr, ok := body.Attributes["name"]; ok {
-	//	self.Name = *literalValueExprToString(attr.Expr)
-	//	found = true
-	//}
 	if attr, ok := body.Attributes["description"]; ok {
 		self.Description = *literalValueExprToString(attr.Expr)
 		found = true

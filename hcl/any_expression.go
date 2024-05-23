@@ -6,7 +6,6 @@ import (
 	"strings"
 
 	"github.com/genelet/hcllight/light"
-	"google.golang.org/protobuf/types/known/anypb"
 	"gopkg.in/yaml.v2"
 )
 
@@ -112,22 +111,23 @@ func (self *Any) toFcexpr(typ ...string) (*light.Expression, error) {
 	}, nil
 }
 
-func fcexprToAny(expr *light.Expression) (*Any, error) {
-	if expr == nil {
+/*
+	func fcexprToAny(expr *light.Expression) (*Any, error) {
+		if expr == nil {
+			return nil, nil
+		}
+		switch expr.ExpressionClause.(type) {
+		case *light.Expression_Fcexpr:
+			return &Any{
+				Value: &anypb.Any{
+					Value: []byte(fmt.Sprintf("%v", expr.GetFcexpr().Args[0].GetLvexpr().Val)),
+				},
+			}, nil
+		default:
+		}
 		return nil, nil
 	}
-	switch expr.ExpressionClause.(type) {
-	case *light.Expression_Fcexpr:
-		return &Any{
-			Value: &anypb.Any{
-				Value: []byte(fmt.Sprintf("%v", expr.GetFcexpr().Args[0].GetLvexpr().Val)),
-			},
-		}, nil
-	default:
-	}
-	return nil, nil
-}
-
+*/
 func anyFromHCL(expr *light.Expression) (*Any, error) {
 	if expr == nil {
 		return nil, nil
@@ -149,8 +149,6 @@ func anyFromHCL(expr *light.Expression) (*Any, error) {
 		return &Any{
 			Yaml: fmt.Sprintf("%v", expr.GetTcexpr().GetExprs()),
 		}, nil
-	case *light.Expression_Fcexpr:
-		return fcexprToAny(expr)
 	default:
 	}
 	return nil, nil

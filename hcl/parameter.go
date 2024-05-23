@@ -355,31 +355,3 @@ func blocksToParameterOrReferenceMap(blocks []*light.Block) (map[string]*Paramet
 
 	return hash, nil
 }
-
-/*
-func parameterOrReferenceMapToBlocks(parameters map[string]*ParameterOrReference) ([]*light.Block, error) {
-	if parameters == nil {
-		return nil, nil
-	}
-	hash := make(map[string]ableHCL)
-	for k, v := range parameters {
-		hash[k] = v
-	}
-	return ableMapToBlocks(hash, "parameters")
-}
-
-func blocksToParameterOrReferenceMap(blocks []*light.Block) (map[string]*ParameterOrReference, error) {
-	if blocks == nil {
-		return nil, nil
-	}
-	hash := make(map[string]*ParameterOrReference)
-	for _, block := range blocks {
-		able, err := parameterOrReferenceFromHCL(block.Bdy)
-		if err != nil {
-			return nil, err
-		}
-		hash[block.Labels[0]] = able
-	}
-	return hash, nil
-}
-*/
