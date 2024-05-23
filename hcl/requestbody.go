@@ -62,7 +62,9 @@ func (self *RequestBody) toHCL() (*light.Body, error) {
 			Expr: booleanToLiteralValueExpr(self.Required),
 		}
 	}
-	addSpecificationBlock(self.SpecificationExtension, &blocks)
+	if err := addSpecificationBlock(self.SpecificationExtension, &blocks); err != nil {
+		return nil, err
+	}
 
 	if self.Content != nil {
 		blks, err := mediaTypeMapToBlocks(self.Content)
@@ -89,6 +91,7 @@ func requestBodyFromHCL(body *light.Body) (*RequestBody, error) {
 
 	requestBody := new(RequestBody)
 	var found bool
+	var err error
 	for k, v := range body.Attributes {
 		switch k {
 		case "description":
@@ -107,7 +110,10 @@ func requestBodyFromHCL(body *light.Body) (*RequestBody, error) {
 			}
 			requestBody.Content = content
 		case "specification":
-			requestBody.SpecificationExtension = bodyToAnyMap(block.Bdy)
+			requestBody.SpecificationExtension, err = bodyToAnyMap(block.Bdy)
+			if err != nil {
+				return nil, err
+			}
 		default:
 		}
 	}

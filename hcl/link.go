@@ -73,18 +73,28 @@ func (self *Link) toHCL() (*light.Body, error) {
 			Bdy:  bdy,
 		})
 	}
-	addSpecificationBlock(self.SpecificationExtension, &blocks)
+	if err := addSpecificationBlock(self.SpecificationExtension, &blocks); err != nil {
+		return nil, err
+	}
 
 	if self.Parameters != nil {
+		expr, err := self.Parameters.toExpression()
+		if err != nil {
+			return nil, err
+		}
 		attrs["parameters"] = &light.Attribute{
 			Name: "parameters",
-			Expr: self.Parameters.toExpression(),
+			Expr: expr,
 		}
 	}
 	if self.RequestBody != nil {
+		expr, err := self.RequestBody.toExpression()
+		if err != nil {
+			return nil, err
+		}
 		attrs["requestBody"] = &light.Attribute{
 			Name: "requestBody",
-			Expr: self.RequestBody.toExpression(),
+			Expr: expr,
 		}
 	}
 	if len(attrs) > 0 {
@@ -103,6 +113,7 @@ func linkFromHCL(body *light.Body) (*Link, error) {
 
 	link := new(Link)
 	var found bool
+	var err error
 	for k, v := range body.Attributes {
 		switch k {
 		case "operationRef":
@@ -115,10 +126,16 @@ func linkFromHCL(body *light.Body) (*Link, error) {
 			link.Description = *textValueExprToString(v.Expr)
 			found = true
 		case "parameters":
-			link.Parameters = anyOrExpressionFromHCL(v.Expr)
+			link.Parameters, err = anyOrExpressionFromHCL(v.Expr)
+			if err != nil {
+				return nil, err
+			}
 			found = true
 		case "requestBody":
-			link.RequestBody = anyOrExpressionFromHCL(v.Expr)
+			link.RequestBody, err = anyOrExpressionFromHCL(v.Expr)
+			if err != nil {
+				return nil, err
+			}
 			found = true
 		default:
 		}
@@ -132,7 +149,10 @@ func linkFromHCL(body *light.Body) (*Link, error) {
 			}
 			link.Server = server
 		default:
-			link.SpecificationExtension = bodyToAnyMap(body)
+			link.SpecificationExtension, err = bodyToAnyMap(body)
+			if err != nil {
+				return nil, err
+			}
 		}
 	}
 

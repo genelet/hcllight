@@ -26,7 +26,9 @@ func (self *ServerVariable) toHCL() (*light.Body, error) {
 			Expr: expr,
 		}
 	}
-	addSpecificationBlock(self.SpecificationExtension, &body.Blocks)
+	if err := addSpecificationBlock(self.SpecificationExtension, &body.Blocks); err != nil {
+		return nil, err
+	}
 	if len(attrs) > 0 {
 		body.Attributes = attrs
 	}
@@ -41,6 +43,7 @@ func serverVariableFromHCL(body *light.Body) (*ServerVariable, error) {
 
 	self := &ServerVariable{}
 	var found bool
+	var err error
 	if attr, ok := body.Attributes["default"]; ok {
 		self.Default = *literalValueExprToString(attr.Expr)
 		found = true
@@ -55,7 +58,10 @@ func serverVariableFromHCL(body *light.Body) (*ServerVariable, error) {
 	}
 	for _, block := range body.Blocks {
 		if block.Type == "SpecificationExtension" {
-			self.SpecificationExtension = bodyToAnyMap(block.Bdy)
+			self.SpecificationExtension, err = bodyToAnyMap(block.Bdy)
+			if err != nil {
+				return nil, err
+			}
 			found = true
 		}
 	}

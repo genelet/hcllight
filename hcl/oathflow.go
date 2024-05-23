@@ -47,7 +47,9 @@ func (self *OauthFlows) toHCL() (*light.Body, error) {
 			Bdy:  blk,
 		})
 	}
-	addSpecificationBlock(self.SpecificationExtension, &blocks)
+	if err := addSpecificationBlock(self.SpecificationExtension, &blocks); err != nil {
+		return nil, err
+	}
 
 	if len(blocks) > 0 {
 		body.Blocks = blocks
@@ -61,6 +63,8 @@ func flowsFromHCL(body *light.Body) (*OauthFlows, error) {
 	}
 
 	flows := &OauthFlows{}
+	var found bool
+	var err error
 	for _, blk := range body.Blocks {
 		if blk.Type == "implicit" {
 			flow, err := flowFromHCL(blk.Bdy)
@@ -68,29 +72,40 @@ func flowsFromHCL(body *light.Body) (*OauthFlows, error) {
 				return nil, err
 			}
 			flows.Implicit = flow
+			found = true
 		} else if blk.Type == "password" {
 			flow, err := flowFromHCL(blk.Bdy)
 			if err != nil {
 				return nil, err
 			}
 			flows.Password = flow
+			found = true
 		} else if blk.Type == "clientCredentials" {
 			flow, err := flowFromHCL(blk.Bdy)
 			if err != nil {
 				return nil, err
 			}
 			flows.ClientCredentials = flow
+			found = true
 		} else if blk.Type == "authorizationCode" {
 			flow, err := flowFromHCL(blk.Bdy)
 			if err != nil {
 				return nil, err
 			}
 			flows.AuthorizationCode = flow
+			found = true
 		} else if blk.Type == "specificationExtension" {
-			flows.SpecificationExtension = bodyToAnyMap(blk.Bdy)
+			flows.SpecificationExtension, err = bodyToAnyMap(blk.Bdy)
+			if err != nil {
+				return nil, err
+			}
+			found = true
 		}
 	}
 
+	if !found {
+		return nil, nil
+	}
 	return flows, nil
 }
 
@@ -143,6 +158,7 @@ func flowFromHCL(body *light.Body) (*OauthFlow, error) {
 
 	flow := &OauthFlow{}
 	var found bool
+	var err error
 	for k, v := range body.Attributes {
 		if k == "authorizationURL" {
 			flow.AuthorizationUrl = *textValueExprToString(v.Expr)
@@ -163,7 +179,10 @@ func flowFromHCL(body *light.Body) (*OauthFlow, error) {
 			}
 			found = true
 		} else if blk.Type == "specificationExtension" {
-			flow.SpecificationExtension = bodyToAnyMap(blk.Bdy)
+			flow.SpecificationExtension, err = bodyToAnyMap(blk.Bdy)
+			if err != nil {
+				return nil, err
+			}
 			found = true
 		}
 	}

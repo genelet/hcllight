@@ -40,12 +40,14 @@ func (self *Operation) toHCL() (*light.Body, error) {
 		}
 	}
 	if self.Parameters != nil {
-		hash := arrayParameterToHash(self.Parameters)
-		blks, err := parameterOrReferenceMapToBlocks(hash)
+		body, err := parameterOrReferenceArrayToBody(self.Parameters)
 		if err != nil {
 			return nil, err
 		}
-		blocks = append(blocks, blks...)
+		for k, v := range body.Attributes {
+			attrs[k] = v
+		}
+		blocks = append(blocks, body.Blocks...)
 	}
 	if self.RequestBody != nil {
 		bdy, err := self.RequestBody.toHCL()
@@ -91,7 +93,9 @@ func (self *Operation) toHCL() (*light.Body, error) {
 			Expr: expr,
 		}
 	}
-	addSpecificationBlock(self.SpecificationExtension, &blocks)
+	if err := addSpecificationBlock(self.SpecificationExtension, &blocks); err != nil {
+		return nil, err
+	}
 	if len(attrs) > 0 {
 		body.Attributes = attrs
 	}
@@ -144,11 +148,11 @@ func operationFromHCL(body *light.Body) (*Operation, error) {
 	for _, block := range body.Blocks {
 		switch block.Type {
 		case "parameters":
-			parameters, err := blocksToParameterOrReferenceMap(block.Bdy.Blocks)
+			parameters, err := bodyToParameterOrReferenceArray(body)
 			if err != nil {
 				return nil, err
 			}
-			self.Parameters = hashParameterToArray(parameters)
+			self.Parameters = parameters
 			found = true
 		case "requestBody":
 			self.RequestBody, err = requestBodyOrReferenceFromHCL(block.Bdy)
@@ -171,7 +175,10 @@ func operationFromHCL(body *light.Body) (*Operation, error) {
 			self.Callbacks = callbacks
 			found = true
 		case "specification":
-			self.SpecificationExtension = bodyToAnyMap(block.Bdy)
+			self.SpecificationExtension, err = bodyToAnyMap(block.Bdy)
+			if err != nil {
+				return nil, err
+			}
 			found = true
 		}
 	}

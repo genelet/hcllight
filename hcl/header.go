@@ -78,9 +78,13 @@ func (self *Header) toHCL() (*light.Body, error) {
 		}
 	}
 	if self.Example != nil {
+		expr, err := self.Example.toExpression()
+		if err != nil {
+			return nil, err
+		}
 		attrs["example"] = &light.Attribute{
 			Name: "example",
-			Expr: self.Example.toExpression(),
+			Expr: expr,
 		}
 	}
 	if self.Examples != nil {
@@ -90,7 +94,9 @@ func (self *Header) toHCL() (*light.Body, error) {
 		}
 		blocks = append(blocks, blk...)
 	}
-	addSpecificationBlock(self.SpecificationExtension, &blocks)
+	if err := addSpecificationBlock(self.SpecificationExtension, &blocks); err != nil {
+		return nil, err
+	}
 	if self.Schema != nil {
 		expr, err := self.Schema.toExpression()
 		if err != nil {
@@ -149,7 +155,10 @@ func headerFromHCL(body *light.Body) (*Header, error) {
 			self.Style = *literalValueExprToString(v.Expr)
 			found = true
 		case "example":
-			self.Example = anyFromHCL(v.Expr)
+			self.Example, err = anyFromHCL(v.Expr)
+			if err != nil {
+				return nil, err
+			}
 			found = true
 		case "schema":
 			self.Schema, err = ExpressionToSchemaOrReference(v.Expr)
@@ -175,7 +184,10 @@ func headerFromHCL(body *light.Body) (*Header, error) {
 			}
 			found = true
 		case "specification":
-			self.SpecificationExtension = bodyToAnyMap(block.Bdy)
+			self.SpecificationExtension, err = bodyToAnyMap(block.Bdy)
+			if err != nil {
+				return nil, err
+			}
 			found = true
 		default:
 		}

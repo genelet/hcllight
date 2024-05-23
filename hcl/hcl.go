@@ -5,7 +5,7 @@ import (
 )
 
 func isCommon(s *openapiv3.Schema) bool {
-	return s.Type != "" || s.Format != "" || s.Default != nil || s.Enum != nil
+	return s.Type != "" || s.Format != "" || s.Default != nil || s.Enum != nil || s.Example != nil || s.Description != ""
 }
 func isNumber(s *openapiv3.Schema) bool {
 	return s.MultipleOf != 0 || s.Maximum != 0 || s.ExclusiveMaximum || s.Minimum != 0 || s.ExclusiveMinimum
@@ -39,7 +39,7 @@ func isAnyOf(s *openapiv3.Schema) bool {
 }
 
 func isRest(s *openapiv3.Schema) bool {
-	return s.Nullable || s.Discriminator != nil || s.ReadOnly || s.WriteOnly || s.Xml != nil || s.ExternalDocs != nil || s.Example != nil || s.Deprecated || s.Title != "" || s.Description != "" || s.Not != nil || (s.SpecificationExtension != nil && len(s.SpecificationExtension) > 0)
+	return s.Nullable || s.Discriminator != nil || s.ReadOnly || s.WriteOnly || s.Xml != nil || s.ExternalDocs != nil || s.Deprecated || s.Title != "" || s.Not != nil || (s.SpecificationExtension != nil && len(s.SpecificationExtension) > 0)
 }
 
 func isFull(s *openapiv3.Schema) bool {

@@ -23,6 +23,33 @@ func defaultTypeToExpression(d *DefaultType) *light.Expression {
 	return nil
 }
 
+func defaultTypeToFcexpr(d *DefaultType) *light.Expression {
+	if d == nil {
+		return nil
+	}
+	args := []*light.Expression{defaultTypeToExpression(d)}
+	return &light.Expression{
+		ExpressionClause: &light.Expression_Fcexpr{
+			Fcexpr: &light.FunctionCallExpr{
+				Name: "default",
+				Args: args,
+			},
+		},
+	}
+}
+
+func fcexprToDefaultType(expr *light.Expression) *DefaultType {
+	if expr == nil {
+		return nil
+	}
+	switch expr.ExpressionClause.(type) {
+	case *light.Expression_Fcexpr:
+		return expressionToDefaultType(expr.GetFcexpr().Args[0])
+	default:
+	}
+	return nil
+}
+
 func expressionToDefaultType(e *light.Expression) *DefaultType {
 	if e == nil {
 		return nil
@@ -56,14 +83,18 @@ func expressionToDefaultType(e *light.Expression) *DefaultType {
 	return nil
 }
 
-func enumToTupleConsExpr(enumeration []*Any) (*light.TupleConsExpr, error) {
+func enumToTupleConsExpr(enumeration []*Any, typ ...string) (*light.TupleConsExpr, error) {
 	if len(enumeration) == 0 {
 		return nil, nil
 	}
 
 	var enums []*light.Expression
 	for _, e := range enumeration {
-		enums = append(enums, stringToTextValueExpr(e.GetYaml()))
+		expr, err := e.toExpression(typ...)
+		if err != nil {
+			return nil, err
+		}
+		enums = append(enums, expr)
 	}
 
 	if len(enums) == 0 {
@@ -82,7 +113,11 @@ func tupleConsExprToEnum(t *light.TupleConsExpr) ([]*Any, error) {
 
 	var enums []*Any
 	for _, e := range t.Exprs {
-		enums = append(enums, &Any{Yaml: *textValueExprToString(e)})
+		item, err := anyFromHCL(e)
+		if err != nil {
+			return nil, err
+		}
+		enums = append(enums, item)
 	}
 
 	if len(enums) == 0 {
@@ -109,14 +144,30 @@ func commonToAttributes(self *SchemaCommon, attrs map[string]*light.Attribute) e
 			Expr: stringToTextValueExpr(self.Format),
 		}
 	}
+	if self.Description != "" {
+		attrs["description"] = &light.Attribute{
+			Name: "description",
+			Expr: stringToTextValueExpr(self.Description),
+		}
+	}
 	if self.Default != nil {
 		attrs["default"] = &light.Attribute{
 			Name: "default",
 			Expr: stringToLiteralValueExpr(self.Default.String()),
 		}
 	}
+	if self.Example != nil {
+		expr, err := self.Example.toExpression(self.Type)
+		if err != nil {
+			return err
+		}
+		attrs["example"] = &light.Attribute{
+			Name: "example",
+			Expr: expr,
+		}
+	}
 	if self.Enum != nil {
-		expr, err := enumToTupleConsExpr(self.Enum)
+		expr, err := enumToTupleConsExpr(self.Enum, self.Type)
 		if err != nil {
 			return err
 		}
@@ -138,6 +189,7 @@ func attributesToCommon(attrs map[string]*light.Attribute) (*SchemaCommon, error
 	}
 
 	var found bool
+	var err error
 	common := &SchemaCommon{}
 	if v, ok := attrs["type"]; ok {
 		common.Type = *textValueExprToString(v.Expr)
@@ -147,8 +199,19 @@ func attributesToCommon(attrs map[string]*light.Attribute) (*SchemaCommon, error
 		common.Format = *textValueExprToString(v.Expr)
 		found = true
 	}
+	if v, ok := attrs["description"]; ok {
+		common.Description = *textValueExprToString(v.Expr)
+		found = true
+	}
 	if v, ok := attrs["default"]; ok {
 		common.Default = expressionToDefaultType(v.Expr)
+		found = true
+	}
+	if v, ok := attrs["example"]; ok {
+		common.Example, err = anyFromHCL(v.Expr)
+		if err != nil {
+			return nil, err
+		}
 		found = true
 	}
 	if v, ok := attrs["enum"]; ok {
@@ -174,11 +237,21 @@ func commonToFcexpr(self *SchemaCommon) (*light.FunctionCallExpr, error) {
 	if self.Format != "" {
 		fnc.Args = append(fnc.Args, stringToTextExpr("format", self.Format))
 	}
+	if self.Description != "" {
+		fnc.Args = append(fnc.Args, stringToTextExpr("description", self.Description))
+	}
 	if self.Default != nil {
-		fnc.Args = append(fnc.Args, defaultTypeToExpression(self.Default))
+		fnc.Args = append(fnc.Args, defaultTypeToFcexpr(self.Default))
+	}
+	if self.Example != nil {
+		expr, err := self.Example.toFcexpr(self.Type)
+		if err != nil {
+			return nil, err
+		}
+		fnc.Args = append(fnc.Args, expr)
 	}
 	if self.Enum != nil {
-		expr, err := enumToTupleConsExpr(self.Enum)
+		expr, err := enumToTupleConsExpr(self.Enum, self.Type)
 		if err != nil {
 			return nil, err
 		} else if expr != nil {
@@ -205,7 +278,7 @@ func fcexprToCommon(fcexpr *light.FunctionCallExpr) (*SchemaCommon, error) {
 	}
 
 	found := false
-
+	var err error
 	for _, arg := range fcexpr.Args {
 		switch arg.ExpressionClause.(type) {
 		case *light.Expression_Fcexpr:
@@ -218,8 +291,21 @@ func fcexprToCommon(fcexpr *light.FunctionCallExpr) (*SchemaCommon, error) {
 				}
 				common.Format = format
 				found = true
+			case "description":
+				description, err := exprToTextString(expr.Args[0])
+				if err != nil {
+					return nil, err
+				}
+				common.Description = description
+				found = true
 			case "default":
-				common.Default = expressionToDefaultType(expr.Args[0])
+				common.Default = fcexprToDefaultType(expr.Args[0])
+				found = true
+			case "example":
+				common.Example, err = fcexprToAny(expr.Args[0])
+				if err != nil {
+					return nil, err
+				}
 				found = true
 			case "enum":
 				enum, err := tupleConsExprToEnum(&light.TupleConsExpr{

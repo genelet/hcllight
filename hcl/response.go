@@ -58,7 +58,10 @@ func (self *Response) toHCL() (*light.Body, error) {
 			},
 		}
 	}
-	addSpecificationBlock(self.SpecificationExtension, &blocks)
+	if err := addSpecificationBlock(self.SpecificationExtension, &blocks); err != nil {
+		return nil, err
+	}
+
 	if self.Content != nil {
 		blks, err := mediaTypeMapToBlocks(self.Content)
 		if err != nil {
@@ -108,7 +111,10 @@ func responseFromHCL(body *light.Body) (*Response, error) {
 	for _, block := range body.Blocks {
 		switch block.Type {
 		case "specification":
-			response.SpecificationExtension = bodyToAnyMap(block.Bdy)
+			response.SpecificationExtension, err = bodyToAnyMap(block.Bdy)
+			if err != nil {
+				return nil, err
+			}
 			found = true
 		case "content":
 			response.Content, err = blocksToMediaTypeMap(block.Bdy.Blocks)

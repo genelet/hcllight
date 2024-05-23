@@ -41,7 +41,9 @@ func (self *Info) toHCL() (*light.Body, error) {
 			Bdy:  bdy,
 		})
 	}
-	addSpecificationBlock(self.SpecificationExtension, &body.Blocks)
+	if err := addSpecificationBlock(self.SpecificationExtension, &body.Blocks); err != nil {
+		return nil, err
+	}
 	if len(attrs) > 0 {
 		body.Attributes = attrs
 	}
@@ -56,6 +58,7 @@ func infoFromHCL(body *light.Body) (*Info, error) {
 
 	info := new(Info)
 	var found bool
+	var err error
 	for k, v := range body.Attributes {
 		switch k {
 		case "title":
@@ -89,7 +92,10 @@ func infoFromHCL(body *light.Body) (*Info, error) {
 			info.License = license
 			found = true
 		case "specification":
-			info.SpecificationExtension = bodyToAnyMap(block.Bdy)
+			info.SpecificationExtension, err = bodyToAnyMap(block.Bdy)
+			if err != nil {
+				return nil, err
+			}
 			found = true
 		default:
 		}

@@ -32,7 +32,9 @@ func (self *Encoding) toHCL() (*light.Body, error) {
 			}
 		}
 	}
-	addSpecificationBlock(self.SpecificationExtension, &blocks)
+	if err := addSpecificationBlock(self.SpecificationExtension, &blocks); err != nil {
+		return nil, err
+	}
 
 	if self.Headers != nil {
 		blks, err := headerOrReferenceMapToBlocks(self.Headers)
@@ -83,7 +85,7 @@ func encodingFromHCL(body *light.Body) (*Encoding, error) {
 			}
 			found = true
 		case "specification":
-			self.SpecificationExtension = bodyToAnyMap(block.Bdy)
+			self.SpecificationExtension, err = bodyToAnyMap(block.Bdy)
 			found = true
 		}
 	}

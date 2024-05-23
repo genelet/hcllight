@@ -42,6 +42,7 @@ func (self *Document) toHCL() (*light.Body, error) {
 			Expr: expr,
 		}
 	}
+	// we are changing Tags to be map[string]Tag
 	if self.Tags != nil && len(self.Tags) > 0 {
 		hash := make(map[string]AbleHCL)
 		for _, tag := range self.Tags {

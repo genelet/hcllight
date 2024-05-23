@@ -67,7 +67,10 @@ func (self *SecurityScheme) toHCL() (*light.Body, error) {
 			}
 		}
 	}
-	addSpecificationBlock(self.SpecificationExtension, &blocks)
+	if err := addSpecificationBlock(self.SpecificationExtension, &blocks); err != nil {
+		return nil, err
+	}
+
 	if self.Flows != nil {
 		blk, err := self.Flows.toHCL()
 		if err != nil {
@@ -94,6 +97,7 @@ func securitySchemeFromHCL(body *light.Body) (*SecurityScheme, error) {
 
 	self := &SecurityScheme{}
 	var found bool
+	var err error
 	for k, v := range body.Attributes {
 		if k == "type" {
 			self.Type = *textValueExprToString(v.Expr)
@@ -121,7 +125,10 @@ func securitySchemeFromHCL(body *light.Body) (*SecurityScheme, error) {
 	for _, block := range body.Blocks {
 		switch block.Type {
 		case "SpecificationExtension":
-			self.SpecificationExtension = bodyToAnyMap(block.Bdy)
+			self.SpecificationExtension, err = bodyToAnyMap(block.Bdy)
+			if err != nil {
+				return nil, err
+			}
 			found = true
 		case "flows":
 			blk, err := flowsFromHCL(block.Bdy)

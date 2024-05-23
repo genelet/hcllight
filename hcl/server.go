@@ -20,7 +20,9 @@ func (self *Server) toHCL() (*light.Body, error) {
 			}
 		}
 	}
-	addSpecificationBlock(self.SpecificationExtension, &blocks)
+	if err := addSpecificationBlock(self.SpecificationExtension, &blocks); err != nil {
+		return nil, err
+	}
 	if self.Variables != nil {
 		blks, err := serverVariableMapToBlocks(self.Variables)
 		if err != nil {
@@ -44,6 +46,7 @@ func serverFromHCL(body *light.Body) (*Server, error) {
 
 	self := &Server{}
 	var found bool
+	var err error
 	if attr, ok := body.Attributes["url"]; ok {
 		self.Url = *textValueExprToString(attr.Expr)
 		found = true
@@ -54,7 +57,10 @@ func serverFromHCL(body *light.Body) (*Server, error) {
 	}
 	for _, block := range body.Blocks {
 		if block.Type == "SpecificationExtension" {
-			self.SpecificationExtension = bodyToAnyMap(block.Bdy)
+			self.SpecificationExtension, err = bodyToAnyMap(block.Bdy)
+			if err != nil {
+				return nil, err
+			}
 			found = true
 		} else if block.Type == "serverVariable" {
 			variables, err := blocksToServerVariableMap(body.Blocks)

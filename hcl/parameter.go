@@ -80,7 +80,10 @@ func (self *Parameter) toHCL() (*light.Body, error) {
 		}
 	}
 	if self.Example != nil {
-		expr := self.Example.toExpression()
+		expr, err := self.Example.toExpression()
+		if err != nil {
+			return nil, err
+		}
 		attrs["example"] = &light.Attribute{
 			Name: "example",
 			Expr: expr,
@@ -93,7 +96,9 @@ func (self *Parameter) toHCL() (*light.Body, error) {
 		}
 		blocks = append(blocks, blk...)
 	}
-	addSpecificationBlock(self.SpecificationExtension, &blocks)
+	if err := addSpecificationBlock(self.SpecificationExtension, &blocks); err != nil {
+		return nil, err
+	}
 
 	if self.Schema != nil {
 		expr, err := self.Schema.toExpression()
@@ -159,7 +164,10 @@ func parameterFromHCL(body *light.Body) (*Parameter, error) {
 			parameter.Style = *textValueExprToString(v.Expr)
 			found = true
 		case "example":
-			parameter.Example = anyFromHCL(v.Expr)
+			parameter.Example, err = anyFromHCL(v.Expr)
+			if err != nil {
+				return nil, err
+			}
 			found = true
 		case "schema":
 			parameter.Schema, err = ExpressionToSchemaOrReference(v.Expr)
@@ -184,7 +192,11 @@ func parameterFromHCL(body *light.Body) (*Parameter, error) {
 				}
 				found = true
 			case "specification":
-				parameter.SpecificationExtension = bodyToAnyMap(block.Bdy)
+				parameter.SpecificationExtension, err = bodyToAnyMap(block.Bdy)
+				if err != nil {
+					return nil, err
+				}
+				found = true
 			}
 		}
 	}
@@ -194,72 +206,108 @@ func parameterFromHCL(body *light.Body) (*Parameter, error) {
 	return parameter, nil
 }
 
-/*
-	func parametersToTupleConsExpr(parameters []*ParameterOrReference) (*light.Expression, error) {
-		if parameters == nil || len(parameters) == 0 {
-			return nil, nil
-		}
-
-		var arr []AbleHCL
-		for _, v := range parameters {
-			arr = append(arr, v)
-		}
-		return ableToTupleConsExpr(arr)
+func parameterOrReferenceArrayToBody(array []*ParameterOrReference) (*light.Body, error) {
+	if array == nil {
+		return nil, nil
 	}
 
-	func expressionToParameters(expr *light.Expression) ([]*ParameterOrReference, error) {
-		if expr == nil {
-			return nil, nil
-		}
-
-		ables, err := tupleConsExprToAble(expr, func(expr *light.ObjectConsExpr) (AbleHCL, error) {
-			return parameterOrReferenceFromHCL(expr.ToBody())
-		})
-		if err != nil {
-			return nil, err
-		}
-		var parameters []*ParameterOrReference
-		for _, able := range ables {
-			parameters = append(parameters, able.(*ParameterOrReference))
-		}
-		return parameters, nil
-	}
-*/
-func arrayParameterToHash(array []*ParameterOrReference) map[string]*ParameterOrReference {
-	hash := make(map[string]*ParameterOrReference)
+	blocks := make([]*light.Block, 0)
+	var exprs []*light.Expression
 	for _, v := range array {
 		switch v.Oneof.(type) {
 		case *ParameterOrReference_Parameter:
 			t := v.GetParameter()
 			name := t.Name
 			t.Name = ""
-			hash[name] = v
+			body, err := t.toHCL()
+			if err != nil {
+				return nil, err
+			}
+			blocks = append(blocks, &light.Block{
+				Type:   "parameters",
+				Labels: []string{name},
+				Bdy:    body,
+			})
 		case *ParameterOrReference_Reference:
-			t := v.GetReference()
-			hash[t.XRef] = v
+			reference := v.GetReference()
+			expr, err := reference.toExpression()
+			if err != nil {
+				return nil, err
+			}
+			exprs = append(exprs, expr)
 		default:
 		}
 	}
-	return hash
+
+	if len(blocks) == 0 && exprs == nil {
+		return nil, nil
+	}
+	body := new(light.Body)
+	if len(blocks) > 0 {
+		body.Blocks = blocks
+	}
+	if exprs != nil {
+		body.Attributes = map[string]*light.Attribute{
+			"parameters": {
+				Name: "parameters",
+				Expr: &light.Expression{
+					ExpressionClause: &light.Expression_Tcexpr{
+						Tcexpr: &light.TupleConsExpr{
+							Exprs: exprs,
+						},
+					},
+				},
+			},
+		}
+	}
+	return body, nil
 }
 
-func hashParameterToArray(hash map[string]*ParameterOrReference) []*ParameterOrReference {
-	if hash == nil {
-		return nil
+func bodyToParameterOrReferenceArray(body *light.Body) ([]*ParameterOrReference, error) {
+	if body == nil {
+		return nil, nil
 	}
 
 	var array []*ParameterOrReference
-	for k, v := range hash {
-		switch v.Oneof.(type) {
-		case *ParameterOrReference_Parameter:
-			v.GetParameter().Name = k
-		case *ParameterOrReference_Reference:
-			v.GetReference().XRef = k
-		default:
+	for k, v := range body.Attributes {
+		if k != "parameters" {
+			continue
 		}
-		array = append(array, v)
+		if v.Expr.GetTcexpr() != nil {
+			for _, expr := range v.Expr.GetTcexpr().Exprs {
+				reference, err := expressionToReference(expr)
+				if err != nil {
+					return nil, err
+				}
+				if reference != nil {
+					array = append(array, &ParameterOrReference{
+						Oneof: &ParameterOrReference_Reference{
+							Reference: reference,
+						},
+					})
+				}
+			}
+		}
 	}
-	return array
+	for _, block := range body.Blocks {
+		if block.Type != "parameters" {
+			continue
+		}
+		parameter, err := parameterFromHCL(block.Bdy)
+		if err != nil {
+			return nil, err
+		}
+		if parameter != nil {
+			parameter.Name = block.Labels[0]
+			array = append(array, &ParameterOrReference{
+				Oneof: &ParameterOrReference_Parameter{
+					Parameter: parameter,
+				},
+			})
+		}
+	}
+
+	return array, nil
 }
 
 func parameterOrReferenceMapToBlocks(parameters map[string]*ParameterOrReference) ([]*light.Block, error) {

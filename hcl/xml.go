@@ -33,7 +33,9 @@ func (self *Xml) toHCL() (*light.Body, error) {
 			}
 		}
 	}
-	addSpecificationBlock(self.SpecificationExtension, &blocks)
+	if err := addSpecificationBlock(self.SpecificationExtension, &blocks); err != nil {
+		return nil, err
+	}
 
 	if len(attrs) > 0 {
 		body.Attributes = attrs
@@ -51,6 +53,7 @@ func xmlFromHCL(body *light.Body) (*Xml, error) {
 	}
 	xml := &Xml{}
 	var found bool
+	var err error
 	for k, v := range body.Attributes {
 		switch k {
 		case "name":
@@ -73,7 +76,10 @@ func xmlFromHCL(body *light.Body) (*Xml, error) {
 	}
 	for _, v := range body.Blocks {
 		if v.Type == "specificationExtension" {
-			xml.SpecificationExtension = bodyToAnyMap(v.Bdy)
+			xml.SpecificationExtension, err = bodyToAnyMap(v.Bdy)
+			if err != nil {
+				return nil, err
+			}
 			found = true
 		}
 	}

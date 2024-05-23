@@ -297,8 +297,10 @@ message ResponseOrReference {
 message SchemaCommon {
   string type = 1;
   string format = 2;
-  DefaultType default = 3;
-  repeated Any enum = 4;
+  string description = 3; 
+  DefaultType default = 4;
+  Any example = 5; 
+  repeated Any enum = 6;
 }
 
 message OASBoolean {
@@ -380,10 +382,8 @@ message Schema {
   bool write_only = 3;
   Xml xml = 4;
   ExternalDocs external_docs = 5;
-  Any example = 6;
-  bool deprecated = 7;
-  string title = 8;
-  string description = 9;
+  bool deprecated = 6;
+  string title = 7;
 
   SchemaCommon common = 10;
   SchemaNumber number = 11;

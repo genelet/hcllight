@@ -2,21 +2,9 @@ package hcl
 
 import (
 	"github.com/genelet/hcllight/light"
+	//"github.com/k0kubun/pp/v3"
 )
 
-/*
-	func (s *SchemaOrReference) toHCL() (*light.Body, error) {
-		switch s.Oneof.(type) {
-		case *SchemaOrReference_Schema:
-			return s.GetSchema().toHCL()
-		case *SchemaOrReference_Reference:
-			return s.GetReference().toHCL()
-		default: // we ignore all other types, meaning we have to assign type Schema when parsing Components.Schemas
-		}
-
-		return nil, nil
-	}
-*/
 func (self *SchemaOrReference) toExpression() (*light.Expression, error) {
 	if self == nil {
 		return nil, nil
@@ -40,29 +28,38 @@ func (self *SchemaOrReference) toExpression() (*light.Expression, error) {
 
 	var expr *light.FunctionCallExpr
 	var err error
-	if x := self.GetBoolean(); x != nil {
+	switch self.Oneof.(type) {
+	case *SchemaOrReference_Boolean:
+		x := self.GetBoolean()
 		expr, err = commonToFcexpr(x.GetCommon())
-	} else if x := self.GetNumber(); x != nil {
+	case *SchemaOrReference_Number:
+		x := self.GetNumber()
 		if expr, err = commonToFcexpr(x.GetCommon()); err == nil {
 			err = schemaNumberToFcexpr(x.GetNumber(), expr)
 		}
-	} else if x := self.GetString_(); x != nil {
+	case *SchemaOrReference_String_:
+		x := self.GetString_()
 		if expr, err = commonToFcexpr(x.GetCommon()); err == nil {
 			err = schemaStringToFcexpr(x.GetString_(), expr)
 		}
-	} else if x := self.GetArray(); x != nil {
+	case *SchemaOrReference_Array:
+		x := self.GetArray()
 		if expr, err = commonToFcexpr(x.GetCommon()); err == nil {
 			err = schemaArrayToFcexpr(x.GetArray(), expr)
 		}
-	} else if x := self.GetObject(); x != nil {
+	case *SchemaOrReference_Object:
+		x := self.GetObject()
 		if expr, err = commonToFcexpr(x.GetCommon()); err == nil {
 			err = schemaObjectToFcexpr(x.GetObject(), expr)
 		}
-	} else if x := self.GetMap(); x != nil {
+	case *SchemaOrReference_Map:
+		x := self.GetMap()
 		if expr, err = commonToFcexpr(x.GetCommon()); err == nil {
 			err = schemaMapToFcexpr(x.GetMap(), expr)
 		}
+	default:
 	}
+
 	return &light.Expression{
 		ExpressionClause: &light.Expression_Fcexpr{
 			Fcexpr: expr,

@@ -9,9 +9,13 @@ func (self *MediaType) toHCL() (*light.Body, error) {
 	attrs := make(map[string]*light.Attribute)
 	blocks := make([]*light.Block, 0)
 	if self.Example != nil {
+		expr, err := self.Example.toExpression()
+		if err != nil {
+			return nil, err
+		}
 		attrs["example"] = &light.Attribute{
 			Name: "example",
-			Expr: self.Example.toExpression(),
+			Expr: expr,
 		}
 	}
 	if self.Examples != nil {
@@ -55,10 +59,14 @@ func mediaTypeFromHCL(body *light.Body) (*MediaType, error) {
 
 	mediaType := new(MediaType)
 	var found bool
+	var err error
 	for k, v := range body.Attributes {
 		switch k {
 		case "example":
-			mediaType.Example = anyFromHCL(v.Expr)
+			mediaType.Example, err = anyFromHCL(v.Expr)
+			if err != nil {
+				return nil, err
+			}
 			found = true
 		case "schema":
 			schema, err := ExpressionToSchemaOrReference(v.Expr)

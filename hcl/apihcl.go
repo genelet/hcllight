@@ -4,30 +4,30 @@ import (
 	openapiv3 "github.com/google/gnostic-models/openapiv3"
 )
 
-func DocumentToHcl(doc *openapiv3.Document) *Document {
+func DocumentFromApi(doc *openapiv3.Document) *Document {
 	d := &Document{
 		Openapi:                doc.Openapi,
-		Info:                   infoToHcl(doc.Info),
-		Components:             ComponentsToHcl(doc.Components),
-		ExternalDocs:           externalDocsToHcl(doc.ExternalDocs),
-		SpecificationExtension: extensionToHcl(doc.SpecificationExtension),
+		Info:                   infoFromApi(doc.Info),
+		Components:             ComponentsFromApi(doc.Components),
+		ExternalDocs:           externalDocsFromApi(doc.ExternalDocs),
+		SpecificationExtension: extensionFromApi(doc.SpecificationExtension),
 	}
 	for _, s := range doc.Servers {
-		d.Servers = append(d.Servers, serverToHcl(s))
+		d.Servers = append(d.Servers, serverFromApi(s))
 	}
 	if doc.Paths != nil {
 		d.Paths = make(map[string]*PathItemOrReference)
 		for _, v := range doc.Paths.Path {
-			d.Paths[v.Name] = PathItemOrReferenceToHcl(v.Value)
+			d.Paths[v.Name] = PathItemOrReferenceFromApi(v.Value)
 		}
 	}
 
 	for _, s := range doc.Security {
-		d.Security = append(d.Security, securityRequirementToHcl(s))
+		d.Security = append(d.Security, securityRequirementFromApi(s))
 	}
 
 	for _, t := range doc.Tags {
-		d.Tags = append(d.Tags, tagToHcl(t))
+		d.Tags = append(d.Tags, tagFromApi(t))
 	}
 
 	return d
@@ -73,62 +73,62 @@ func DocumentToApi(document *Document) *openapiv3.Document {
 	return d
 }
 
-func ComponentsToHcl(components *openapiv3.Components) *Components {
+func ComponentsFromApi(components *openapiv3.Components) *Components {
 	c := &Components{
-		SpecificationExtension: extensionToHcl(components.SpecificationExtension),
+		SpecificationExtension: extensionFromApi(components.SpecificationExtension),
 	}
 	if components.Callbacks != nil {
 		c.Callbacks = make(map[string]*CallbackOrReference)
 		for _, v := range components.Callbacks.AdditionalProperties {
-			c.Callbacks[v.Name] = callbackOrReferenceToHcl(v.Value)
+			c.Callbacks[v.Name] = callbackOrReferenceFromApi(v.Value)
 		}
 	}
 	if components.Links != nil {
 		c.Links = make(map[string]*LinkOrReference)
 		for _, v := range components.Links.AdditionalProperties {
-			c.Links[v.Name] = linkOrReferenceToHcl(v.Value)
+			c.Links[v.Name] = linkOrReferenceFromApi(v.Value)
 		}
 	}
 	if components.SecuritySchemes != nil {
 		c.SecuritySchemes = make(map[string]*SecuritySchemeOrReference)
 		for _, v := range components.SecuritySchemes.AdditionalProperties {
-			c.SecuritySchemes[v.Name] = securitySchemaOrReferenceToHcl(v.Value)
+			c.SecuritySchemes[v.Name] = securitySchemaOrReferenceFromApi(v.Value)
 		}
 	}
 	if components.Examples != nil {
 		c.Examples = make(map[string]*ExampleOrReference)
 		for _, v := range components.Examples.AdditionalProperties {
-			c.Examples[v.Name] = exampleOrReferenceToHcl(v.Value)
+			c.Examples[v.Name] = exampleOrReferenceFromApi(v.Value)
 		}
 	}
 	if components.RequestBodies != nil {
 		c.RequestBodies = make(map[string]*RequestBodyOrReference)
 		for _, v := range components.RequestBodies.AdditionalProperties {
-			c.RequestBodies[v.Name] = requestBodyOrReferenceToHcl(v.Value)
+			c.RequestBodies[v.Name] = requestBodyOrReferenceFromApi(v.Value)
 		}
 	}
 	if components.Schemas != nil {
 		c.Schemas = make(map[string]*SchemaOrReference)
 		for _, v := range components.Schemas.AdditionalProperties {
-			c.Schemas[v.Name] = SchemaOrReferenceToHcl(v.Value, true)
+			c.Schemas[v.Name] = SchemaOrReferenceFromApi(v.Value, true)
 		}
 	}
 	if components.Parameters != nil {
 		c.Parameters = make(map[string]*ParameterOrReference)
 		for _, v := range components.Parameters.AdditionalProperties {
-			c.Parameters[v.Name] = parameterOrReferenceToHcl(v.Value)
+			c.Parameters[v.Name] = parameterOrReferenceFromApi(v.Value)
 		}
 	}
 	if components.Responses != nil {
 		c.Responses = make(map[string]*ResponseOrReference)
 		for _, v := range components.Responses.AdditionalProperties {
-			c.Responses[v.Name] = responseOrReferenceToHcl(v.Value)
+			c.Responses[v.Name] = responseOrReferenceFromApi(v.Value)
 		}
 	}
 	if components.Headers != nil {
 		c.Headers = make(map[string]*HeaderOrReference)
 		for _, v := range components.Headers.AdditionalProperties {
-			c.Headers[v.Name] = headerOrReferenceToHcl(v.Value)
+			c.Headers[v.Name] = headerOrReferenceFromApi(v.Value)
 		}
 	}
 
@@ -187,7 +187,7 @@ func ComponentsToApi(components *Components) *openapiv3.Components {
 	return c
 }
 
-func ReferenceToHcl(reference *openapiv3.Reference) *Reference {
+func ReferenceFromApi(reference *openapiv3.Reference) *Reference {
 	if reference == nil {
 		return nil
 	}
@@ -209,14 +209,14 @@ func ReferenceToApi(reference *Reference) *openapiv3.Reference {
 	}
 }
 
-func PathItemOrReferenceToHcl(path *openapiv3.PathItem) *PathItemOrReference {
+func PathItemOrReferenceFromApi(path *openapiv3.PathItem) *PathItemOrReference {
 	if path == nil {
 		return nil
 	}
 	if reference := path.XRef; reference != "" {
 		return &PathItemOrReference{
 			Oneof: &PathItemOrReference_Reference{
-				Reference: ReferenceToHcl(&openapiv3.Reference{
+				Reference: ReferenceFromApi(&openapiv3.Reference{
 					XRef:        reference,
 					Summary:     path.Summary,
 					Description: path.Description,
@@ -228,21 +228,21 @@ func PathItemOrReferenceToHcl(path *openapiv3.PathItem) *PathItemOrReference {
 	p := &PathItem{
 		Summary:                path.Summary,
 		Description:            path.Description,
-		Get:                    operationToHcl(path.Get),
-		Put:                    operationToHcl(path.Put),
-		Post:                   operationToHcl(path.Post),
-		Delete:                 operationToHcl(path.Delete),
-		Options:                operationToHcl(path.Options),
-		Head:                   operationToHcl(path.Head),
-		Patch:                  operationToHcl(path.Patch),
-		Trace:                  operationToHcl(path.Trace),
-		SpecificationExtension: extensionToHcl(path.SpecificationExtension),
+		Get:                    operationFromApi(path.Get),
+		Put:                    operationFromApi(path.Put),
+		Post:                   operationFromApi(path.Post),
+		Delete:                 operationFromApi(path.Delete),
+		Options:                operationFromApi(path.Options),
+		Head:                   operationFromApi(path.Head),
+		Patch:                  operationFromApi(path.Patch),
+		Trace:                  operationFromApi(path.Trace),
+		SpecificationExtension: extensionFromApi(path.SpecificationExtension),
 	}
 	for _, s := range path.Servers {
-		p.Servers = append(p.Servers, serverToHcl(s))
+		p.Servers = append(p.Servers, serverFromApi(s))
 	}
 	for _, s := range path.Parameters {
-		p.Parameters = append(p.Parameters, parameterOrReferenceToHcl(s))
+		p.Parameters = append(p.Parameters, parameterOrReferenceFromApi(s))
 	}
 	return &PathItemOrReference{
 		Oneof: &PathItemOrReference_Item{
@@ -292,7 +292,7 @@ func PathItemOrReferenceToApi(item *PathItemOrReference) *openapiv3.PathItem {
 	return p
 }
 
-func contactToHcl(contact *openapiv3.Contact) *Contact {
+func contactFromApi(contact *openapiv3.Contact) *Contact {
 	if contact == nil {
 		return nil
 	}
@@ -300,7 +300,7 @@ func contactToHcl(contact *openapiv3.Contact) *Contact {
 		Name:                   contact.Name,
 		Url:                    contact.Url,
 		Email:                  contact.Email,
-		SpecificationExtension: extensionToHcl(contact.SpecificationExtension),
+		SpecificationExtension: extensionFromApi(contact.SpecificationExtension),
 	}
 }
 
@@ -316,14 +316,14 @@ func contactToApi(contact *Contact) *openapiv3.Contact {
 	}
 }
 
-func licenseToHcl(license *openapiv3.License) *License {
+func licenseFromApi(license *openapiv3.License) *License {
 	if license == nil {
 		return nil
 	}
 	return &License{
 		Name:                   license.Name,
 		Url:                    license.Url,
-		SpecificationExtension: extensionToHcl(license.SpecificationExtension),
+		SpecificationExtension: extensionFromApi(license.SpecificationExtension),
 	}
 }
 
@@ -338,7 +338,7 @@ func licenseToApi(license *License) *openapiv3.License {
 	}
 }
 
-func infoToHcl(info *openapiv3.Info) *Info {
+func infoFromApi(info *openapiv3.Info) *Info {
 	if info == nil {
 		return nil
 	}
@@ -347,9 +347,9 @@ func infoToHcl(info *openapiv3.Info) *Info {
 		Description:            info.Description,
 		TermsOfService:         info.TermsOfService,
 		Version:                info.Version,
-		Contact:                contactToHcl(info.Contact),
-		License:                licenseToHcl(info.License),
-		SpecificationExtension: extensionToHcl(info.SpecificationExtension),
+		Contact:                contactFromApi(info.Contact),
+		License:                licenseFromApi(info.License),
+		SpecificationExtension: extensionFromApi(info.SpecificationExtension),
 		Summary:                info.Summary,
 	}
 }
@@ -369,15 +369,15 @@ func infoToApi(info *Info) *openapiv3.Info {
 	}
 }
 
-func tagToHcl(tag *openapiv3.Tag) *Tag {
+func tagFromApi(tag *openapiv3.Tag) *Tag {
 	if tag == nil {
 		return nil
 	}
 	return &Tag{
 		Name:                   tag.Name,
 		Description:            tag.Description,
-		ExternalDocs:           externalDocsToHcl(tag.ExternalDocs),
-		SpecificationExtension: extensionToHcl(tag.SpecificationExtension),
+		ExternalDocs:           externalDocsFromApi(tag.ExternalDocs),
+		SpecificationExtension: extensionFromApi(tag.SpecificationExtension),
 	}
 }
 
@@ -393,7 +393,7 @@ func tagToApi(tag *Tag) *openapiv3.Tag {
 	}
 }
 
-func serverVariableToHcl(variable *openapiv3.ServerVariable) *ServerVariable {
+func serverVariableFromApi(variable *openapiv3.ServerVariable) *ServerVariable {
 	if variable == nil {
 		return nil
 	}
@@ -401,7 +401,7 @@ func serverVariableToHcl(variable *openapiv3.ServerVariable) *ServerVariable {
 		Default:                variable.Default,
 		Enum:                   variable.Enum,
 		Description:            variable.Description,
-		SpecificationExtension: extensionToHcl(variable.SpecificationExtension),
+		SpecificationExtension: extensionFromApi(variable.SpecificationExtension),
 	}
 }
 
@@ -417,21 +417,21 @@ func serverVariableToApi(serverVariable *ServerVariable) *openapiv3.ServerVariab
 	}
 }
 
-func serverToHcl(server *openapiv3.Server) *Server {
+func serverFromApi(server *openapiv3.Server) *Server {
 	if server == nil {
 		return nil
 	}
 	s := &Server{
 		Url:                    server.Url,
 		Description:            server.Description,
-		SpecificationExtension: extensionToHcl(server.SpecificationExtension),
+		SpecificationExtension: extensionFromApi(server.SpecificationExtension),
 	}
 	if server.Variables != nil {
 		for _, v := range server.Variables.AdditionalProperties {
 			if s.Variables == nil {
 				s.Variables = make(map[string]*ServerVariable)
 			}
-			s.Variables[v.Name] = serverVariableToHcl(v.Value)
+			s.Variables[v.Name] = serverVariableFromApi(v.Value)
 		}
 	}
 	return s
@@ -457,7 +457,7 @@ func serverToApi(server *Server) *openapiv3.Server {
 	return s
 }
 
-func stringArrayToHcl(array *openapiv3.StringArray) *StringArray {
+func stringArrayFromApi(array *openapiv3.StringArray) *StringArray {
 	if array == nil {
 		return nil
 	}
@@ -475,7 +475,7 @@ func stringArrayToApi(stringArray *StringArray) *openapiv3.StringArray {
 	}
 }
 
-func oAuthFlowToHcl(flow *openapiv3.OauthFlow) *OauthFlow {
+func oAuthFlowFromApi(flow *openapiv3.OauthFlow) *OauthFlow {
 	if flow == nil {
 		return nil
 	}
@@ -491,7 +491,7 @@ func oAuthFlowToHcl(flow *openapiv3.OauthFlow) *OauthFlow {
 		TokenUrl:               flow.TokenUrl,
 		RefreshUrl:             flow.RefreshUrl,
 		Scopes:                 scope,
-		SpecificationExtension: extensionToHcl(flow.SpecificationExtension),
+		SpecificationExtension: extensionFromApi(flow.SpecificationExtension),
 	}
 }
 
@@ -516,16 +516,16 @@ func oAuthFlowToApi(oAuthFlow *OauthFlow) *openapiv3.OauthFlow {
 	return o
 }
 
-func oAuthFlowsToHcl(flows *openapiv3.OauthFlows) *OauthFlows {
+func oAuthFlowsFromApi(flows *openapiv3.OauthFlows) *OauthFlows {
 	if flows == nil {
 		return nil
 	}
 	return &OauthFlows{
-		Implicit:               oAuthFlowToHcl(flows.Implicit),
-		Password:               oAuthFlowToHcl(flows.Password),
-		ClientCredentials:      oAuthFlowToHcl(flows.ClientCredentials),
-		AuthorizationCode:      oAuthFlowToHcl(flows.AuthorizationCode),
-		SpecificationExtension: extensionToHcl(flows.SpecificationExtension),
+		Implicit:               oAuthFlowFromApi(flows.Implicit),
+		Password:               oAuthFlowFromApi(flows.Password),
+		ClientCredentials:      oAuthFlowFromApi(flows.ClientCredentials),
+		AuthorizationCode:      oAuthFlowFromApi(flows.AuthorizationCode),
+		SpecificationExtension: extensionFromApi(flows.SpecificationExtension),
 	}
 }
 
@@ -542,13 +542,13 @@ func oAuthFlowsToApi(oAuthFlows *OauthFlows) *openapiv3.OauthFlows {
 	}
 }
 
-func securityRequirementToHcl(requirement *openapiv3.SecurityRequirement) *SecurityRequirement {
+func securityRequirementFromApi(requirement *openapiv3.SecurityRequirement) *SecurityRequirement {
 	if requirement == nil {
 		return nil
 	}
 	s := make(map[string]*StringArray)
 	for _, v := range requirement.AdditionalProperties {
-		s[v.Name] = stringArrayToHcl(v.Value)
+		s[v.Name] = stringArrayFromApi(v.Value)
 	}
 	return &SecurityRequirement{
 		AdditionalProperties: s,
@@ -570,14 +570,14 @@ func securityRequirementToApi(securityRequirement *SecurityRequirement) *openapi
 	return s
 }
 
-func securitySchemaOrReferenceToHcl(security *openapiv3.SecuritySchemeOrReference) *SecuritySchemeOrReference {
+func securitySchemaOrReferenceFromApi(security *openapiv3.SecuritySchemeOrReference) *SecuritySchemeOrReference {
 	if security == nil {
 		return nil
 	}
 	if x := security.GetReference(); x != nil {
 		return &SecuritySchemeOrReference{
 			Oneof: &SecuritySchemeOrReference_Reference{
-				Reference: ReferenceToHcl(x),
+				Reference: ReferenceFromApi(x),
 			},
 		}
 	}
@@ -591,9 +591,9 @@ func securitySchemaOrReferenceToHcl(security *openapiv3.SecuritySchemeOrReferenc
 				In:                     s.In,
 				Scheme:                 s.Scheme,
 				BearerFormat:           s.BearerFormat,
-				Flows:                  oAuthFlowsToHcl(s.Flows),
+				Flows:                  oAuthFlowsFromApi(s.Flows),
 				OpenIdConnectUrl:       s.OpenIdConnectUrl,
-				SpecificationExtension: extensionToHcl(s.SpecificationExtension),
+				SpecificationExtension: extensionFromApi(s.SpecificationExtension),
 			},
 		},
 	}
@@ -629,13 +629,13 @@ func securitySchemeOrReferenceToApi(securitySchemeOrReference *SecuritySchemeOrR
 	}
 }
 
-func expressionToHcl(expression *openapiv3.Expression) *Expression {
+func expressionFromApi(expression *openapiv3.Expression) *Expression {
 	if expression == nil {
 		return nil
 	}
 	expr := make(map[string]*Any)
 	for _, v := range expression.AdditionalProperties {
-		expr[v.Name] = anyToHcl(v.Value)
+		expr[v.Name] = anyFromApi(v.Value)
 	}
 	return &Expression{
 		AdditionalProperties: expr,
@@ -655,21 +655,21 @@ func expressionToApi(expression *Expression) *openapiv3.Expression {
 	}
 }
 
-func anyOrReferenceToHcl(any *openapiv3.AnyOrExpression) *AnyOrExpression {
+func anyOrReferenceFromApi(any *openapiv3.AnyOrExpression) *AnyOrExpression {
 	if any == nil {
 		return nil
 	}
 	if x := any.GetAny(); x != nil {
 		return &AnyOrExpression{
 			Oneof: &AnyOrExpression_Any{
-				Any: anyToHcl(x),
+				Any: anyFromApi(x),
 			},
 		}
 	}
 	expr := any.GetExpression()
 	return &AnyOrExpression{
 		Oneof: &AnyOrExpression_Expression{
-			Expression: expressionToHcl(expr),
+			Expression: expressionFromApi(expr),
 		},
 	}
 }
@@ -693,14 +693,14 @@ func anyOrReferenceToApi(anyOrReference *AnyOrExpression) *openapiv3.AnyOrExpres
 	}
 }
 
-func linkOrReferenceToHcl(link *openapiv3.LinkOrReference) *LinkOrReference {
+func linkOrReferenceFromApi(link *openapiv3.LinkOrReference) *LinkOrReference {
 	if link == nil {
 		return nil
 	}
 	if x := link.GetReference(); x != nil {
 		return &LinkOrReference{
 			Oneof: &LinkOrReference_Reference{
-				Reference: ReferenceToHcl(x),
+				Reference: ReferenceFromApi(x),
 			},
 		}
 	}
@@ -711,11 +711,11 @@ func linkOrReferenceToHcl(link *openapiv3.LinkOrReference) *LinkOrReference {
 			Link: &Link{
 				OperationRef:           l.OperationRef,
 				OperationId:            l.OperationId,
-				Parameters:             anyOrReferenceToHcl(l.Parameters),
-				RequestBody:            anyOrReferenceToHcl(l.RequestBody),
+				Parameters:             anyOrReferenceFromApi(l.Parameters),
+				RequestBody:            anyOrReferenceFromApi(l.RequestBody),
 				Description:            l.Description,
-				Server:                 serverToHcl(l.Server),
-				SpecificationExtension: extensionToHcl(l.SpecificationExtension),
+				Server:                 serverFromApi(l.Server),
+				SpecificationExtension: extensionFromApi(l.SpecificationExtension),
 			},
 		},
 	}
@@ -749,15 +749,15 @@ func linkOrReferenceToApi(linkOrReference *LinkOrReference) *openapiv3.LinkOrRef
 	}
 }
 
-func exampleToHcl(example *openapiv3.Example) *Example {
+func exampleFromApi(example *openapiv3.Example) *Example {
 	if example == nil {
 		return nil
 	}
 	return &Example{
 		Summary:                example.Summary,
 		Description:            example.Description,
-		Value:                  anyToHcl(example.Value),
-		SpecificationExtension: extensionToHcl(example.SpecificationExtension),
+		Value:                  anyFromApi(example.Value),
+		SpecificationExtension: extensionFromApi(example.SpecificationExtension),
 	}
 }
 
@@ -771,14 +771,14 @@ func exampleToApi(e *Example) *openapiv3.Example {
 	}
 }
 
-func exampleOrReferenceToHcl(example *openapiv3.ExampleOrReference) *ExampleOrReference {
+func exampleOrReferenceFromApi(example *openapiv3.ExampleOrReference) *ExampleOrReference {
 	if example == nil {
 		return nil
 	}
 	if x := example.GetReference(); x != nil {
 		return &ExampleOrReference{
 			Oneof: &ExampleOrReference_Reference{
-				Reference: ReferenceToHcl(x),
+				Reference: ReferenceFromApi(x),
 			},
 		}
 	}
@@ -786,7 +786,7 @@ func exampleOrReferenceToHcl(example *openapiv3.ExampleOrReference) *ExampleOrRe
 	e := example.GetExample()
 	return &ExampleOrReference{
 		Oneof: &ExampleOrReference_Example{
-			Example: exampleToHcl(e),
+			Example: exampleFromApi(e),
 		},
 	}
 }
@@ -811,7 +811,7 @@ func exampleOrReferenceToApi(exampleOrReference *ExampleOrReference) *openapiv3.
 	}
 }
 
-func parameterToHcl(parameter *openapiv3.Parameter) *Parameter {
+func parameterFromApi(parameter *openapiv3.Parameter) *Parameter {
 	p := &Parameter{
 		Name:                   parameter.Name,
 		In:                     parameter.In,
@@ -822,20 +822,20 @@ func parameterToHcl(parameter *openapiv3.Parameter) *Parameter {
 		Style:                  parameter.Style,
 		Explode:                parameter.Explode,
 		AllowReserved:          parameter.AllowReserved,
-		Schema:                 SchemaOrReferenceToHcl(parameter.Schema),
-		Example:                anyToHcl(parameter.Example),
-		SpecificationExtension: extensionToHcl(parameter.SpecificationExtension),
+		Schema:                 SchemaOrReferenceFromApi(parameter.Schema),
+		Example:                anyFromApi(parameter.Example),
+		SpecificationExtension: extensionFromApi(parameter.SpecificationExtension),
 	}
 	if parameter.Content != nil {
 		p.Content = make(map[string]*MediaType)
 		for _, v := range parameter.Content.AdditionalProperties {
-			p.Content[v.Name] = mediaTypeToHcl(v.Value)
+			p.Content[v.Name] = mediaTypeFromApi(v.Value)
 		}
 	}
 	if parameter.Examples != nil {
 		p.Examples = make(map[string]*ExampleOrReference)
 		for _, v := range parameter.Examples.AdditionalProperties {
-			p.Examples[v.Name] = exampleOrReferenceToHcl(v.Value)
+			p.Examples[v.Name] = exampleOrReferenceFromApi(v.Value)
 		}
 	}
 	return p
@@ -878,14 +878,14 @@ func parameterToApi(parameter *Parameter) *openapiv3.Parameter {
 	return p
 }
 
-func parameterOrReferenceToHcl(parameter *openapiv3.ParameterOrReference) *ParameterOrReference {
+func parameterOrReferenceFromApi(parameter *openapiv3.ParameterOrReference) *ParameterOrReference {
 	if parameter == nil {
 		return nil
 	}
 	if x := parameter.GetReference(); x != nil {
 		return &ParameterOrReference{
 			Oneof: &ParameterOrReference_Reference{
-				Reference: ReferenceToHcl(x),
+				Reference: ReferenceFromApi(x),
 			},
 		}
 	}
@@ -893,7 +893,7 @@ func parameterOrReferenceToHcl(parameter *openapiv3.ParameterOrReference) *Param
 	p := parameter.GetParameter()
 	return &ParameterOrReference{
 		Oneof: &ParameterOrReference_Parameter{
-			Parameter: parameterToHcl(p),
+			Parameter: parameterFromApi(p),
 		},
 	}
 }
@@ -918,19 +918,19 @@ func parameterOrReferenceToApi(parameterOrReference *ParameterOrReference) *open
 	}
 }
 
-func requestBodyToHcl(body *openapiv3.RequestBody) *RequestBody {
+func requestBodyFromApi(body *openapiv3.RequestBody) *RequestBody {
 	if body == nil {
 		return nil
 	}
 	r := &RequestBody{
 		Description:            body.Description,
 		Required:               body.Required,
-		SpecificationExtension: extensionToHcl(body.SpecificationExtension),
+		SpecificationExtension: extensionFromApi(body.SpecificationExtension),
 	}
 	if body.Content != nil {
 		r.Content = make(map[string]*MediaType)
 		for _, v := range body.Content.AdditionalProperties {
-			r.Content[v.Name] = mediaTypeToHcl(v.Value)
+			r.Content[v.Name] = mediaTypeFromApi(v.Value)
 		}
 	}
 	return r
@@ -956,7 +956,7 @@ func requestBodyToApi(requestBody *RequestBody) *openapiv3.RequestBody {
 	return r
 }
 
-func requestBodyOrReferenceToHcl(body *openapiv3.RequestBodyOrReference) *RequestBodyOrReference {
+func requestBodyOrReferenceFromApi(body *openapiv3.RequestBodyOrReference) *RequestBodyOrReference {
 	if body == nil {
 		return nil
 	}
@@ -964,7 +964,7 @@ func requestBodyOrReferenceToHcl(body *openapiv3.RequestBodyOrReference) *Reques
 	if x := body.GetReference(); x != nil {
 		return &RequestBodyOrReference{
 			Oneof: &RequestBodyOrReference_Reference{
-				Reference: ReferenceToHcl(x),
+				Reference: ReferenceFromApi(x),
 			},
 		}
 	}
@@ -972,7 +972,7 @@ func requestBodyOrReferenceToHcl(body *openapiv3.RequestBodyOrReference) *Reques
 	b := body.GetRequestBody()
 	return &RequestBodyOrReference{
 		Oneof: &RequestBodyOrReference_RequestBody{
-			RequestBody: requestBodyToHcl(b),
+			RequestBody: requestBodyFromApi(b),
 		},
 	}
 }
@@ -997,7 +997,7 @@ func requestBodyOrReferenceToApi(requestBodyOrReference *RequestBodyOrReference)
 	}
 }
 
-func responseToHcl(response *openapiv3.Response) *Response {
+func responseFromApi(response *openapiv3.Response) *Response {
 	if response == nil {
 		return nil
 	}
@@ -1006,21 +1006,21 @@ func responseToHcl(response *openapiv3.Response) *Response {
 		Headers:                make(map[string]*HeaderOrReference),
 		Content:                make(map[string]*MediaType),
 		Links:                  make(map[string]*LinkOrReference),
-		SpecificationExtension: extensionToHcl(response.SpecificationExtension),
+		SpecificationExtension: extensionFromApi(response.SpecificationExtension),
 	}
 	if response.Headers != nil {
 		for _, s := range response.Headers.AdditionalProperties {
-			r.Headers[s.Name] = headerOrReferenceToHcl(s.Value)
+			r.Headers[s.Name] = headerOrReferenceFromApi(s.Value)
 		}
 	}
 	if response.Content != nil {
 		for _, s := range response.Content.AdditionalProperties {
-			r.Content[s.Name] = mediaTypeToHcl(s.Value)
+			r.Content[s.Name] = mediaTypeFromApi(s.Value)
 		}
 	}
 	if response.Links != nil {
 		for _, s := range response.Links.AdditionalProperties {
-			r.Links[s.Name] = linkOrReferenceToHcl(s.Value)
+			r.Links[s.Name] = linkOrReferenceFromApi(s.Value)
 		}
 	}
 
@@ -1062,7 +1062,7 @@ func responseToApi(response *Response) *openapiv3.Response {
 	return r
 }
 
-func responseOrReferenceToHcl(response *openapiv3.ResponseOrReference) *ResponseOrReference {
+func responseOrReferenceFromApi(response *openapiv3.ResponseOrReference) *ResponseOrReference {
 	if response == nil {
 		return nil
 	}
@@ -1070,7 +1070,7 @@ func responseOrReferenceToHcl(response *openapiv3.ResponseOrReference) *Response
 	if x := response.GetReference(); x != nil {
 		return &ResponseOrReference{
 			Oneof: &ResponseOrReference_Reference{
-				Reference: ReferenceToHcl(x),
+				Reference: ReferenceFromApi(x),
 			},
 		}
 	}
@@ -1078,7 +1078,7 @@ func responseOrReferenceToHcl(response *openapiv3.ResponseOrReference) *Response
 	r := response.GetResponse()
 	return &ResponseOrReference{
 		Oneof: &ResponseOrReference_Response{
-			Response: responseToHcl(r),
+			Response: responseFromApi(r),
 		},
 	}
 }
@@ -1103,7 +1103,7 @@ func responseOrReferenceToApi(responseOrReference *ResponseOrReference) *openapi
 	}
 }
 
-func operationToHcl(operation *openapiv3.Operation) *Operation {
+func operationFromApi(operation *openapiv3.Operation) *Operation {
 	if operation == nil {
 		return nil
 	}
@@ -1112,26 +1112,26 @@ func operationToHcl(operation *openapiv3.Operation) *Operation {
 		Tags:                   operation.Tags,
 		Summary:                operation.Summary,
 		Description:            operation.Description,
-		ExternalDocs:           externalDocsToHcl(operation.ExternalDocs),
+		ExternalDocs:           externalDocsFromApi(operation.ExternalDocs),
 		OperationId:            operation.OperationId,
-		RequestBody:            requestBodyOrReferenceToHcl(operation.RequestBody),
+		RequestBody:            requestBodyOrReferenceFromApi(operation.RequestBody),
 		Deprecated:             operation.Deprecated,
-		SpecificationExtension: extensionToHcl(operation.SpecificationExtension),
+		SpecificationExtension: extensionFromApi(operation.SpecificationExtension),
 	}
 
 	for _, s := range operation.Security {
-		o.Security = append(o.Security, securityRequirementToHcl(s))
+		o.Security = append(o.Security, securityRequirementFromApi(s))
 	}
 	for _, s := range operation.Servers {
-		o.Servers = append(o.Servers, serverToHcl(s))
+		o.Servers = append(o.Servers, serverFromApi(s))
 	}
 	for _, s := range operation.Parameters {
-		o.Parameters = append(o.Parameters, parameterOrReferenceToHcl(s))
+		o.Parameters = append(o.Parameters, parameterOrReferenceFromApi(s))
 	}
 	if operation.Callbacks != nil {
 		o.Callbacks = make(map[string]*CallbackOrReference)
 		for _, v := range operation.Callbacks.AdditionalProperties {
-			o.Callbacks[v.Name] = callbackOrReferenceToHcl(v.Value)
+			o.Callbacks[v.Name] = callbackOrReferenceFromApi(v.Value)
 		}
 	}
 	if operation.Responses != nil {
@@ -1143,7 +1143,7 @@ func operationToHcl(operation *openapiv3.Operation) *Operation {
 		}
 		o.Responses = make(map[string]*ResponseOrReference)
 		for _, v := range operation.Responses.ResponseOrReference {
-			o.Responses[v.Name] = responseOrReferenceToHcl(v.Value)
+			o.Responses[v.Name] = responseOrReferenceFromApi(v.Value)
 		}
 	}
 
@@ -1200,7 +1200,7 @@ func operationToApi(operation *Operation) *openapiv3.Operation {
 	return o
 }
 
-func callbackOrReferenceToHcl(callback *openapiv3.CallbackOrReference) *CallbackOrReference {
+func callbackOrReferenceFromApi(callback *openapiv3.CallbackOrReference) *CallbackOrReference {
 	if callback == nil {
 		return nil
 	}
@@ -1208,7 +1208,7 @@ func callbackOrReferenceToHcl(callback *openapiv3.CallbackOrReference) *Callback
 	if x := callback.GetReference(); x != nil {
 		return &CallbackOrReference{
 			Oneof: &CallbackOrReference_Reference{
-				Reference: ReferenceToHcl(x),
+				Reference: ReferenceFromApi(x),
 			},
 		}
 	}
@@ -1216,7 +1216,7 @@ func callbackOrReferenceToHcl(callback *openapiv3.CallbackOrReference) *Callback
 	cs := make(map[string]*PathItemOrReference)
 	call := callback.GetCallback()
 	for _, v := range call.Path {
-		cs[v.Name] = PathItemOrReferenceToHcl(v.Value)
+		cs[v.Name] = PathItemOrReferenceFromApi(v.Value)
 	}
 
 	return &CallbackOrReference{
@@ -1254,7 +1254,7 @@ func callbackOrReferenceToApi(callbackOrReference *CallbackOrReference) *openapi
 	}
 }
 
-func headerToHcl(header *openapiv3.Header) *Header {
+func headerFromApi(header *openapiv3.Header) *Header {
 	if header == nil {
 		return nil
 	}
@@ -1266,20 +1266,20 @@ func headerToHcl(header *openapiv3.Header) *Header {
 		Style:                  header.Style,
 		Explode:                header.Explode,
 		AllowReserved:          header.AllowReserved,
-		Example:                anyToHcl(header.Example),
-		Schema:                 SchemaOrReferenceToHcl(header.Schema),
-		SpecificationExtension: extensionToHcl(header.SpecificationExtension),
+		Example:                anyFromApi(header.Example),
+		Schema:                 SchemaOrReferenceFromApi(header.Schema),
+		SpecificationExtension: extensionFromApi(header.SpecificationExtension),
 	}
 	if header.Examples != nil {
 		h.Examples = make(map[string]*ExampleOrReference)
 		for _, v := range header.Examples.AdditionalProperties {
-			h.Examples[v.Name] = exampleOrReferenceToHcl(v.Value)
+			h.Examples[v.Name] = exampleOrReferenceFromApi(v.Value)
 		}
 	}
 	if header.Content != nil {
 		h.Content = make(map[string]*MediaType)
 		for _, v := range header.Content.AdditionalProperties {
-			h.Content[v.Name] = mediaTypeToHcl(v.Value)
+			h.Content[v.Name] = mediaTypeFromApi(v.Value)
 		}
 	}
 	return h
@@ -1320,7 +1320,7 @@ func headerToApi(header *Header) *openapiv3.Header {
 	return h
 }
 
-func headerOrReferenceToHcl(header *openapiv3.HeaderOrReference) *HeaderOrReference {
+func headerOrReferenceFromApi(header *openapiv3.HeaderOrReference) *HeaderOrReference {
 	if header == nil {
 		return nil
 	}
@@ -1328,7 +1328,7 @@ func headerOrReferenceToHcl(header *openapiv3.HeaderOrReference) *HeaderOrRefere
 	if x := header.GetReference(); x != nil {
 		return &HeaderOrReference{
 			Oneof: &HeaderOrReference_Reference{
-				Reference: ReferenceToHcl(x),
+				Reference: ReferenceFromApi(x),
 			},
 		}
 	}
@@ -1336,7 +1336,7 @@ func headerOrReferenceToHcl(header *openapiv3.HeaderOrReference) *HeaderOrRefere
 	x := header.GetHeader()
 	return &HeaderOrReference{
 		Oneof: &HeaderOrReference_Header{
-			Header: headerToHcl(x),
+			Header: headerFromApi(x),
 		},
 	}
 }
@@ -1361,26 +1361,26 @@ func headerOrReferenceToApi(headerOrReference *HeaderOrReference) *openapiv3.Hea
 	}
 }
 
-func mediaTypeToHcl(mt *openapiv3.MediaType) *MediaType {
+func mediaTypeFromApi(mt *openapiv3.MediaType) *MediaType {
 	if mt == nil {
 		return nil
 	}
 
 	m := &MediaType{
-		Schema:                 SchemaOrReferenceToHcl(mt.Schema),
-		Example:                anyToHcl(mt.Example),
-		SpecificationExtension: extensionToHcl(mt.SpecificationExtension),
+		Schema:                 SchemaOrReferenceFromApi(mt.Schema),
+		Example:                anyFromApi(mt.Example),
+		SpecificationExtension: extensionFromApi(mt.SpecificationExtension),
 	}
 	if mt.Examples != nil {
 		m.Examples = make(map[string]*ExampleOrReference)
 		for _, v := range mt.Examples.AdditionalProperties {
-			m.Examples[v.Name] = exampleOrReferenceToHcl(v.Value)
+			m.Examples[v.Name] = exampleOrReferenceFromApi(v.Value)
 		}
 	}
 	if mt.Encoding != nil {
 		m.Encoding = make(map[string]*Encoding)
 		for _, v := range mt.Encoding.AdditionalProperties {
-			m.Encoding[v.Name] = encodingToHcl(v.Value)
+			m.Encoding[v.Name] = encodingFromApi(v.Value)
 		}
 	}
 	return m
@@ -1414,7 +1414,7 @@ func mediaTypeToApi(mediaType *MediaType) *openapiv3.MediaType {
 	return m
 }
 
-func encodingToHcl(encoding *openapiv3.Encoding) *Encoding {
+func encodingFromApi(encoding *openapiv3.Encoding) *Encoding {
 	if encoding == nil {
 		return nil
 	}
@@ -1425,11 +1425,11 @@ func encodingToHcl(encoding *openapiv3.Encoding) *Encoding {
 		Style:                  encoding.Style,
 		Explode:                encoding.Explode,
 		AllowReserved:          encoding.AllowReserved,
-		SpecificationExtension: extensionToHcl(encoding.SpecificationExtension),
+		SpecificationExtension: extensionFromApi(encoding.SpecificationExtension),
 	}
 	if encoding.Headers != nil {
 		for _, v := range encoding.Headers.AdditionalProperties {
-			e.Headers[v.Name] = headerOrReferenceToHcl(v.Value)
+			e.Headers[v.Name] = headerOrReferenceFromApi(v.Value)
 		}
 	}
 	return e

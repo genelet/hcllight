@@ -64,12 +64,18 @@ func (self *Example) toHCL() (*light.Body, error) {
 		}
 	}
 	if self.Value != nil {
+		expr, err := self.Value.toExpression()
+		if err != nil {
+			return nil, err
+		}
 		attrs["value"] = &light.Attribute{
 			Name: "value",
-			Expr: self.Value.toExpression(),
+			Expr: expr,
 		}
 	}
-	addSpecificationBlock(self.SpecificationExtension, &blocks)
+	if err := addSpecificationBlock(self.SpecificationExtension, &blocks); err != nil {
+		return nil, err
+	}
 	if len(attrs) > 0 {
 		body.Attributes = attrs
 	}
@@ -85,6 +91,7 @@ func exampleFromHCL(body *light.Body) (*Example, error) {
 	}
 	example := &Example{}
 	var found bool
+	var err error
 	for k, v := range body.Attributes {
 		switch k {
 		case "summary":
@@ -97,14 +104,20 @@ func exampleFromHCL(body *light.Body) (*Example, error) {
 			example.ExternalValue = *textValueExprToString(v.Expr)
 			found = true
 		case "value":
-			example.Value = anyFromHCL(v.Expr)
+			example.Value, err = anyFromHCL(v.Expr)
+			if err != nil {
+				return nil, err
+			}
 			found = true
 		}
 	}
 	for _, block := range body.Blocks {
 		switch block.Type {
 		case "specification":
-			example.SpecificationExtension = bodyToAnyMap(block.Bdy)
+			example.SpecificationExtension, err = bodyToAnyMap(block.Bdy)
+			if err != nil {
+				return nil, err
+			}
 		}
 	}
 	if found {

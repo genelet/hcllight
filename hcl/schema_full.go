@@ -19,8 +19,7 @@ func (self *Schema) toHCL() (*light.Body, error) {
 		"deprecated": self.Deprecated,
 	}
 	mapStrings := map[string]string{
-		"title":       self.Title,
-		"description": self.Description,
+		"title": self.Title,
 	}
 
 	for k, v := range mapBools {
@@ -40,13 +39,6 @@ func (self *Schema) toHCL() (*light.Body, error) {
 		}
 	}
 
-	if self.Example != nil {
-		expr := self.Example.toExpression()
-		attrs["example"] = &light.Attribute{
-			Name: "example",
-			Expr: expr,
-		}
-	}
 	if self.Discriminator != nil {
 		bdy, err := self.Discriminator.toHCL()
 		if err != nil {
@@ -87,7 +79,9 @@ func (self *Schema) toHCL() (*light.Body, error) {
 			Expr: expr,
 		}
 	}
-	addSpecificationBlock(self.SpecificationExtension, &blocks)
+	if err := addSpecificationBlock(self.SpecificationExtension, &blocks); err != nil {
+		return nil, err
+	}
 
 	var err error
 	if err = commonToAttributes(self.Common, attrs); err == nil {
@@ -154,22 +148,16 @@ func schemaFullFromHCL(body *light.Body) (*Schema, error) {
 		switch block.Type {
 		case "discriminator":
 			s.Discriminator, err = discriminatorFromHCL(block.Bdy)
-			if err != nil {
-				return nil, err
-			}
 		case "externalDocs":
 			s.ExternalDocs, err = externalDocsFromHCL(block.Bdy)
-			if err != nil {
-				return nil, err
-			}
 		case "xml":
 			s.Xml, err = xmlFromHCL(block.Bdy)
-			if err != nil {
-				return nil, err
-			}
 		case "specificationExtension":
-			s.SpecificationExtension = bodyToAnyMap(block.Bdy)
+			s.SpecificationExtension, err = bodyToAnyMap(block.Bdy)
 		default:
+		}
+		if err != nil {
+			return nil, err
 		}
 	}
 
@@ -180,8 +168,6 @@ func schemaFullFromHCL(body *light.Body) (*Schema, error) {
 			if err != nil {
 				return nil, err
 			}
-		case "example":
-			s.Example = anyFromHCL(v.Expr)
 		case "nullable":
 			s.Nullable = *literalValueExprToBoolean(v.Expr)
 		case "readOnly":
@@ -192,8 +178,6 @@ func schemaFullFromHCL(body *light.Body) (*Schema, error) {
 			s.Deprecated = *literalValueExprToBoolean(v.Expr)
 		case "title":
 			s.Title = *textValueExprToString(v.Expr)
-		case "description":
-			s.Description = *textValueExprToString(v.Expr)
 		default:
 		}
 	}
