@@ -42,7 +42,6 @@ func (self *Document) toHCL() (*light.Body, error) {
 			Expr: expr,
 		}
 	}
-	// we are changing Tags to be map[string]Tag
 	if self.Tags != nil && len(self.Tags) > 0 {
 		expr, err := tagsToTupleConsExpr(self.Tags)
 		if err != nil {
@@ -114,4 +113,80 @@ func (self *Document) toHCL() (*light.Body, error) {
 		body.Blocks = blocks
 	}
 	return body, nil
+}
+
+func documentFromHCL(body *light.Body) (*Document, error) {
+	if body == nil {
+		return nil, nil
+	}
+
+	doc := new(Document)
+	for key, attr := range body.Attributes {
+		switch key {
+		case "openapi":
+			doc.Openapi = *textValueExprToString(attr.Expr)
+		case "servers":
+			servers, err := expressionToServers(attr.Expr)
+			if err != nil {
+				return nil, err
+			}
+			doc.Servers = servers
+		case "tags":
+			tags, err := expressionToTags(attr.Expr)
+			if err != nil {
+				return nil, err
+			}
+			doc.Tags = tags
+		case "security":
+			security, err := expressionToSecurityRequirement(attr.Expr)
+			if err != nil {
+				return nil, err
+			}
+			doc.Security = security
+		}
+	}
+	for _, block := range body.Blocks {
+		switch block.Type {
+		case "info":
+			info, err := infoFromHCL(block.Bdy)
+			if err != nil {
+				return nil, err
+			}
+			doc.Info = info
+		case "externalDocs":
+			externalDocs, err := externalDocsFromHCL(block.Bdy)
+			if err != nil {
+				return nil, err
+			}
+			doc.ExternalDocs = externalDocs
+		case "paths":
+			paths, err := blocksToPathItemOrReferenceMap(block.Bdy.Blocks)
+			if err != nil {
+				return nil, err
+			}
+			doc.Paths = paths
+		case "components":
+			var blks []*light.Block
+			for _, blk := range block.Bdy.Blocks {
+				blks = append(blks, &light.Block{
+					Type:   blk.Labels[0],
+					Labels: blk.Labels[1:],
+					Bdy:    blk.Bdy,
+				})
+			}
+			components, err := componentsFromHCL(&light.Body{Blocks: blks})
+			if err != nil {
+				return nil, err
+			}
+			doc.Components = components
+		case "specification":
+			se, err := bodyToAnyMap(block.Bdy)
+			if err != nil {
+				return nil, err
+			}
+			doc.SpecificationExtension = se
+		}
+	}
+
+	return doc, nil
 }

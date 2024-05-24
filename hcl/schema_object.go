@@ -29,7 +29,7 @@ func objectToAttributesBlocks(self *SchemaObject, attrs map[string]*light.Attrib
 		}
 	}
 	if self.Properties != nil {
-		bdy, err := mapSchemaOrReferenceToBody(self.Properties)
+		bdy, err := schemaOrReferenceMapToBody(self.Properties)
 		if err != nil {
 			return err
 		}
@@ -62,7 +62,7 @@ func attributesBlocksToObject(attrs map[string]*light.Attribute, blocks []*light
 
 	for _, block := range blocks {
 		if block.Type == "properties" {
-			object.Properties, err = bodyToMapSchemaOrReference(block.Bdy)
+			object.Properties, err = bodyToSchemaOrReferenceMap(block.Bdy)
 			if err != nil {
 				return nil, err
 			}

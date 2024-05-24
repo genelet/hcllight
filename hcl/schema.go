@@ -279,15 +279,15 @@ func objectConsExprToMapSchemaOrReference(o *light.ObjectConsExpr) (map[string]*
 	return m, nil
 }
 
-func mapSchemaOrReferenceToBlocks(m map[string]*SchemaOrReference, names ...string) ([]*light.Block, error) {
-	body, err := mapSchemaOrReferenceToBody(m)
+func schemaOrReferenceMapToBlocks(m map[string]*SchemaOrReference, names ...string) ([]*light.Block, error) {
+	body, err := schemaOrReferenceMapToBody(m)
 	if err != nil || body == nil {
 		return nil, err
 	}
 	return bodyToBlocks(body, names...), nil
 }
 
-func mapSchemaOrReferenceToBody(m map[string]*SchemaOrReference) (*light.Body, error) {
+func schemaOrReferenceMapToBody(m map[string]*SchemaOrReference) (*light.Body, error) {
 	if m == nil {
 		return nil, nil
 	}
@@ -331,7 +331,7 @@ func mapSchemaOrReferenceToBody(m map[string]*SchemaOrReference) (*light.Body, e
 	return body, nil
 }
 
-func bodyToMapSchemaOrReference(b *light.Body) (map[string]*SchemaOrReference, error) {
+func bodyToSchemaOrReferenceMap(b *light.Body) (map[string]*SchemaOrReference, error) {
 	if b == nil {
 		return nil, nil
 	}
@@ -359,11 +359,11 @@ func bodyToMapSchemaOrReference(b *light.Body) (map[string]*SchemaOrReference, e
 	return m, nil
 }
 
-func blocksToMapSchemaOrReference(blocks []*light.Block, names ...string) (map[string]*SchemaOrReference, error) {
+func blocksToSchemaOrReferenceMap(blocks []*light.Block, names ...string) (map[string]*SchemaOrReference, error) {
 	body := blocksToBody(blocks, names...)
 	if body == nil {
 		return nil, nil
 	}
 
-	return bodyToMapSchemaOrReference(body)
+	return bodyToSchemaOrReferenceMap(body)
 }
