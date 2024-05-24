@@ -83,7 +83,7 @@ func (self *Parameter) toHCL() (*light.Body, error) {
 		}
 	}
 	if self.Examples != nil {
-		blk, err := exampleOrReferenceMapToBlocks(self.Examples)
+		blk, err := exampleOrReferenceMapToBlocks(self.Examples, "examples")
 		if err != nil {
 			return nil, err
 		}
@@ -163,7 +163,7 @@ func parameterFromHCL(body *light.Body) (*Parameter, error) {
 			}
 			found = true
 		case "schema":
-			parameter.Schema, err = ExpressionToSchemaOrReference(v.Expr)
+			parameter.Schema, err = expressionToSchemaOrReference(v.Expr)
 			if err != nil {
 				return nil, err
 			}
@@ -173,7 +173,7 @@ func parameterFromHCL(body *light.Body) (*Parameter, error) {
 		for _, block := range body.Blocks {
 			switch block.Type {
 			case "examples":
-				parameter.Examples, err = blocksToExampleOrReferenceMap(block.Bdy.Blocks)
+				parameter.Examples, err = blocksToExampleOrReferenceMap(block.Bdy.Blocks, "examples")
 				if err != nil {
 					return nil, err
 				}
@@ -303,7 +303,7 @@ func bodyToParameterOrReferenceArray(body *light.Body) ([]*ParameterOrReference,
 	return array, nil
 }
 
-func parameterOrReferenceMapToBlocks(parameters map[string]*ParameterOrReference) ([]*light.Block, error) {
+func parameterOrReferenceMapToBlocks(parameters map[string]*ParameterOrReference, names ...string) ([]*light.Block, error) {
 	if parameters == nil {
 		return nil, nil
 	}
@@ -312,15 +312,15 @@ func parameterOrReferenceMapToBlocks(parameters map[string]*ParameterOrReference
 	for k, v := range parameters {
 		hash[k] = v
 	}
-	return orMapToBlocks(hash, "parameters")
+	return orMapToBlocks(hash, names...)
 }
 
-func blocksToParameterOrReferenceMap(blocks []*light.Block) (map[string]*ParameterOrReference, error) {
+func blocksToParameterOrReferenceMap(blocks []*light.Block, names ...string) (map[string]*ParameterOrReference, error) {
 	if blocks == nil {
 		return nil, nil
 	}
 
-	orMap, err := blocksToOrMap(blocks, "parameters", func(reference *Reference) orHCL {
+	orMap, err := blocksToOrMap(blocks, func(reference *Reference) orHCL {
 		return &ParameterOrReference{
 			Oneof: &ParameterOrReference_Reference{
 				Reference: reference,
@@ -339,7 +339,7 @@ func blocksToParameterOrReferenceMap(blocks []*light.Block) (map[string]*Paramet
 			}, nil
 		}
 		return nil, nil
-	})
+	}, names...)
 	if err != nil {
 		return nil, err
 	}

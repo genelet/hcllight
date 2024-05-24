@@ -32,7 +32,7 @@ func tupleConsExprToArray(t *light.TupleConsExpr) ([]*SchemaOrReference, error) 
 
 	var items []*SchemaOrReference
 	for _, expr := range exprs {
-		s, err := ExpressionToSchemaOrReference(expr)
+		s, err := expressionToSchemaOrReference(expr)
 		if err != nil {
 			return nil, err
 		}

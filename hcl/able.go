@@ -91,12 +91,105 @@ func blocksToAbleMap(blocks []*light.Block, fromHCL func(*light.Body) (ableHCL, 
 	return hash, nil
 }
 
+func bodyToBlocks(body *light.Body, name ...string) []*light.Block {
+	if body == nil {
+		return nil
+	}
+
+	if name == nil {
+		return body.Blocks
+	}
+
+	typ := name[0]
+	labels := name[1:]
+
+	var blocks []*light.Block
+	if body.Attributes != nil && len(body.Attributes) > 0 {
+		blocks = append(blocks, &light.Block{
+			Type:   typ,
+			Labels: labels,
+			Bdy: &light.Body{
+				Attributes: body.Attributes,
+			},
+		})
+	}
+	for _, block := range body.Blocks {
+		blocks = append(blocks, &light.Block{
+			Type:   typ,
+			Labels: append(labels, block.Type),
+			Bdy:    block.Bdy,
+		})
+	}
+	return blocks
+}
+
+func labelsMatch(labels []string, name ...string) bool {
+	if labels == nil && name == nil {
+		return true
+	}
+
+	if labels == nil || name == nil {
+		return false
+	}
+
+	if len(labels) != len(name) {
+		return false
+	}
+	for i, l := range labels {
+		if l != name[i] {
+			return false
+		}
+	}
+
+	return true
+}
+
+func blocksToBody(blocks []*light.Block, name ...string) *light.Body {
+	if blocks == nil {
+		return nil
+	}
+
+	if name == nil {
+		return &light.Body{
+			Blocks: blocks,
+		}
+	}
+
+	typ := name[0]
+	labels := name[1:]
+
+	var attrs map[string]*light.Attribute
+	var blks []*light.Block
+
+	for _, block := range blocks {
+		if block.Type != typ {
+			continue
+		}
+		if labelsMatch(block.Labels, labels...) {
+			attrs = block.Bdy.Attributes
+			continue
+		}
+		blks = append(blks, &light.Block{
+			Type: block.Labels[len(block.Labels)-1],
+			Bdy:  block.Bdy,
+		})
+	}
+	if attrs == nil && blks == nil {
+		return nil
+	}
+
+	return &light.Body{
+		Attributes: attrs,
+		Blocks:     blks,
+	}
+}
+
 type orHCL interface {
 	GetReference() *Reference
 	getAble() ableHCL
 }
 
-func orMapToBlocks(hash map[string]orHCL, label string) ([]*light.Block, error) {
+func orMapToBody(hash map[string]orHCL) (*light.Body, error) {
 	if hash == nil {
 		return nil, nil
 	}
@@ -120,9 +213,8 @@ func orMapToBlocks(hash map[string]orHCL, label string) ([]*light.Block, error) 
 					return nil, err
 				}
 				blocks = append(blocks, &light.Block{
-					Type:   label,
-					Labels: []string{k},
-					Bdy:    body,
+					Type: k,
+					Bdy:  body,
 				})
 				continue
 			}
@@ -133,43 +225,45 @@ func orMapToBlocks(hash map[string]orHCL, label string) ([]*light.Block, error) 
 			return nil, err
 		}
 		blocks = append(blocks, &light.Block{
-			Type:   label,
-			Labels: []string{k},
-			Bdy:    bdy,
+			Type: k,
+			Bdy:  bdy,
 		})
 	}
-	if len(attrs) > 0 {
-		blocks = append(blocks, &light.Block{
-			Type: label,
-			Bdy:  &light.Body{Attributes: attrs},
-		})
+	if len(attrs) == 0 && blocks == nil {
+		return nil, nil
 	}
-	return blocks, nil
+
+	return &light.Body{
+		Attributes: attrs,
+		Blocks:     blocks,
+	}, nil
 }
 
-func blocksToOrMap(blocks []*light.Block, label string, fromReference func(*Reference) orHCL, fromHCL func(*light.Body) (orHCL, error)) (map[string]orHCL, error) {
-	if blocks == nil {
+func orMapToBlocks(hash map[string]orHCL, labels ...string) ([]*light.Block, error) {
+	body, err := orMapToBody(hash)
+	if err != nil || body == nil {
+		return nil, err
+	}
+
+	return bodyToBlocks(body, labels...), nil
+}
+
+func bodyToOrMap(body *light.Body, fromReference func(*Reference) orHCL, fromHCL func(*light.Body) (orHCL, error)) (map[string]orHCL, error) {
+	if body == nil {
 		return nil, nil
 	}
 
 	hash := make(map[string]orHCL)
-	for _, block := range blocks {
-		if label != block.Type {
-			return nil, nil
-		}
-		if block.Bdy == nil || len(block.Bdy.Attributes) == 0 {
-			return nil, ErrInvalidType(block)
-		}
-		if len(block.Labels) == 0 {
-			for k, v := range block.Bdy.Attributes {
-				str, err := traversalToXref(v.Expr)
-				if err != nil {
+	if body.Attributes != nil {
+		for k, v := range body.Attributes {
+			str, err := traversalToXref(v.Expr)
+			if err != nil {
 
-				}
-				hash[k] = fromReference(&Reference{XRef: str})
 			}
-			continue
+			hash[k] = fromReference(&Reference{XRef: str})
 		}
+	}
+	for _, block := range body.Blocks {
 		k := block.Labels[0]
 		reference, err := referenceFromHCL(block.Bdy)
 		if err != nil {
@@ -190,4 +284,13 @@ func blocksToOrMap(blocks []*light.Block, label string, fromReference func(*Refe
 		return nil, nil
 	}
 	return hash, nil
+}
+
+func blocksToOrMap(blocks []*light.Block, fromReference func(*Reference) orHCL, fromHCL func(*light.Body) (orHCL, error), labels ...string) (map[string]orHCL, error) {
+	body := blocksToBody(blocks, labels...)
+	if body == nil {
+		return nil, nil
+	}
+
+	return bodyToOrMap(body, fromReference, fromHCL)
 }

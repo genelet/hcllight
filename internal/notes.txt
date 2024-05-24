@@ -1,3 +1,5 @@
+in "light"
+
 1) message Callback
 delete: repeated NamedAny specification_extension 
 2) message Paths
@@ -6,3 +8,18 @@ delete: repeated NamedAny specification_extension
 delete ResponseOrReference default
 but add "default" as the key
 delete: repeated NamedAny specification_extension
+
+in "hcl"
+for all functions
+*OrReferenceMapToBlocks
+and
+blocksTo*OrReferenceMap
+we are using 
+orMapToBlocks
+and 
+blocksToOrMap
+to make, except for
+SchemaOrReference (multiple single expressions)
+and PathItemOrReference (defined in this package only)
+
+

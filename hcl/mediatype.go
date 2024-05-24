@@ -19,7 +19,7 @@ func (self *MediaType) toHCL() (*light.Body, error) {
 		}
 	}
 	if self.Examples != nil {
-		blk, err := exampleOrReferenceMapToBlocks(self.Examples)
+		blk, err := exampleOrReferenceMapToBlocks(self.Examples, "examples")
 		if err != nil {
 			return nil, err
 		}
@@ -69,7 +69,7 @@ func mediaTypeFromHCL(body *light.Body) (*MediaType, error) {
 			}
 			found = true
 		case "schema":
-			schema, err := ExpressionToSchemaOrReference(v.Expr)
+			schema, err := expressionToSchemaOrReference(v.Expr)
 			if err != nil {
 				return nil, err
 			}
@@ -81,7 +81,7 @@ func mediaTypeFromHCL(body *light.Body) (*MediaType, error) {
 	for _, blk := range body.Blocks {
 		switch blk.Type {
 		case "examples":
-			examples, err := blocksToExampleOrReferenceMap(blk.Bdy.Blocks)
+			examples, err := blocksToExampleOrReferenceMap(blk.Bdy.Blocks, "examples")
 			if err != nil {
 				return nil, err
 			}

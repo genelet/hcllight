@@ -63,14 +63,14 @@ func (self *Response) toHCL() (*light.Body, error) {
 		blocks = append(blocks, blks...)
 	}
 	if self.Headers != nil {
-		blks, err := headerOrReferenceMapToBlocks(self.Headers)
+		blks, err := headerOrReferenceMapToBlocks(self.Headers, "headers")
 		if err != nil {
 			return nil, err
 		}
 		blocks = append(blocks, blks...)
 	}
 	if self.Links != nil {
-		blks, err := linkOrReferenceMapToBlocks(self.Links)
+		blks, err := linkOrReferenceMapToBlocks(self.Links, "links")
 		if err != nil {
 			return nil, err
 		}
@@ -115,14 +115,14 @@ func responseFromHCL(body *light.Body) (*Response, error) {
 				return nil, err
 			}
 			found = true
-		case "header":
-			response.Headers, err = blocksToHeaderOrReferenceMap(block.Bdy.Blocks)
+		case "headers":
+			response.Headers, err = blocksToHeaderOrReferenceMap(block.Bdy.Blocks, "headers")
 			if err != nil {
 				return nil, err
 			}
 			found = true
-		case "link":
-			response.Links, err = blocksToLinkOrReferenceMap(block.Bdy.Blocks)
+		case "links":
+			response.Links, err = blocksToLinkOrReferenceMap(block.Bdy.Blocks, "links")
 			if err != nil {
 				return nil, err
 			}
@@ -135,7 +135,7 @@ func responseFromHCL(body *light.Body) (*Response, error) {
 	return response, nil
 }
 
-func responseOrReferenceMapToBlocks(responses map[string]*ResponseOrReference) ([]*light.Block, error) {
+func responseOrReferenceMapToBlocks(responses map[string]*ResponseOrReference, names ...string) ([]*light.Block, error) {
 	if responses == nil {
 		return nil, nil
 	}
@@ -144,15 +144,15 @@ func responseOrReferenceMapToBlocks(responses map[string]*ResponseOrReference) (
 	for k, v := range responses {
 		hash[k] = v
 	}
-	return orMapToBlocks(hash, "responses")
+	return orMapToBlocks(hash, names...)
 }
 
-func blocksToResponseOrReferenceMap(blocks []*light.Block) (map[string]*ResponseOrReference, error) {
+func blocksToResponseOrReferenceMap(blocks []*light.Block, names ...string) (map[string]*ResponseOrReference, error) {
 	if blocks == nil {
 		return nil, nil
 	}
 
-	orMap, err := blocksToOrMap(blocks, "responses", func(reference *Reference) orHCL {
+	orMap, err := blocksToOrMap(blocks, func(reference *Reference) orHCL {
 		return &ResponseOrReference{
 			Oneof: &ResponseOrReference_Reference{
 				Reference: reference,
@@ -171,7 +171,7 @@ func blocksToResponseOrReferenceMap(blocks []*light.Block) (map[string]*Response
 			}, nil
 		}
 		return nil, nil
-	})
+	}, names...)
 	if err != nil {
 		return nil, err
 	}

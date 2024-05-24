@@ -85,9 +85,11 @@ func (self *Document) toHCL() (*light.Body, error) {
 			return nil, err
 		}
 		for _, block := range bdy.Blocks {
+			labels := []string{block.Type}
+			labels = append(labels, block.Labels...)
 			blocks = append(blocks, &light.Block{
 				Type:   "components",
-				Labels: []string{block.Type, block.Labels[0]},
+				Labels: labels,
 				Bdy:    block.Bdy,
 			})
 		}

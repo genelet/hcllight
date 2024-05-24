@@ -185,7 +185,7 @@ func schemaFullFromHCL(body *light.Body) (*Schema, error) {
 	for k, v := range body.Attributes {
 		switch k {
 		case "not":
-			s.Not, err = ExpressionToSchemaOrReference(v.Expr)
+			s.Not, err = expressionToSchemaOrReference(v.Expr)
 			if err != nil {
 				return nil, err
 			}

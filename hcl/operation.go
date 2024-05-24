@@ -60,14 +60,14 @@ func (self *Operation) toHCL() (*light.Body, error) {
 		})
 	}
 	if self.Responses != nil {
-		blks, err := responseOrReferenceMapToBlocks(self.Responses)
+		blks, err := responseOrReferenceMapToBlocks(self.Responses, "responses")
 		if err != nil {
 			return nil, err
 		}
 		blocks = append(blocks, blks...)
 	}
 	if self.Callbacks != nil {
-		blks, err := callbackOrReferenceMapToBlocks(self.Callbacks)
+		blks, err := callbackOrReferenceMapToBlocks(self.Callbacks, "callbacks")
 		if err != nil {
 			return nil, err
 		}
@@ -161,14 +161,14 @@ func operationFromHCL(body *light.Body) (*Operation, error) {
 			}
 			found = true
 		case "responses":
-			responses, err := blocksToResponseOrReferenceMap(block.Bdy.Blocks)
+			responses, err := blocksToResponseOrReferenceMap(block.Bdy.Blocks, "responses")
 			if err != nil {
 				return nil, err
 			}
 			self.Responses = responses
 			found = true
 		case "callbacks":
-			callbacks, err := blocksToCallbackOrReferenceMap(block.Bdy.Blocks)
+			callbacks, err := blocksToCallbackOrReferenceMap(block.Bdy.Blocks, "callbacks")
 			if err != nil {
 				return nil, err
 			}

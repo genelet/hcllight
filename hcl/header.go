@@ -81,7 +81,7 @@ func (self *Header) toHCL() (*light.Body, error) {
 		}
 	}
 	if self.Examples != nil {
-		blk, err := exampleOrReferenceMapToBlocks(self.Examples)
+		blk, err := exampleOrReferenceMapToBlocks(self.Examples, "examples")
 		if err != nil {
 			return nil, err
 		}
@@ -154,7 +154,7 @@ func headerFromHCL(body *light.Body) (*Header, error) {
 			}
 			found = true
 		case "schema":
-			self.Schema, err = ExpressionToSchemaOrReference(v.Expr)
+			self.Schema, err = expressionToSchemaOrReference(v.Expr)
 			if err != nil {
 				return nil, err
 			}
@@ -191,7 +191,7 @@ func headerFromHCL(body *light.Body) (*Header, error) {
 	return nil, nil
 }
 
-func headerOrReferenceMapToBlocks(headers map[string]*HeaderOrReference) ([]*light.Block, error) {
+func headerOrReferenceMapToBlocks(headers map[string]*HeaderOrReference, names ...string) ([]*light.Block, error) {
 	if headers == nil {
 		return nil, nil
 	}
@@ -200,15 +200,15 @@ func headerOrReferenceMapToBlocks(headers map[string]*HeaderOrReference) ([]*lig
 	for k, v := range headers {
 		hash[k] = v
 	}
-	return orMapToBlocks(hash, "headers")
+	return orMapToBlocks(hash, names...)
 }
 
-func blocksToHeaderOrReferenceMap(blocks []*light.Block) (map[string]*HeaderOrReference, error) {
+func blocksToHeaderOrReferenceMap(blocks []*light.Block, names ...string) (map[string]*HeaderOrReference, error) {
 	if blocks == nil {
 		return nil, nil
 	}
 
-	orMap, err := blocksToOrMap(blocks, "headers", func(reference *Reference) orHCL {
+	orMap, err := blocksToOrMap(blocks, func(reference *Reference) orHCL {
 		return &HeaderOrReference{
 			Oneof: &HeaderOrReference_Reference{
 				Reference: reference,
@@ -227,7 +227,7 @@ func blocksToHeaderOrReferenceMap(blocks []*light.Block) (map[string]*HeaderOrRe
 			}, nil
 		}
 		return nil, nil
-	})
+	}, names...)
 	if err != nil {
 		return nil, err
 	}

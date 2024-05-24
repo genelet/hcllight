@@ -119,7 +119,7 @@ func exampleFromHCL(body *light.Body) (*Example, error) {
 	return nil, nil
 }
 
-func exampleOrReferenceMapToBlocks(examples map[string]*ExampleOrReference) ([]*light.Block, error) {
+func exampleOrReferenceMapToBlocks(examples map[string]*ExampleOrReference, names ...string) ([]*light.Block, error) {
 	if examples == nil {
 		return nil, nil
 	}
@@ -128,15 +128,15 @@ func exampleOrReferenceMapToBlocks(examples map[string]*ExampleOrReference) ([]*
 	for k, v := range examples {
 		hash[k] = v
 	}
-	return orMapToBlocks(hash, "examples")
+	return orMapToBlocks(hash, names...)
 }
 
-func blocksToExampleOrReferenceMap(blocks []*light.Block) (map[string]*ExampleOrReference, error) {
+func blocksToExampleOrReferenceMap(blocks []*light.Block, names ...string) (map[string]*ExampleOrReference, error) {
 	if blocks == nil {
 		return nil, nil
 	}
 
-	orMap, err := blocksToOrMap(blocks, "examples", func(reference *Reference) orHCL {
+	orMap, err := blocksToOrMap(blocks, func(reference *Reference) orHCL {
 		return &ExampleOrReference{
 			Oneof: &ExampleOrReference_Reference{
 				Reference: reference,
@@ -155,7 +155,7 @@ func blocksToExampleOrReferenceMap(blocks []*light.Block) (map[string]*ExampleOr
 			}, nil
 		}
 		return nil, nil
-	})
+	}, names...)
 	if err != nil {
 		return nil, err
 	}

@@ -20,7 +20,7 @@ func expressionToSchemaOrBoolean(expr *light.Expression) (*AdditionalPropertiesI
 			},
 		}, nil
 	} else {
-		s, err := ExpressionToSchemaOrReference(expr)
+		s, err := expressionToSchemaOrReference(expr)
 		if err != nil {
 			return nil, err
 		}

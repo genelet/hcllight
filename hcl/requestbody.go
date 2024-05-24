@@ -117,7 +117,7 @@ func requestBodyFromHCL(body *light.Body) (*RequestBody, error) {
 	return requestBody, nil
 }
 
-func requestBodyOrReferenceMapToBlocks(requestBodys map[string]*RequestBodyOrReference) ([]*light.Block, error) {
+func requestBodyOrReferenceMapToBlocks(requestBodys map[string]*RequestBodyOrReference, names ...string) ([]*light.Block, error) {
 	if requestBodys == nil {
 		return nil, nil
 	}
@@ -126,15 +126,15 @@ func requestBodyOrReferenceMapToBlocks(requestBodys map[string]*RequestBodyOrRef
 	for k, v := range requestBodys {
 		hash[k] = v
 	}
-	return orMapToBlocks(hash, "requestBodys")
+	return orMapToBlocks(hash, names...)
 }
 
-func blocksToRequestBodyOrReferenceMap(blocks []*light.Block) (map[string]*RequestBodyOrReference, error) {
+func blocksToRequestBodyOrReferenceMap(blocks []*light.Block, names ...string) (map[string]*RequestBodyOrReference, error) {
 	if blocks == nil {
 		return nil, nil
 	}
 
-	orMap, err := blocksToOrMap(blocks, "requestBodys", func(reference *Reference) orHCL {
+	orMap, err := blocksToOrMap(blocks, func(reference *Reference) orHCL {
 		return &RequestBodyOrReference{
 			Oneof: &RequestBodyOrReference_Reference{
 				Reference: reference,
@@ -153,7 +153,7 @@ func blocksToRequestBodyOrReferenceMap(blocks []*light.Block) (map[string]*Reque
 			}, nil
 		}
 		return nil, nil
-	})
+	}, names...)
 	if err != nil {
 		return nil, err
 	}

@@ -155,7 +155,7 @@ func linkFromHCL(body *light.Body) (*Link, error) {
 	return nil, nil
 }
 
-func linkOrReferenceMapToBlocks(links map[string]*LinkOrReference) ([]*light.Block, error) {
+func linkOrReferenceMapToBlocks(links map[string]*LinkOrReference, names ...string) ([]*light.Block, error) {
 	if links == nil {
 		return nil, nil
 	}
@@ -164,15 +164,15 @@ func linkOrReferenceMapToBlocks(links map[string]*LinkOrReference) ([]*light.Blo
 	for k, v := range links {
 		hash[k] = v
 	}
-	return orMapToBlocks(hash, "links")
+	return orMapToBlocks(hash, names...)
 }
 
-func blocksToLinkOrReferenceMap(blocks []*light.Block) (map[string]*LinkOrReference, error) {
+func blocksToLinkOrReferenceMap(blocks []*light.Block, names ...string) (map[string]*LinkOrReference, error) {
 	if blocks == nil {
 		return nil, nil
 	}
 
-	orMap, err := blocksToOrMap(blocks, "links", func(reference *Reference) orHCL {
+	orMap, err := blocksToOrMap(blocks, func(reference *Reference) orHCL {
 		return &LinkOrReference{
 			Oneof: &LinkOrReference_Reference{
 				Reference: reference,
@@ -191,7 +191,7 @@ func blocksToLinkOrReferenceMap(blocks []*light.Block) (map[string]*LinkOrRefere
 			}, nil
 		}
 		return nil, nil
-	})
+	}, names...)
 	if err != nil {
 		return nil, err
 	}

@@ -139,7 +139,7 @@ func securitySchemeFromHCL(body *light.Body) (*SecurityScheme, error) {
 	return nil, nil
 }
 
-func securitySchemeOrReferenceMapToBlocks(securitySchemes map[string]*SecuritySchemeOrReference) ([]*light.Block, error) {
+func securitySchemeOrReferenceMapToBlocks(securitySchemes map[string]*SecuritySchemeOrReference, names ...string) ([]*light.Block, error) {
 	if securitySchemes == nil {
 		return nil, nil
 	}
@@ -148,15 +148,15 @@ func securitySchemeOrReferenceMapToBlocks(securitySchemes map[string]*SecuritySc
 	for k, v := range securitySchemes {
 		hash[k] = v
 	}
-	return orMapToBlocks(hash, "securitySchemes")
+	return orMapToBlocks(hash, names...)
 }
 
-func blocksToSecuritySchemeOrReferenceMap(blocks []*light.Block) (map[string]*SecuritySchemeOrReference, error) {
+func blocksToSecuritySchemeOrReferenceMap(blocks []*light.Block, names ...string) (map[string]*SecuritySchemeOrReference, error) {
 	if blocks == nil {
 		return nil, nil
 	}
 
-	orMap, err := blocksToOrMap(blocks, "securitySchemes", func(reference *Reference) orHCL {
+	orMap, err := blocksToOrMap(blocks, func(reference *Reference) orHCL {
 		return &SecuritySchemeOrReference{
 			Oneof: &SecuritySchemeOrReference_Reference{
 				Reference: reference,
@@ -175,7 +175,7 @@ func blocksToSecuritySchemeOrReferenceMap(blocks []*light.Block) (map[string]*Se
 			}, nil
 		}
 		return nil, nil
-	})
+	}, names...)
 	if err != nil {
 		return nil, err
 	}

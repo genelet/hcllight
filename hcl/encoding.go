@@ -37,7 +37,7 @@ func (self *Encoding) toHCL() (*light.Body, error) {
 	}
 
 	if self.Headers != nil {
-		blks, err := headerOrReferenceMapToBlocks(self.Headers)
+		blks, err := headerOrReferenceMapToBlocks(self.Headers, "headers")
 		if err != nil {
 			return nil, err
 		}
@@ -79,7 +79,7 @@ func encodingFromHCL(body *light.Body) (*Encoding, error) {
 	for _, block := range body.Blocks {
 		switch block.Labels[0] {
 		case "header":
-			self.Headers, err = blocksToHeaderOrReferenceMap(block.Bdy.Blocks)
+			self.Headers, err = blocksToHeaderOrReferenceMap(block.Bdy.Blocks, "headers")
 			if err != nil {
 				return nil, err
 			}

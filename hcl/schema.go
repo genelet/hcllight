@@ -97,7 +97,7 @@ func (self *SchemaOrReference) toExpression() (*light.Expression, error) {
 	}, err
 }
 
-func ExpressionToSchemaOrReference(self *light.Expression) (*SchemaOrReference, error) {
+func expressionToSchemaOrReference(self *light.Expression) (*SchemaOrReference, error) {
 	if self == nil {
 		return nil, nil
 	}
@@ -270,13 +270,21 @@ func objectConsExprToMapSchemaOrReference(o *light.ObjectConsExpr) (map[string]*
 	m := make(map[string]*SchemaOrReference)
 	for _, item := range o.Items {
 		key := *literalValueExprToString(item.KeyExpr)
-		value, err := ExpressionToSchemaOrReference(item.ValueExpr)
+		value, err := expressionToSchemaOrReference(item.ValueExpr)
 		if err != nil {
 			return nil, err
 		}
 		m[key] = value
 	}
 	return m, nil
+}
+
+func mapSchemaOrReferenceToBlocks(m map[string]*SchemaOrReference, names ...string) ([]*light.Block, error) {
+	body, err := mapSchemaOrReferenceToBody(m)
+	if err != nil || body == nil {
+		return nil, err
+	}
+	return bodyToBlocks(body, names...), nil
 }
 
 func mapSchemaOrReferenceToBody(m map[string]*SchemaOrReference) (*light.Body, error) {
@@ -330,7 +338,7 @@ func bodyToMapSchemaOrReference(b *light.Body) (map[string]*SchemaOrReference, e
 
 	m := make(map[string]*SchemaOrReference)
 	for k, v := range b.Attributes {
-		value, err := ExpressionToSchemaOrReference(v.Expr)
+		value, err := expressionToSchemaOrReference(v.Expr)
 		if err != nil {
 			return nil, err
 		}
@@ -349,4 +357,13 @@ func bodyToMapSchemaOrReference(b *light.Body) (map[string]*SchemaOrReference, e
 		}
 	}
 	return m, nil
+}
+
+func blocksToMapSchemaOrReference(blocks []*light.Block, names ...string) (map[string]*SchemaOrReference, error) {
+	body := blocksToBody(blocks, names...)
+	if body == nil {
+		return nil, nil
+	}
+
+	return bodyToMapSchemaOrReference(body)
 }

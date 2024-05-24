@@ -67,7 +67,7 @@ func callbackFromHCL(body *light.Body) (*Callback, error) {
 	return self, nil
 }
 
-func callbackOrReferenceMapToBlocks(callbacks map[string]*CallbackOrReference) ([]*light.Block, error) {
+func callbackOrReferenceMapToBlocks(callbacks map[string]*CallbackOrReference, names ...string) ([]*light.Block, error) {
 	if callbacks == nil {
 		return nil, nil
 	}
@@ -76,15 +76,15 @@ func callbackOrReferenceMapToBlocks(callbacks map[string]*CallbackOrReference) (
 	for k, v := range callbacks {
 		hash[k] = v
 	}
-	return orMapToBlocks(hash, "callbacks")
+	return orMapToBlocks(hash, names...)
 }
 
-func blocksToCallbackOrReferenceMap(blocks []*light.Block) (map[string]*CallbackOrReference, error) {
+func blocksToCallbackOrReferenceMap(blocks []*light.Block, names ...string) (map[string]*CallbackOrReference, error) {
 	if blocks == nil {
 		return nil, nil
 	}
 
-	orMap, err := blocksToOrMap(blocks, "callbacks", func(reference *Reference) orHCL {
+	orMap, err := blocksToOrMap(blocks, func(reference *Reference) orHCL {
 		return &CallbackOrReference{
 			Oneof: &CallbackOrReference_Reference{
 				Reference: reference,
@@ -103,7 +103,7 @@ func blocksToCallbackOrReferenceMap(blocks []*light.Block) (map[string]*Callback
 			}, nil
 		}
 		return nil, nil
-	})
+	}, names...)
 	if err != nil {
 		return nil, err
 	}
