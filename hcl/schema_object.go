@@ -29,6 +29,7 @@ func objectToAttributesBlocks(self *SchemaObject, attrs map[string]*light.Attrib
 		}
 	}
 	if self.Properties != nil {
+		// we may use toExpression here
 		bdy, err := schemaOrReferenceMapToBody(self.Properties)
 		if err != nil {
 			return err
