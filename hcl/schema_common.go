@@ -277,7 +277,6 @@ func fcexprToCommon(fcexpr *light.FunctionCallExpr) (*SchemaCommon, error) {
 		Type: fcexpr.Name,
 	}
 
-	found := false
 	var err error
 	for _, arg := range fcexpr.Args {
 		switch arg.ExpressionClause.(type) {
@@ -285,20 +284,16 @@ func fcexprToCommon(fcexpr *light.FunctionCallExpr) (*SchemaCommon, error) {
 			name, items := fcexprToShort(arg)
 			switch name {
 			case "format":
-				common.Format = *literalValueExprToString(items[0])
-				found = true
+				common.Format = *textValueExprToString(items[0])
 			case "description":
-				common.Description = *literalValueExprToString(items[0])
-				found = true
+				common.Description = *textValueExprToString(items[0])
 			case "default":
 				common.Default = expressionToDefaultType(items[0])
-				found = true
 			case "example":
 				common.Example, err = anyFromHCL(items[0])
 				if err != nil {
 					return nil, err
 				}
-				found = true
 			case "enum":
 				enum, err := tupleConsExprToEnum(&light.TupleConsExpr{
 					Exprs: items,
@@ -307,15 +302,11 @@ func fcexprToCommon(fcexpr *light.FunctionCallExpr) (*SchemaCommon, error) {
 					return nil, err
 				}
 				common.Enum = enum
-				found = true
 			default:
 			}
 		default:
 		}
 	}
 
-	if found {
-		return common, nil
-	}
-	return nil, nil
+	return common, nil
 }

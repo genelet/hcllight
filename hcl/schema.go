@@ -177,6 +177,7 @@ func expressionToSchemaOrReference(self *light.Expression) (*SchemaOrReference, 
 	if err != nil {
 		return nil, err
 	}
+
 	switch common.Type {
 	case "boolean":
 		return &SchemaOrReference{
@@ -287,7 +288,7 @@ func schemaOrReferenceMapToBlocks(m map[string]*SchemaOrReference, names ...stri
 	return bodyToBlocks(body, names...), nil
 }
 
-func schemaOrReferenceMapToBody(m map[string]*SchemaOrReference) (*light.Body, error) {
+func schemaOrReferenceMapToBody(m map[string]*SchemaOrReference, force ...bool) (*light.Body, error) {
 	if m == nil {
 		return nil, nil
 	}
@@ -297,16 +298,34 @@ func schemaOrReferenceMapToBody(m map[string]*SchemaOrReference) (*light.Body, e
 	blocks := make([]*light.Block, 0)
 
 	for k, v := range m {
+		if v == nil {
+			attrs[k] = &light.Attribute{
+				Name: k,
+				Expr: nil,
+			}
+			continue
+		}
 		switch v.Oneof.(type) {
 		case *SchemaOrReference_Schema:
 			bdy, err := v.GetSchema().toHCL()
 			if err != nil {
 				return nil, err
 			}
-			blocks = append(blocks, &light.Block{
-				Type: k,
-				Bdy:  bdy,
-			})
+			if force != nil && force[0] {
+				attrs[k] = &light.Attribute{
+					Name: k,
+					Expr: &light.Expression{
+						ExpressionClause: &light.Expression_Ocexpr{
+							Ocexpr: bdy.ToObjectConsExpr(),
+						},
+					},
+				}
+			} else {
+				blocks = append(blocks, &light.Block{
+					Type: k,
+					Bdy:  bdy,
+				})
+			}
 		default:
 			expr, err := v.toExpression()
 			if err != nil {

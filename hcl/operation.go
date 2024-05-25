@@ -145,34 +145,40 @@ func operationFromHCL(body *light.Body) (*Operation, error) {
 		default:
 		}
 	}
+
+	parameters, err := bodyToParameterOrReferenceArray(body, "parameters")
+	if err != nil {
+		return nil, err
+	}
+	if parameters != nil {
+		self.Parameters = parameters
+		found = true
+	}
+
+	responses, err := blocksToResponseOrReferenceMap(body.Blocks, "responses")
+	if err != nil {
+		return nil, err
+	}
+	if responses != nil {
+		self.Responses = responses
+		found = true
+	}
+
+	callbacks, err := blocksToCallbackOrReferenceMap(body.Blocks, "callbacks")
+	if err != nil {
+		return nil, err
+	}
+	if callbacks != nil {
+		self.Callbacks = callbacks
+		found = true
+	}
 	for _, block := range body.Blocks {
 		switch block.Type {
-		case "parameters":
-			parameters, err := bodyToParameterOrReferenceArray(body)
-			if err != nil {
-				return nil, err
-			}
-			self.Parameters = parameters
-			found = true
 		case "requestBody":
 			self.RequestBody, err = requestBodyOrReferenceFromHCL(block.Bdy)
 			if err != nil {
 				return nil, err
 			}
-			found = true
-		case "responses":
-			responses, err := blocksToResponseOrReferenceMap(block.Bdy.Blocks, "responses")
-			if err != nil {
-				return nil, err
-			}
-			self.Responses = responses
-			found = true
-		case "callbacks":
-			callbacks, err := blocksToCallbackOrReferenceMap(block.Bdy.Blocks, "callbacks")
-			if err != nil {
-				return nil, err
-			}
-			self.Callbacks = callbacks
 			found = true
 		case "specification":
 			self.SpecificationExtension, err = bodyToAnyMap(block.Bdy)
@@ -182,6 +188,7 @@ func operationFromHCL(body *light.Body) (*Operation, error) {
 			found = true
 		}
 	}
+
 	if !found {
 		return nil, nil
 	}

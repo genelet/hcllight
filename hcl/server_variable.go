@@ -45,11 +45,11 @@ func serverVariableFromHCL(body *light.Body) (*ServerVariable, error) {
 	var found bool
 	var err error
 	if attr, ok := body.Attributes["default"]; ok {
-		self.Default = *literalValueExprToString(attr.Expr)
+		self.Default = *textValueExprToString(attr.Expr)
 		found = true
 	}
 	if attr, ok := body.Attributes["description"]; ok {
-		self.Description = *literalValueExprToString(attr.Expr)
+		self.Description = *textValueExprToString(attr.Expr)
 		found = true
 	}
 	if attr, ok := body.Attributes["enum"]; ok {

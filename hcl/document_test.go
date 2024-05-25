@@ -3,18 +3,11 @@ package hcl
 import (
 	"os"
 	"testing"
-
-	openapiv3 "github.com/google/gnostic-models/openapiv3"
 )
 
 func TestApi2Hcl(t *testing.T) {
 	data, err := os.ReadFile("openapi.json")
-	doc, err := openapiv3.ParseDocument(data)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	api := DocumentFromApi(doc)
+	api, err := ParseDocument(data, "json")
 
 	bs, err := api.MarshalHCL()
 	if err != nil {
@@ -28,18 +21,32 @@ func TestApi2Hcl(t *testing.T) {
 
 func TestTwitter2Hcl(t *testing.T) {
 	data, err := os.ReadFile("twitter.json")
-	doc, err := openapiv3.ParseDocument(data)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	api := DocumentFromApi(doc)
+	api, err := ParseDocument(data, "json")
 
 	bs, err := api.MarshalHCL()
 	if err != nil {
 		t.Fatal(err)
 	}
 	err = os.WriteFile("twitter.hcl", bs, 0644)
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestParseHcl(t *testing.T) {
+	data, err := os.ReadFile("openapi.hcl")
+	if err != nil {
+		t.Fatal(err)
+	}
+	api, err := ParseDocument(data)
+	if err != nil {
+		t.Fatal(err)
+	}
+	bs, err := api.MarshalHCL()
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = os.WriteFile("openapi2.hcl", bs, 0644)
 	if err != nil {
 		t.Fatal(err)
 	}

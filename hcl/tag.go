@@ -43,7 +43,7 @@ func tagFromHCL(body *light.Body) (*Tag, error) {
 	self := &Tag{}
 	var found bool
 	if attr, ok := body.Attributes["description"]; ok {
-		self.Description = *literalValueExprToString(attr.Expr)
+		self.Description = *textValueExprToString(attr.Expr)
 		found = true
 	}
 	for _, block := range body.Blocks {
@@ -89,7 +89,7 @@ func expressionToTags(expr *light.Expression) ([]*Tag, error) {
 	for _, able := range ables {
 		tag, ok := able.(*Tag)
 		if !ok {
-			return nil, ErrInvalidType(able)
+			return nil, ErrInvalidType(1004, able)
 		}
 		tags = append(tags, tag)
 	}

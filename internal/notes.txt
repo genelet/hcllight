@@ -21,5 +21,3 @@ blocksToOrMap
 to make, except for
 SchemaOrReference (multiple single expressions)
 and PathItemOrReference (defined in this package only)
-
-

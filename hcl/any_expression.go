@@ -2,7 +2,6 @@ package hcl
 
 import (
 	"fmt"
-	"log"
 	"strings"
 
 	"github.com/genelet/hcllight/light"
@@ -70,7 +69,6 @@ func (self *Any) toExpression(typ ...string) (*light.Expression, error) {
 		}
 	case "array":
 		arr := make([]interface{}, 0)
-		log.Printf("%s", self.Yaml)
 		err = yaml.Unmarshal([]byte(self.Yaml), &arr)
 		if err == nil {
 			var exprs []*light.Expression

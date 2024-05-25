@@ -2,6 +2,7 @@ package hcl
 
 import (
 	"github.com/genelet/hcllight/light"
+	//pp "github.com/k0kubun/pp/v3"
 )
 
 func (self *PathItemOrReference) toExpression() (*light.Expression, error) {
@@ -212,13 +213,13 @@ func blocksToPathItemOrReferenceMap(blocks []*light.Block) (map[string]*PathItem
 	for _, block := range blocks {
 		k := block.Type
 		if block.Labels == nil {
-			return nil, ErrInvalidType(block)
+			return nil, ErrInvalidType(1001, block.String())
 		}
 		method := block.Labels[0]
 		switch method {
 		case "get", "put", "post", "delete", "options", "head", "patch", "trace", "common":
-			if _, ok := hash2[method]; !ok {
-				hash2[method] = make(map[string]*Operation)
+			if _, ok := hash2[k]; !ok {
+				hash2[k] = make(map[string]*Operation)
 			}
 			operation, err := operationFromHCL(block.Bdy)
 			if err != nil {

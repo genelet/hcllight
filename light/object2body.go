@@ -1,6 +1,9 @@
 package light
 
+import "strings"
+
 func stringToLiteralValueExpr(s string) *Expression {
+	s = strings.ReplaceAll(s, "\n", "\\\\n")
 	return &Expression{
 		ExpressionClause: &Expression_Lvexpr{
 			Lvexpr: &LiteralValueExpr{
@@ -12,6 +15,54 @@ func stringToLiteralValueExpr(s string) *Expression {
 			},
 		},
 	}
+}
+
+func traversalToString(t *Expression) *string {
+	if t == nil {
+		return nil
+	}
+	if t.GetStexpr() == nil {
+		return nil
+	}
+	traversal := t.GetStexpr().Traversal
+	if len(traversal) == 0 {
+		return nil
+	}
+	var parts []string
+	for _, part := range traversal {
+		switch part.GetTraverserClause().(type) {
+		case *Traverser_TRoot:
+			parts = append(parts, part.GetTRoot().Name)
+		case *Traverser_TAttr:
+			parts = append(parts, part.GetTAttr().Name)
+		}
+	}
+	x := strings.Join(parts, "/")
+	return &x
+}
+
+func keyValueExprToString(l *Expression) *string {
+	if l == nil {
+		return nil
+	}
+
+	switch l.ExpressionClause.(type) {
+	case *Expression_Lvexpr:
+		str := l.GetLvexpr().GetVal().GetStringValue()
+		return &str
+	case *Expression_Ockexpr:
+		k := l.GetOckexpr()
+		if k.ForceNonLiteral {
+		} else {
+			switch k.Wrapped.ExpressionClause.(type) {
+			case *Expression_Stexpr:
+				return traversalToString(k.Wrapped)
+			default:
+			}
+		}
+	default:
+	}
+	return nil
 }
 
 func (self *Body) ToObjectConsExpr() *ObjectConsExpr {
@@ -38,7 +89,7 @@ func (self *Body) ToObjectConsExpr() *ObjectConsExpr {
 func (self *ObjectConsExpr) ToBody() *Body {
 	body := &Body{}
 	for _, item := range self.Items {
-		key := item.KeyExpr.GetLvexpr().GetVal().GetStringValue()
+		key := *keyValueExprToString(item.KeyExpr)
 		if x := item.ValueExpr.GetOcexpr(); x != nil {
 			body.Blocks = append(body.Blocks, &Block{
 				Type: key,

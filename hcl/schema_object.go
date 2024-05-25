@@ -29,8 +29,8 @@ func objectToAttributesBlocks(self *SchemaObject, attrs map[string]*light.Attrib
 		}
 	}
 	if self.Properties != nil {
-		// we may use toExpression here
-		bdy, err := schemaOrReferenceMapToBody(self.Properties)
+		// true to indicate that we are in the object Equal Sign context
+		bdy, err := schemaOrReferenceMapToBody(self.Properties, true)
 		if err != nil {
 			return err
 		}

@@ -37,6 +37,7 @@ func textValueExprToString(t *light.Expression) *string {
 }
 
 func stringToLiteralValueExpr(s string) *light.Expression {
+	s = strings.ReplaceAll(s, "\n", "\\\\n")
 	return &light.Expression{
 		ExpressionClause: &light.Expression_Lvexpr{
 			Lvexpr: &light.LiteralValueExpr{

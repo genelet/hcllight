@@ -142,10 +142,10 @@ func headerFromHCL(body *light.Body) (*Header, error) {
 			self.AllowReserved = *literalValueExprToBoolean(v.Expr)
 			found = true
 		case "description":
-			self.Description = *literalValueExprToString(v.Expr)
+			self.Description = *textValueExprToString(v.Expr)
 			found = true
 		case "style":
-			self.Style = *literalValueExprToString(v.Expr)
+			self.Style = *textValueExprToString(v.Expr)
 			found = true
 		case "example":
 			self.Example, err = anyFromHCL(v.Expr)

@@ -72,16 +72,17 @@ func serverFromHCL(body *light.Body) (*Server, error) {
 		}
 	}
 
-	if found {
-		return self, nil
+	if !found {
+		return nil, ErrInvalidType(1005, "servers")
 	}
-	return nil, nil
+	return self, nil
 }
 
 func serversToTupleConsExpr(servers []*Server) (*light.Expression, error) {
 	if servers == nil || len(servers) == 0 {
 		return nil, nil
 	}
+
 	var arr []ableHCL
 	for _, server := range servers {
 		arr = append(arr, server)
@@ -93,8 +94,9 @@ func expressionToServers(expr *light.Expression) ([]*Server, error) {
 	if expr == nil {
 		return nil, nil
 	}
-	ables, err := tupleConsExprToAble(expr, func(expr *light.ObjectConsExpr) (ableHCL, error) {
-		return serverFromHCL(expr.ToBody())
+
+	ables, err := tupleConsExprToAble(expr, func(e *light.ObjectConsExpr) (ableHCL, error) {
+		return serverFromHCL(e.ToBody())
 	})
 	if err != nil {
 		return nil, err
@@ -103,7 +105,7 @@ func expressionToServers(expr *light.Expression) ([]*Server, error) {
 	for _, able := range ables {
 		server, ok := able.(*Server)
 		if !ok {
-			return nil, ErrInvalidType(able)
+			return nil, ErrInvalidType(1003, able)
 		}
 		servers = append(servers, server)
 	}

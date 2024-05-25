@@ -6,8 +6,8 @@ import (
 	"github.com/genelet/hcllight/light"
 )
 
-var ErrInvalidType = func(e any) error {
-	return fmt.Errorf("invalid type %v", e)
+var ErrInvalidType = func(code int, e any) error {
+	return fmt.Errorf("code %d: invalid type %v", code, e)
 }
 
 type ableHCL interface {
@@ -15,6 +15,10 @@ type ableHCL interface {
 }
 
 func ableToTupleConsExpr(items []ableHCL) (*light.Expression, error) {
+	if items == nil || len(items) == 0 {
+		return nil, nil
+	}
+
 	tcexpr := &light.TupleConsExpr{}
 	for _, item := range items {
 		body, err := item.toHCL()
@@ -38,6 +42,7 @@ func tupleConsExprToAble(expr *light.Expression, fromHCL func(*light.ObjectConsE
 	if expr == nil {
 		return nil, nil
 	}
+
 	if expr.GetTcexpr() == nil {
 		return nil, nil
 	}
@@ -264,7 +269,7 @@ func bodyToOrMap(body *light.Body, fromReference func(*Reference) orHCL, fromHCL
 		}
 	}
 	for _, block := range body.Blocks {
-		k := block.Labels[0]
+		k := block.Type
 		reference, err := referenceFromHCL(block.Bdy)
 		if err != nil {
 			return nil, err

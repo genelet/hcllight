@@ -256,14 +256,14 @@ func parameterOrReferenceArrayToBody(array []*ParameterOrReference) (*light.Body
 	return body, nil
 }
 
-func bodyToParameterOrReferenceArray(body *light.Body) ([]*ParameterOrReference, error) {
+func bodyToParameterOrReferenceArray(body *light.Body, name string) ([]*ParameterOrReference, error) {
 	if body == nil {
 		return nil, nil
 	}
 
 	var array []*ParameterOrReference
 	for k, v := range body.Attributes {
-		if k != "parameters" {
+		if k != name {
 			continue
 		}
 		if v.Expr.GetTcexpr() != nil {
@@ -283,7 +283,7 @@ func bodyToParameterOrReferenceArray(body *light.Body) ([]*ParameterOrReference,
 		}
 	}
 	for _, block := range body.Blocks {
-		if block.Type != "parameters" {
+		if block.Type != name {
 			continue
 		}
 		parameter, err := parameterFromHCL(block.Bdy)

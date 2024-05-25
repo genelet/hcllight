@@ -1,7 +1,10 @@
 package hcl
 
 import (
+	"strings"
+
 	"github.com/genelet/hcllight/light"
+	openapiv3 "github.com/google/gnostic-models/openapiv3"
 )
 
 func (self *Document) MarshalHCL() ([]byte, error) {
@@ -10,6 +13,33 @@ func (self *Document) MarshalHCL() ([]byte, error) {
 		return nil, err
 	}
 	return body.Hcl()
+}
+
+func (self *Document) UnmarshalHCL(data []byte) error {
+	var err error
+	self, err = ParseDocument(data)
+	return err
+}
+
+func ParseDocument(data []byte, extension ...string) (*Document, error) {
+	var typ string
+	if extension != nil {
+		typ = strings.ToLower(extension[0])
+	}
+	if typ == "json" || typ == "jsn" || typ == "yaml" || typ == "yml" {
+		doc, err := openapiv3.ParseDocument(data)
+		if err != nil {
+			return nil, err
+		}
+		return DocumentFromApi(doc), nil
+	}
+
+	body, err := light.Parse(data)
+	if err != nil {
+		return nil, err
+	}
+
+	return documentFromHCL(body)
 }
 
 func (self *Document) toHCL() (*light.Body, error) {
@@ -121,6 +151,7 @@ func documentFromHCL(body *light.Body) (*Document, error) {
 	}
 
 	doc := new(Document)
+	var blks_paths, blks_comments []*light.Block
 	for key, attr := range body.Attributes {
 		switch key {
 		case "openapi":
@@ -129,6 +160,9 @@ func documentFromHCL(body *light.Body) (*Document, error) {
 			servers, err := expressionToServers(attr.Expr)
 			if err != nil {
 				return nil, err
+			}
+			if servers == nil || servers[0] == nil {
+				panic(servers)
 			}
 			doc.Servers = servers
 		case "tags":
@@ -160,25 +194,17 @@ func documentFromHCL(body *light.Body) (*Document, error) {
 			}
 			doc.ExternalDocs = externalDocs
 		case "paths":
-			paths, err := blocksToPathItemOrReferenceMap(block.Bdy.Blocks)
-			if err != nil {
-				return nil, err
-			}
-			doc.Paths = paths
+			blks_paths = append(blks_paths, &light.Block{
+				Type:   block.Labels[0],
+				Labels: block.Labels[1:],
+				Bdy:    block.Bdy,
+			})
 		case "components":
-			var blks []*light.Block
-			for _, blk := range block.Bdy.Blocks {
-				blks = append(blks, &light.Block{
-					Type:   blk.Labels[0],
-					Labels: blk.Labels[1:],
-					Bdy:    blk.Bdy,
-				})
-			}
-			components, err := componentsFromHCL(&light.Body{Blocks: blks})
-			if err != nil {
-				return nil, err
-			}
-			doc.Components = components
+			blks_comments = append(blks_comments, &light.Block{
+				Type:   block.Labels[0],
+				Labels: block.Labels[1:],
+				Bdy:    block.Bdy,
+			})
 		case "specification":
 			se, err := bodyToAnyMap(block.Bdy)
 			if err != nil {
@@ -186,6 +212,21 @@ func documentFromHCL(body *light.Body) (*Document, error) {
 			}
 			doc.SpecificationExtension = se
 		}
+	}
+
+	if blks_paths != nil {
+		paths, err := blocksToPathItemOrReferenceMap(blks_paths)
+		if err != nil {
+			return nil, err
+		}
+		doc.Paths = paths
+	}
+	if blks_comments != nil {
+		components, err := componentsFromHCL(&light.Body{Blocks: blks_comments})
+		if err != nil {
+			return nil, err
+		}
+		doc.Components = components
 	}
 
 	return doc, nil

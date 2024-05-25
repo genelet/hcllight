@@ -89,8 +89,10 @@ func requestBodyFromHCL(body *light.Body) (*RequestBody, error) {
 		switch k {
 		case "description":
 			requestBody.Description = *textValueExprToString(v.Expr)
+			found = true
 		case "required":
 			requestBody.Required = *literalValueExprToBoolean(v.Expr)
+			found = true
 		default:
 		}
 	}
@@ -102,11 +104,13 @@ func requestBodyFromHCL(body *light.Body) (*RequestBody, error) {
 				return nil, err
 			}
 			requestBody.Content = content
+			found = true
 		case "specification":
 			requestBody.SpecificationExtension, err = bodyToAnyMap(block.Bdy)
 			if err != nil {
 				return nil, err
 			}
+			found = true
 		default:
 		}
 	}
