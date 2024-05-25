@@ -46,6 +46,9 @@ func xfunctionTo(fn *CtyFunction) *ast.CtyFunction {
 }
 
 func functionTo(fn *ast.CtyFunction) *CtyFunction {
+	if fn == nil {
+		return nil
+	}
 	var params []*CtyParameter
 	for _, v := range fn.Parameters {
 		params = append(params, parameterTo(v))

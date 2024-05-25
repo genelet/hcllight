@@ -10,6 +10,7 @@ func stringToTextValueExpr(s string) *light.Expression {
 	if s == "" {
 		return nil
 	}
+
 	return &light.Expression{
 		ExpressionClause: &light.Expression_Texpr{
 			Texpr: &light.TemplateExpr{
@@ -37,7 +38,10 @@ func textValueExprToString(t *light.Expression) *string {
 }
 
 func stringToLiteralValueExpr(s string) *light.Expression {
+	s = strings.TrimSpace(s)
+	s = strings.Trim(s, "\"")
 	s = strings.ReplaceAll(s, "\n", "\\\\n")
+
 	return &light.Expression{
 		ExpressionClause: &light.Expression_Lvexpr{
 			Lvexpr: &light.LiteralValueExpr{
@@ -111,14 +115,29 @@ func literalValueExprToFloat64(l *light.Expression) *float64 {
 	if l == nil {
 		return nil
 	}
-	if l.GetLvexpr() == nil {
-		return nil
+
+	switch l.ExpressionClause.(type) {
+	case *light.Expression_Lvexpr:
+		if l.GetLvexpr() == nil {
+			return nil
+		}
+		if l.GetLvexpr().GetVal() == nil {
+			return nil
+		}
+		x := l.GetLvexpr().GetVal().GetNumberValue()
+		return &x
+	case *light.Expression_Uoexpr:
+		u := l.GetUoexpr()
+		if u.Op.Sign == light.TokenType_Minus {
+			y := *literalValueExprToFloat64(u.Val)
+			y *= -1
+			return &y
+		}
+		return literalValueExprToFloat64(u.Val)
+	default:
 	}
-	if l.GetLvexpr().GetVal() == nil {
-		return nil
-	}
-	x := l.GetLvexpr().GetVal().GetNumberValue()
-	return &x
+
+	return nil
 }
 
 func booleanToLiteralValueExpr(b bool) *light.Expression {
@@ -150,30 +169,50 @@ func literalValueExprToBoolean(l *light.Expression) *bool {
 }
 
 func stringArrayToTupleConsEpr(items []string) *light.Expression {
-	tcexpr := &light.TupleConsExpr{}
-	for _, item := range items {
-		tcexpr.Exprs = append(tcexpr.Exprs, stringToTextValueExpr(item))
-	}
 	return &light.Expression{
 		ExpressionClause: &light.Expression_Tcexpr{
-			Tcexpr: tcexpr,
+			Tcexpr: &light.TupleConsExpr{
+				Exprs: stringArrayToTextValueArray(items),
+			},
 		},
 	}
 }
 
-func tupleConsExprToStringArray(t *light.Expression) []string {
+func tupleConsExprToStringArray(expr *light.Expression) []string {
+	if expr == nil {
+		return nil
+	}
+
+	t := expr.GetTcexpr()
 	if t == nil {
 		return nil
 	}
-	if t.GetTcexpr() == nil {
-		return nil
+	if len(t.Exprs) == 1 {
+		x := t.Exprs[0]
+		switch x.ExpressionClause.(type) {
+		case *light.Expression_Tcexpr:
+			return tupleConsExprToStringArray(x)
+		default:
+		}
 	}
-	exprs := t.GetTcexpr().Exprs
-	if len(exprs) == 0 {
+
+	return textValueArrayToStringArray(t.Exprs)
+}
+
+func stringArrayToTextValueArray(items []string) []*light.Expression {
+	var exprs []*light.Expression
+	for _, item := range items {
+		exprs = append(exprs, stringToTextValueExpr(item))
+	}
+	return exprs
+}
+
+func textValueArrayToStringArray(args []*light.Expression) []string {
+	if args == nil {
 		return nil
 	}
 	var items []string
-	for _, expr := range exprs {
+	for _, expr := range args {
 		items = append(items, *textValueExprToString(expr))
 	}
 	return items
@@ -226,6 +265,30 @@ func traversalToString(t *light.Expression) *string {
 	}
 	x := strings.Join(parts, "/")
 	return &x
+}
+
+func keyValueExprToString(l *light.Expression) *string {
+	if l == nil {
+		return nil
+	}
+
+	switch l.ExpressionClause.(type) {
+	case *light.Expression_Lvexpr:
+		str := l.GetLvexpr().GetVal().GetStringValue()
+		return &str
+	case *light.Expression_Ockexpr:
+		k := l.GetOckexpr()
+		if k.ForceNonLiteral {
+		} else {
+			switch k.Wrapped.ExpressionClause.(type) {
+			case *light.Expression_Stexpr:
+				return traversalToString(k.Wrapped)
+			default:
+			}
+		}
+	default:
+	}
+	return nil
 }
 
 /*
