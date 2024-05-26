@@ -7,7 +7,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/genelet/hcllight/generated"
 	"github.com/google/go-cmp/cmp"
 	"github.com/zclconf/go-cty/cty"
 	"github.com/zclconf/go-cty/cty/function"
@@ -60,7 +59,7 @@ func TestEval(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			bs, err := Evaluate(bdy)
+			bs, err := bdy.Evaluate()
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -69,7 +68,7 @@ func TestEval(t *testing.T) {
 				if err != nil {
 					t.Fatal(err)
 				}
-				bs1, err := Evaluate(bdy1)
+				bs1, err := bdy1.Evaluate()
 				if err != nil {
 					t.Fatal(err)
 				}
@@ -87,7 +86,7 @@ func TestEval(t *testing.T) {
 }
 
 // parseFile parses HCL file into Body proto.
-func parseFile(filename string) (*generated.Body, error) {
+func parseFile(filename string) (*Body, error) {
 	dat, err := os.ReadFile(filename)
 	if err != nil {
 		return nil, err
@@ -170,17 +169,17 @@ func TestParseFileHcl(t *testing.T) {
 	}
 }
 
-func hclBack(body *generated.Body) (*generated.Body, error) {
-	eval, err := Hcl(body)
+func hclBack(body *Body) (*Body, error) {
+	eval, err := body.Hcl()
 	if err != nil {
 		return nil, err
 	}
 	return Parse(eval)
 }
 
-func evalBack(body *generated.Body) (*generated.Body, error) {
+func evalBack(body *Body) (*Body, error) {
 	ref := getRef()
-	eval, err := Evaluate(body, ref)
+	eval, err := body.Evaluate(ref)
 	if err != nil {
 		return nil, err
 	}

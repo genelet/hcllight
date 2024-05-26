@@ -3,11 +3,10 @@ package light
 import (
 	"fmt"
 
-	"github.com/genelet/hcllight/generated"
 	"github.com/genelet/hcllight/internal/ast"
 )
 
-func xparameterTo(parameter *generated.CtyParameter) *ast.CtyParameter {
+func xparameterTo(parameter *CtyParameter) *ast.CtyParameter {
 	return &ast.CtyParameter{
 		Name:             parameter.Name,
 		Description:      parameter.Description,
@@ -18,8 +17,8 @@ func xparameterTo(parameter *generated.CtyParameter) *ast.CtyParameter {
 	}
 }
 
-func parameterTo(parameter *ast.CtyParameter) *generated.CtyParameter {
-	return &generated.CtyParameter{
+func parameterTo(parameter *ast.CtyParameter) *CtyParameter {
+	return &CtyParameter{
 		Name:             parameter.Name,
 		Description:      parameter.Description,
 		Typ:              ctyTypeTo(parameter.Typ),
@@ -29,7 +28,7 @@ func parameterTo(parameter *ast.CtyParameter) *generated.CtyParameter {
 	}
 }
 
-func xfunctionTo(fn *generated.CtyFunction) *ast.CtyFunction {
+func xfunctionTo(fn *CtyFunction) *ast.CtyFunction {
 	var params []*ast.CtyParameter
 	for _, v := range fn.Parameters {
 		params = append(params, xparameterTo(v))
@@ -46,13 +45,16 @@ func xfunctionTo(fn *generated.CtyFunction) *ast.CtyFunction {
 	return output
 }
 
-func functionTo(fn *ast.CtyFunction) *generated.CtyFunction {
-	var params []*generated.CtyParameter
+func functionTo(fn *ast.CtyFunction) *CtyFunction {
+	if fn == nil {
+		return nil
+	}
+	var params []*CtyParameter
 	for _, v := range fn.Parameters {
 		params = append(params, parameterTo(v))
 	}
 
-	output := &generated.CtyFunction{
+	output := &CtyFunction{
 		Description: fn.Description,
 		Parameters:  params,
 	}
@@ -63,12 +65,12 @@ func functionTo(fn *ast.CtyFunction) *generated.CtyFunction {
 	return output
 }
 
-func xoperationTo(op *generated.Operation) *ast.Operation {
+func xoperationTo(op *Operation) *ast.Operation {
 	if op == nil {
 		return nil
 	}
 
-	if op.Sign != generated.TokenType_TokenUnknown {
+	if op.Sign != TokenType_TokenUnknown {
 		return &ast.Operation{
 			Sign: ast.TokenType(op.Sign),
 		}
@@ -80,43 +82,43 @@ func xoperationTo(op *generated.Operation) *ast.Operation {
 	}
 }
 
-func operationTo(op *ast.Operation) *generated.Operation {
+func operationTo(op *ast.Operation) *Operation {
 	if op == nil {
 		return nil
 	}
 
-	if op.Sign != ast.TokenType(generated.TokenType_TokenUnknown) {
-		return &generated.Operation{
-			Sign: generated.TokenType(op.Sign),
+	if op.Sign != ast.TokenType(TokenType_TokenUnknown) {
+		return &Operation{
+			Sign: TokenType(op.Sign),
 		}
 	}
 
-	return &generated.Operation{
+	return &Operation{
 		Typ:  ctyTypeTo(op.Typ),
 		Impl: functionTo(op.Impl),
-		Sign: generated.TokenType_TokenUnknown,
+		Sign: TokenType_TokenUnknown,
 	}
 }
 
-func xctyValueTo(val *generated.CtyValue) (*ast.CtyValue, error) {
+func xctyValueTo(val *CtyValue) (*ast.CtyValue, error) {
 	if val == nil {
 		return nil, nil
 	}
 
 	switch t := val.CtyValueClause.(type) {
-	case *generated.CtyValue_StringValue:
+	case *CtyValue_StringValue:
 		return &ast.CtyValue{
 			CtyValueClause: &ast.CtyValue_StringValue{StringValue: t.StringValue},
 		}, nil
-	case *generated.CtyValue_NumberValue:
+	case *CtyValue_NumberValue:
 		return &ast.CtyValue{
 			CtyValueClause: &ast.CtyValue_NumberValue{NumberValue: t.NumberValue},
 		}, nil
-	case *generated.CtyValue_BoolValue:
+	case *CtyValue_BoolValue:
 		return &ast.CtyValue{
 			CtyValueClause: &ast.CtyValue_BoolValue{BoolValue: t.BoolValue},
 		}, nil
-	case *generated.CtyValue_ListValue:
+	case *CtyValue_ListValue:
 		var output []*ast.CtyValue
 		for _, v := range t.ListValue.Values {
 			u, err := xctyValueTo(v)
@@ -128,7 +130,7 @@ func xctyValueTo(val *generated.CtyValue) (*ast.CtyValue, error) {
 		return &ast.CtyValue{
 			CtyValueClause: &ast.CtyValue_ListValue{ListValue: &ast.CtyList{Values: output}},
 		}, nil
-	case *generated.CtyValue_MapValue:
+	case *CtyValue_MapValue:
 		output := make(map[string]*ast.CtyValue)
 		for k, v := range t.MapValue.Values {
 			u, err := xctyValueTo(v)
@@ -145,26 +147,26 @@ func xctyValueTo(val *generated.CtyValue) (*ast.CtyValue, error) {
 	return nil, fmt.Errorf("primitive value %#v not implementned", val)
 }
 
-func ctyValueTo(val *ast.CtyValue) (*generated.CtyValue, error) {
+func ctyValueTo(val *ast.CtyValue) (*CtyValue, error) {
 	if val == nil {
 		return nil, nil
 	}
 
 	switch t := val.CtyValueClause.(type) {
 	case *ast.CtyValue_StringValue:
-		return &generated.CtyValue{
-			CtyValueClause: &generated.CtyValue_StringValue{StringValue: t.StringValue},
+		return &CtyValue{
+			CtyValueClause: &CtyValue_StringValue{StringValue: t.StringValue},
 		}, nil
 	case *ast.CtyValue_NumberValue:
-		return &generated.CtyValue{
-			CtyValueClause: &generated.CtyValue_NumberValue{NumberValue: t.NumberValue},
+		return &CtyValue{
+			CtyValueClause: &CtyValue_NumberValue{NumberValue: t.NumberValue},
 		}, nil
 	case *ast.CtyValue_BoolValue:
-		return &generated.CtyValue{
-			CtyValueClause: &generated.CtyValue_BoolValue{BoolValue: t.BoolValue},
+		return &CtyValue{
+			CtyValueClause: &CtyValue_BoolValue{BoolValue: t.BoolValue},
 		}, nil
 	case *ast.CtyValue_ListValue:
-		var output []*generated.CtyValue
+		var output []*CtyValue
 		for _, v := range t.ListValue.Values {
 			u, err := ctyValueTo(v)
 			if err != nil {
@@ -172,11 +174,11 @@ func ctyValueTo(val *ast.CtyValue) (*generated.CtyValue, error) {
 			}
 			output = append(output, u)
 		}
-		return &generated.CtyValue{
-			CtyValueClause: &generated.CtyValue_ListValue{ListValue: &generated.CtyList{Values: output}},
+		return &CtyValue{
+			CtyValueClause: &CtyValue_ListValue{ListValue: &CtyList{Values: output}},
 		}, nil
 	case *ast.CtyValue_MapValue:
-		output := make(map[string]*generated.CtyValue)
+		output := make(map[string]*CtyValue)
 		for k, v := range t.MapValue.Values {
 			u, err := ctyValueTo(v)
 			if err != nil {
@@ -184,44 +186,44 @@ func ctyValueTo(val *ast.CtyValue) (*generated.CtyValue, error) {
 			}
 			output[k] = u
 		}
-		return &generated.CtyValue{
-			CtyValueClause: &generated.CtyValue_MapValue{MapValue: &generated.CtyMap{Values: output}},
+		return &CtyValue{
+			CtyValueClause: &CtyValue_MapValue{MapValue: &CtyMap{Values: output}},
 		}, nil
 	default:
 	}
 	return nil, fmt.Errorf("primitive value %#v not implementned", val)
 }
 
-func xctyTypeTo(typ generated.CtyType) ast.CtyType {
+func xctyTypeTo(typ CtyType) ast.CtyType {
 	switch typ {
-	case generated.CtyType_Bool:
+	case CtyType_Bool:
 		return ast.CtyType_Bool
-	case generated.CtyType_Number:
+	case CtyType_Number:
 		return ast.CtyType_Number
-	case generated.CtyType_String:
+	case CtyType_String:
 		return ast.CtyType_String
-	case generated.CtyType_List:
+	case CtyType_List:
 		return ast.CtyType_List
-	case generated.CtyType_Map:
+	case CtyType_Map:
 		return ast.CtyType_Map
 	default:
 	}
 	return ast.CtyType_CtyUnknown
 }
 
-func ctyTypeTo(typ ast.CtyType) generated.CtyType {
+func ctyTypeTo(typ ast.CtyType) CtyType {
 	switch typ {
 	case ast.CtyType_Bool:
-		return generated.CtyType_Bool
+		return CtyType_Bool
 	case ast.CtyType_Number:
-		return generated.CtyType_Number
+		return CtyType_Number
 	case ast.CtyType_String:
-		return generated.CtyType_String
+		return CtyType_String
 	case ast.CtyType_List:
-		return generated.CtyType_List
+		return CtyType_List
 	case ast.CtyType_Map:
-		return generated.CtyType_Map
+		return CtyType_Map
 	default:
 	}
-	return generated.CtyType_Unknown
+	return CtyType_Unknown
 }

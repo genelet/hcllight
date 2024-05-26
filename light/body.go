@@ -3,7 +3,6 @@ package light
 import (
 	"fmt"
 
-	"github.com/genelet/hcllight/generated"
 	"github.com/genelet/hcllight/internal/ast"
 )
 
@@ -26,7 +25,7 @@ func xrangeTo(x ...interface{}) *ast.Range {
 	}
 }
 
-func xblockTo(blk *generated.Block) (*ast.Block, error) {
+func xblockTo(blk *Block) (*ast.Block, error) {
 	if blk == nil {
 		return nil, nil
 	}
@@ -46,7 +45,7 @@ func xblockTo(blk *generated.Block) (*ast.Block, error) {
 	}, nil
 }
 
-func blockTo(blk *ast.Block) (*generated.Block, error) {
+func blockTo(blk *ast.Block) (*Block, error) {
 	if blk == nil {
 		return nil, nil
 	}
@@ -56,14 +55,14 @@ func blockTo(blk *ast.Block) (*generated.Block, error) {
 		return nil, err
 	}
 
-	return &generated.Block{
+	return &Block{
 		Type:   blk.Type,
 		Labels: blk.Labels,
 		Bdy:    body,
 	}, nil
 }
 
-func xbodyTo(bdy *generated.Body) (*ast.Body, error) {
+func xbodyTo(bdy *Body) (*ast.Body, error) {
 	if bdy == nil {
 		return nil, nil
 	}
@@ -96,16 +95,16 @@ func xbodyTo(bdy *generated.Body) (*ast.Body, error) {
 	return b, nil
 }
 
-func bodyTo(bdy *ast.Body) (*generated.Body, error) {
+func bodyTo(bdy *ast.Body) (*Body, error) {
 	if bdy == nil {
 		return nil, nil
 	}
 
-	b := &generated.Body{}
+	b := &Body{}
 
 	for key, attribute := range bdy.Attributes {
 		if b.Attributes == nil {
-			b.Attributes = make(map[string]*generated.Attribute)
+			b.Attributes = make(map[string]*Attribute)
 		}
 
 		attr, err := attributeTo(attribute)
@@ -126,7 +125,7 @@ func bodyTo(bdy *ast.Body) (*generated.Body, error) {
 	return b, nil
 }
 
-func xattributeTo(attr *generated.Attribute) (*ast.Attribute, error) {
+func xattributeTo(attr *Attribute) (*ast.Attribute, error) {
 	if attr == nil {
 		return nil, nil
 	}
@@ -145,7 +144,7 @@ func xattributeTo(attr *generated.Attribute) (*ast.Attribute, error) {
 	}, nil
 }
 
-func attributeTo(attr *ast.Attribute) (*generated.Attribute, error) {
+func attributeTo(attr *ast.Attribute) (*Attribute, error) {
 	if attr == nil {
 		return nil, nil
 	}
@@ -155,7 +154,7 @@ func attributeTo(attr *ast.Attribute) (*generated.Attribute, error) {
 		return nil, err
 	}
 
-	return &generated.Attribute{
+	return &Attribute{
 		Name: attr.Name,
 		Expr: expr,
 	}, nil

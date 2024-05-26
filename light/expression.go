@@ -3,11 +3,10 @@ package light
 import (
 	"fmt"
 
-	"github.com/genelet/hcllight/generated"
 	"github.com/genelet/hcllight/internal/ast"
 )
 
-func xanonSymbolExprTo(sym *generated.AnonSymbolExpr) (*ast.AnonSymbolExpr, error) {
+func xanonSymbolExprTo(sym *AnonSymbolExpr) (*ast.AnonSymbolExpr, error) {
 	if sym == nil {
 		return nil, nil
 	}
@@ -17,15 +16,15 @@ func xanonSymbolExprTo(sym *generated.AnonSymbolExpr) (*ast.AnonSymbolExpr, erro
 	}, nil
 }
 
-func anonSymbolExprTo(sym *ast.AnonSymbolExpr) (*generated.AnonSymbolExpr, error) {
+func anonSymbolExprTo(sym *ast.AnonSymbolExpr) (*AnonSymbolExpr, error) {
 	if sym == nil {
 		return nil, nil
 	}
 
-	return &generated.AnonSymbolExpr{}, nil
+	return &AnonSymbolExpr{}, nil
 }
 
-func xbinaryOpExprTo(expr *generated.BinaryOpExpr) (*ast.BinaryOpExpr, error) {
+func xbinaryOpExprTo(expr *BinaryOpExpr) (*ast.BinaryOpExpr, error) {
 	if expr == nil {
 		return nil, nil
 	}
@@ -49,7 +48,7 @@ func xbinaryOpExprTo(expr *generated.BinaryOpExpr) (*ast.BinaryOpExpr, error) {
 	}, nil
 }
 
-func binaryOpExprTo(expr *ast.BinaryOpExpr) (*generated.BinaryOpExpr, error) {
+func binaryOpExprTo(expr *ast.BinaryOpExpr) (*BinaryOpExpr, error) {
 	if expr == nil {
 		return nil, nil
 	}
@@ -65,14 +64,14 @@ func binaryOpExprTo(expr *ast.BinaryOpExpr) (*generated.BinaryOpExpr, error) {
 
 	op := operationTo(expr.Op)
 
-	return &generated.BinaryOpExpr{
+	return &BinaryOpExpr{
 		Op:  op,
 		LHS: lhs,
 		RHS: rhs,
 	}, nil
 }
 
-func xconditionalExprTo(expr *generated.ConditionalExpr) (*ast.ConditionalExpr, error) {
+func xconditionalExprTo(expr *ConditionalExpr) (*ast.ConditionalExpr, error) {
 	if expr == nil {
 		return nil, nil
 	}
@@ -98,7 +97,7 @@ func xconditionalExprTo(expr *generated.ConditionalExpr) (*ast.ConditionalExpr, 
 	}, nil
 }
 
-func conditionalExprTo(expr *ast.ConditionalExpr) (*generated.ConditionalExpr, error) {
+func conditionalExprTo(expr *ast.ConditionalExpr) (*ConditionalExpr, error) {
 	if expr == nil {
 		return nil, nil
 	}
@@ -116,14 +115,14 @@ func conditionalExprTo(expr *ast.ConditionalExpr) (*generated.ConditionalExpr, e
 		return nil, err
 	}
 
-	return &generated.ConditionalExpr{
+	return &ConditionalExpr{
 		Condition:   condition,
 		TrueResult:  trueResult,
 		FalseResult: falseResult,
 	}, nil
 }
 
-func xforExprTo(expr *generated.ForExpr) (*ast.ForExpr, error) {
+func xforExprTo(expr *ForExpr) (*ast.ForExpr, error) {
 	if expr == nil {
 		return nil, nil
 	}
@@ -159,7 +158,7 @@ func xforExprTo(expr *generated.ForExpr) (*ast.ForExpr, error) {
 	}, nil
 }
 
-func forExprTo(expr *ast.ForExpr) (*generated.ForExpr, error) {
+func forExprTo(expr *ast.ForExpr) (*ForExpr, error) {
 	if expr == nil {
 		return nil, nil
 	}
@@ -181,7 +180,7 @@ func forExprTo(expr *ast.ForExpr) (*generated.ForExpr, error) {
 		return nil, err
 	}
 
-	return &generated.ForExpr{
+	return &ForExpr{
 		KeyVar:   expr.KeyVar,
 		ValVar:   expr.ValVar,
 		KeyExpr:  keyExpr,
@@ -192,7 +191,7 @@ func forExprTo(expr *ast.ForExpr) (*generated.ForExpr, error) {
 	}, nil
 }
 
-func xfunctionCallExprTo(expr *generated.FunctionCallExpr) (*ast.FunctionCallExpr, error) {
+func xfunctionCallExprTo(expr *FunctionCallExpr) (*ast.FunctionCallExpr, error) {
 	if expr == nil {
 		return nil, nil
 	}
@@ -216,12 +215,12 @@ func xfunctionCallExprTo(expr *generated.FunctionCallExpr) (*ast.FunctionCallExp
 	}, nil
 }
 
-func functionCallExprTo(expr *ast.FunctionCallExpr) (*generated.FunctionCallExpr, error) {
+func functionCallExprTo(expr *ast.FunctionCallExpr) (*FunctionCallExpr, error) {
 	if expr == nil {
 		return nil, nil
 	}
 
-	var args []*generated.Expression
+	var args []*Expression
 	for _, arg := range expr.Args {
 		a, err := expressionTo(arg)
 		if err != nil {
@@ -230,14 +229,14 @@ func functionCallExprTo(expr *ast.FunctionCallExpr) (*generated.FunctionCallExpr
 		args = append(args, a)
 	}
 
-	return &generated.FunctionCallExpr{
+	return &FunctionCallExpr{
 		Name:        expr.Name,
 		Args:        args,
 		ExpandFinal: expr.ExpandFinal,
 	}, nil
 }
 
-func xindexExprTo(expr *generated.IndexExpr) (*ast.IndexExpr, error) {
+func xindexExprTo(expr *IndexExpr) (*ast.IndexExpr, error) {
 	if expr == nil {
 		return nil, nil
 	}
@@ -260,7 +259,7 @@ func xindexExprTo(expr *generated.IndexExpr) (*ast.IndexExpr, error) {
 	}, nil
 }
 
-func indexExprTo(expr *ast.IndexExpr) (*generated.IndexExpr, error) {
+func indexExprTo(expr *ast.IndexExpr) (*IndexExpr, error) {
 	if expr == nil {
 		return nil, nil
 	}
@@ -274,13 +273,13 @@ func indexExprTo(expr *ast.IndexExpr) (*generated.IndexExpr, error) {
 		return nil, err
 	}
 
-	return &generated.IndexExpr{
+	return &IndexExpr{
 		Collection: collExpr,
 		Key:        keyExpr,
 	}, nil
 }
 
-func xliteralValueExprTo(expr *generated.LiteralValueExpr) (*ast.LiteralValueExpr, error) {
+func xliteralValueExprTo(expr *LiteralValueExpr) (*ast.LiteralValueExpr, error) {
 	if expr == nil {
 		return nil, nil
 	}
@@ -295,7 +294,7 @@ func xliteralValueExprTo(expr *generated.LiteralValueExpr) (*ast.LiteralValueExp
 	}, nil
 }
 
-func literalValueExprTo(expr *ast.LiteralValueExpr) (*generated.LiteralValueExpr, error) {
+func literalValueExprTo(expr *ast.LiteralValueExpr) (*LiteralValueExpr, error) {
 	if expr == nil {
 		return nil, nil
 	}
@@ -304,12 +303,12 @@ func literalValueExprTo(expr *ast.LiteralValueExpr) (*generated.LiteralValueExpr
 	if err != nil {
 		return nil, err
 	}
-	return &generated.LiteralValueExpr{
+	return &LiteralValueExpr{
 		Val: val,
 	}, nil
 }
 
-func xobjectConsItemTo(item *generated.ObjectConsItem) (*ast.ObjectConsItem, error) {
+func xobjectConsItemTo(item *ObjectConsItem) (*ast.ObjectConsItem, error) {
 	if item == nil {
 		return nil, nil
 	}
@@ -329,7 +328,7 @@ func xobjectConsItemTo(item *generated.ObjectConsItem) (*ast.ObjectConsItem, err
 	}, nil
 }
 
-func objectConsItemTo(item *ast.ObjectConsItem) (*generated.ObjectConsItem, error) {
+func objectConsItemTo(item *ast.ObjectConsItem) (*ObjectConsItem, error) {
 	if item == nil {
 		return nil, nil
 	}
@@ -343,13 +342,13 @@ func objectConsItemTo(item *ast.ObjectConsItem) (*generated.ObjectConsItem, erro
 		return nil, err
 	}
 
-	return &generated.ObjectConsItem{
+	return &ObjectConsItem{
 		KeyExpr:   keyExpr,
 		ValueExpr: valueExpr,
 	}, nil
 }
 
-func xobjectConsExprTo(expr *generated.ObjectConsExpr) (*ast.ObjectConsExpr, error) {
+func xobjectConsExprTo(expr *ObjectConsExpr) (*ast.ObjectConsExpr, error) {
 	if expr == nil {
 		return nil, nil
 	}
@@ -370,12 +369,12 @@ func xobjectConsExprTo(expr *generated.ObjectConsExpr) (*ast.ObjectConsExpr, err
 	}, nil
 }
 
-func objectConsExprTo(expr *ast.ObjectConsExpr) (*generated.ObjectConsExpr, error) {
+func objectConsExprTo(expr *ast.ObjectConsExpr) (*ObjectConsExpr, error) {
 	if expr == nil {
 		return nil, nil
 	}
 
-	var items []*generated.ObjectConsItem
+	var items []*ObjectConsItem
 	for _, item := range expr.Items {
 		i, err := objectConsItemTo(item)
 		if err != nil {
@@ -384,12 +383,12 @@ func objectConsExprTo(expr *ast.ObjectConsExpr) (*generated.ObjectConsExpr, erro
 		items = append(items, i)
 	}
 
-	return &generated.ObjectConsExpr{
+	return &ObjectConsExpr{
 		Items: items,
 	}, nil
 }
 
-func xobjectConsKeyExprTo(expr *generated.ObjectConsKeyExpr) (*ast.ObjectConsKeyExpr, error) {
+func xobjectConsKeyExprTo(expr *ObjectConsKeyExpr) (*ast.ObjectConsKeyExpr, error) {
 	if expr == nil {
 		return nil, nil
 	}
@@ -405,7 +404,7 @@ func xobjectConsKeyExprTo(expr *generated.ObjectConsKeyExpr) (*ast.ObjectConsKey
 	}, nil
 }
 
-func objectConsKeyExprTo(expr *ast.ObjectConsKeyExpr) (*generated.ObjectConsKeyExpr, error) {
+func objectConsKeyExprTo(expr *ast.ObjectConsKeyExpr) (*ObjectConsKeyExpr, error) {
 	if expr == nil {
 		return nil, nil
 	}
@@ -415,13 +414,13 @@ func objectConsKeyExprTo(expr *ast.ObjectConsKeyExpr) (*generated.ObjectConsKeyE
 		return nil, err
 	}
 
-	return &generated.ObjectConsKeyExpr{
+	return &ObjectConsKeyExpr{
 		Wrapped:         wrapped,
 		ForceNonLiteral: expr.ForceNonLiteral,
 	}, nil
 }
 
-func xparenthesizedExprTo(expr *generated.ParenthesesExpr) (*ast.ParenthesesExpr, error) {
+func xparenthesizedExprTo(expr *ParenthesesExpr) (*ast.ParenthesesExpr, error) {
 	if expr == nil {
 		return nil, nil
 	}
@@ -437,7 +436,7 @@ func xparenthesizedExprTo(expr *generated.ParenthesesExpr) (*ast.ParenthesesExpr
 	}, nil
 }
 
-func parenthesesExprTo(expr *ast.ParenthesesExpr) (*generated.ParenthesesExpr, error) {
+func parenthesesExprTo(expr *ast.ParenthesesExpr) (*ParenthesesExpr, error) {
 	if expr == nil {
 		return nil, nil
 	}
@@ -447,12 +446,12 @@ func parenthesesExprTo(expr *ast.ParenthesesExpr) (*generated.ParenthesesExpr, e
 		return nil, err
 	}
 
-	return &generated.ParenthesesExpr{
+	return &ParenthesesExpr{
 		Expr: expression,
 	}, nil
 }
 
-func xrelativeTraversalExprTo(expr *generated.RelativeTraversalExpr) (*ast.RelativeTraversalExpr, error) {
+func xrelativeTraversalExprTo(expr *RelativeTraversalExpr) (*ast.RelativeTraversalExpr, error) {
 	if expr == nil {
 		return nil, nil
 	}
@@ -478,12 +477,12 @@ func xrelativeTraversalExprTo(expr *generated.RelativeTraversalExpr) (*ast.Relat
 	}, nil
 }
 
-func relativeTraversalExprTo(expr *ast.RelativeTraversalExpr) (*generated.RelativeTraversalExpr, error) {
+func relativeTraversalExprTo(expr *ast.RelativeTraversalExpr) (*RelativeTraversalExpr, error) {
 	if expr == nil {
 		return nil, nil
 	}
 
-	var traversal []*generated.Traverser
+	var traversal []*Traverser
 	for _, trv := range expr.Traversal {
 		t, err := traverseTo(trv)
 		if err != nil {
@@ -497,13 +496,13 @@ func relativeTraversalExprTo(expr *ast.RelativeTraversalExpr) (*generated.Relati
 		return nil, err
 	}
 
-	return &generated.RelativeTraversalExpr{
+	return &RelativeTraversalExpr{
 		Source:    source,
 		Traversal: traversal,
 	}, nil
 }
 
-func xscopeTraversalExprTo(expr *generated.ScopeTraversalExpr) (*ast.ScopeTraversalExpr, error) {
+func xscopeTraversalExprTo(expr *ScopeTraversalExpr) (*ast.ScopeTraversalExpr, error) {
 	if expr == nil {
 		return nil, nil
 	}
@@ -523,12 +522,12 @@ func xscopeTraversalExprTo(expr *generated.ScopeTraversalExpr) (*ast.ScopeTraver
 	}, nil
 }
 
-func scopeTraversalExprTo(expr *ast.ScopeTraversalExpr) (*generated.ScopeTraversalExpr, error) {
+func scopeTraversalExprTo(expr *ast.ScopeTraversalExpr) (*ScopeTraversalExpr, error) {
 	if expr == nil {
 		return nil, nil
 	}
 
-	var traversal []*generated.Traverser
+	var traversal []*Traverser
 	for _, trv := range expr.Traversal {
 		t, err := traverseTo(trv)
 		if err != nil {
@@ -537,12 +536,12 @@ func scopeTraversalExprTo(expr *ast.ScopeTraversalExpr) (*generated.ScopeTravers
 		traversal = append(traversal, t)
 	}
 
-	return &generated.ScopeTraversalExpr{
+	return &ScopeTraversalExpr{
 		Traversal: traversal,
 	}, nil
 }
 
-func xsplatExprTo(expr *generated.SplatExpr) (*ast.SplatExpr, error) {
+func xsplatExprTo(expr *SplatExpr) (*ast.SplatExpr, error) {
 	if expr == nil {
 		return nil, nil
 	}
@@ -570,7 +569,7 @@ func xsplatExprTo(expr *generated.SplatExpr) (*ast.SplatExpr, error) {
 	}, nil
 }
 
-func splatExprTo(expr *ast.SplatExpr) (*generated.SplatExpr, error) {
+func splatExprTo(expr *ast.SplatExpr) (*SplatExpr, error) {
 	if expr == nil {
 		return nil, nil
 	}
@@ -589,14 +588,14 @@ func splatExprTo(expr *ast.SplatExpr) (*generated.SplatExpr, error) {
 		return nil, err
 	}
 
-	return &generated.SplatExpr{
+	return &SplatExpr{
 		Source: source,
 		Each:   each,
 		Item:   item,
 	}, nil
 }
 
-func xtemplateExprTo(expr *generated.TemplateExpr) (*ast.TemplateExpr, error) {
+func xtemplateExprTo(expr *TemplateExpr) (*ast.TemplateExpr, error) {
 	if expr == nil {
 		return nil, nil
 	}
@@ -616,12 +615,12 @@ func xtemplateExprTo(expr *generated.TemplateExpr) (*ast.TemplateExpr, error) {
 	}, nil
 }
 
-func templateExprTo(expr *ast.TemplateExpr) (*generated.TemplateExpr, error) {
+func templateExprTo(expr *ast.TemplateExpr) (*TemplateExpr, error) {
 	if expr == nil {
 		return nil, nil
 	}
 
-	var parts []*generated.Expression
+	var parts []*Expression
 	for _, part := range expr.Parts {
 		p, err := expressionTo(part)
 		if err != nil {
@@ -630,12 +629,12 @@ func templateExprTo(expr *ast.TemplateExpr) (*generated.TemplateExpr, error) {
 		parts = append(parts, p)
 	}
 
-	return &generated.TemplateExpr{
+	return &TemplateExpr{
 		Parts: parts,
 	}, nil
 }
 
-func xtemplateJoinExprTo(expr *generated.TemplateJoinExpr) (*ast.TemplateJoinExpr, error) {
+func xtemplateJoinExprTo(expr *TemplateJoinExpr) (*ast.TemplateJoinExpr, error) {
 	if expr == nil {
 		return nil, nil
 	}
@@ -646,18 +645,18 @@ func xtemplateJoinExprTo(expr *generated.TemplateJoinExpr) (*ast.TemplateJoinExp
 	}, err
 }
 
-func templateJoinExprTo(expr *ast.TemplateJoinExpr) (*generated.TemplateJoinExpr, error) {
+func templateJoinExprTo(expr *ast.TemplateJoinExpr) (*TemplateJoinExpr, error) {
 	if expr == nil {
 		return nil, nil
 	}
 
 	t, err := expressionTo(expr.Tuple)
-	return &generated.TemplateJoinExpr{
+	return &TemplateJoinExpr{
 		Tuple: t,
 	}, err
 }
 
-func xtemplateWrapExprTo(expr *generated.TemplateWrapExpr) (*ast.TemplateWrapExpr, error) {
+func xtemplateWrapExprTo(expr *TemplateWrapExpr) (*ast.TemplateWrapExpr, error) {
 	if expr == nil {
 		return nil, nil
 	}
@@ -669,18 +668,18 @@ func xtemplateWrapExprTo(expr *generated.TemplateWrapExpr) (*ast.TemplateWrapExp
 	}, err
 }
 
-func templateWrapExprTo(expr *ast.TemplateWrapExpr) (*generated.TemplateWrapExpr, error) {
+func templateWrapExprTo(expr *ast.TemplateWrapExpr) (*TemplateWrapExpr, error) {
 	if expr == nil {
 		return nil, nil
 	}
 
 	wrapped, err := expressionTo(expr.Wrapped)
-	return &generated.TemplateWrapExpr{
+	return &TemplateWrapExpr{
 		Wrapped: wrapped,
 	}, err
 }
 
-func xtupleConsExprTo(expr *generated.TupleConsExpr) (*ast.TupleConsExpr, error) {
+func xtupleConsExprTo(expr *TupleConsExpr) (*ast.TupleConsExpr, error) {
 	if expr == nil {
 		return nil, nil
 	}
@@ -701,12 +700,12 @@ func xtupleConsExprTo(expr *generated.TupleConsExpr) (*ast.TupleConsExpr, error)
 	}, nil
 }
 
-func tupleConsExprTo(expr *ast.TupleConsExpr) (*generated.TupleConsExpr, error) {
+func tupleConsExprTo(expr *ast.TupleConsExpr) (*TupleConsExpr, error) {
 	if expr == nil {
 		return nil, nil
 	}
 
-	var expressions []*generated.Expression
+	var expressions []*Expression
 	for _, e := range expr.Exprs {
 		ex, err := expressionTo(e)
 		if err != nil {
@@ -715,12 +714,12 @@ func tupleConsExprTo(expr *ast.TupleConsExpr) (*generated.TupleConsExpr, error) 
 		expressions = append(expressions, ex)
 	}
 
-	return &generated.TupleConsExpr{
+	return &TupleConsExpr{
 		Exprs: expressions,
 	}, nil
 }
 
-func xunaryOpExprTo(expr *generated.UnaryOpExpr) (*ast.UnaryOpExpr, error) {
+func xunaryOpExprTo(expr *UnaryOpExpr) (*ast.UnaryOpExpr, error) {
 	if expr == nil {
 		return nil, nil
 	}
@@ -736,7 +735,7 @@ func xunaryOpExprTo(expr *generated.UnaryOpExpr) (*ast.UnaryOpExpr, error) {
 	}, err
 }
 
-func unaryOpExprTo(expr *ast.UnaryOpExpr) (*generated.UnaryOpExpr, error) {
+func unaryOpExprTo(expr *ast.UnaryOpExpr) (*UnaryOpExpr, error) {
 	if expr == nil {
 		return nil, nil
 	}
@@ -744,138 +743,138 @@ func unaryOpExprTo(expr *ast.UnaryOpExpr) (*generated.UnaryOpExpr, error) {
 	operand := operationTo(expr.Op)
 
 	val, err := expressionTo(expr.Val)
-	return &generated.UnaryOpExpr{
+	return &UnaryOpExpr{
 		Op:  operand,
 		Val: val,
 	}, err
 }
 
-func xexpressionTo(expr *generated.Expression) (*ast.Expression, error) {
+func xexpressionTo(expr *Expression) (*ast.Expression, error) {
 	if expr == nil {
 		return nil, nil
 	}
 
 	switch e := expr.ExpressionClause.(type) {
-	case *generated.Expression_Asexpr:
+	case *Expression_Asexpr:
 		v, err := xanonSymbolExprTo(e.Asexpr)
 		return &ast.Expression{
 			ExpressionClause: &ast.Expression_Asexpr{
 				Asexpr: v,
 			},
 		}, err
-	case *generated.Expression_Boexpr:
+	case *Expression_Boexpr:
 		v, err := xbinaryOpExprTo(e.Boexpr)
 		return &ast.Expression{
 			ExpressionClause: &ast.Expression_Boexpr{
 				Boexpr: v,
 			},
 		}, err
-	case *generated.Expression_Cexpr:
+	case *Expression_Cexpr:
 		v, err := xconditionalExprTo(e.Cexpr)
 		return &ast.Expression{
 			ExpressionClause: &ast.Expression_Cexpr{
 				Cexpr: v,
 			},
 		}, err
-	case *generated.Expression_Fexpr:
+	case *Expression_Fexpr:
 		v, err := xforExprTo(e.Fexpr)
 		return &ast.Expression{
 			ExpressionClause: &ast.Expression_Fexpr{
 				Fexpr: v,
 			},
 		}, err
-	case *generated.Expression_Fcexpr:
+	case *Expression_Fcexpr:
 		v, err := xfunctionCallExprTo(e.Fcexpr)
 		return &ast.Expression{
 			ExpressionClause: &ast.Expression_Fcexpr{
 				Fcexpr: v,
 			},
 		}, err
-	case *generated.Expression_Iexpr:
+	case *Expression_Iexpr:
 		v, err := xindexExprTo(e.Iexpr)
 		return &ast.Expression{
 			ExpressionClause: &ast.Expression_Iexpr{
 				Iexpr: v,
 			},
 		}, err
-	case *generated.Expression_Lvexpr:
+	case *Expression_Lvexpr:
 		v, err := xliteralValueExprTo(e.Lvexpr)
 		return &ast.Expression{
 			ExpressionClause: &ast.Expression_Lvexpr{
 				Lvexpr: v,
 			},
 		}, err
-	case *generated.Expression_Ocexpr:
+	case *Expression_Ocexpr:
 		v, err := xobjectConsExprTo(e.Ocexpr)
 		return &ast.Expression{
 			ExpressionClause: &ast.Expression_Ocexpr{
 				Ocexpr: v,
 			},
 		}, err
-	case *generated.Expression_Ockexpr:
+	case *Expression_Ockexpr:
 		v, err := xobjectConsKeyExprTo(e.Ockexpr)
 		return &ast.Expression{
 			ExpressionClause: &ast.Expression_Ockexpr{
 				Ockexpr: v,
 			},
 		}, err
-	case *generated.Expression_Pexpr:
+	case *Expression_Pexpr:
 		v, err := xparenthesizedExprTo(e.Pexpr)
 		return &ast.Expression{
 			ExpressionClause: &ast.Expression_Pexpr{
 				Pexpr: v,
 			},
 		}, err
-	case *generated.Expression_Rtexpr:
+	case *Expression_Rtexpr:
 		v, err := xrelativeTraversalExprTo(e.Rtexpr)
 		return &ast.Expression{
 			ExpressionClause: &ast.Expression_Rtexpr{
 				Rtexpr: v,
 			},
 		}, err
-	case *generated.Expression_Stexpr:
+	case *Expression_Stexpr:
 		v, err := xscopeTraversalExprTo(e.Stexpr)
 		return &ast.Expression{
 			ExpressionClause: &ast.Expression_Stexpr{
 				Stexpr: v,
 			},
 		}, err
-	case *generated.Expression_Sexpr:
+	case *Expression_Sexpr:
 		v, err := xsplatExprTo(e.Sexpr)
 		return &ast.Expression{
 			ExpressionClause: &ast.Expression_Sexpr{
 				Sexpr: v,
 			},
 		}, err
-	case *generated.Expression_Texpr:
+	case *Expression_Texpr:
 		v, err := xtemplateExprTo(e.Texpr)
 		return &ast.Expression{
 			ExpressionClause: &ast.Expression_Texpr{
 				Texpr: v,
 			},
 		}, err
-	case *generated.Expression_Tjexpr:
+	case *Expression_Tjexpr:
 		v, err := xtemplateJoinExprTo(e.Tjexpr)
 		return &ast.Expression{
 			ExpressionClause: &ast.Expression_Tjexpr{
 				Tjexpr: v,
 			},
 		}, err
-	case *generated.Expression_Twexpr:
+	case *Expression_Twexpr:
 		v, err := xtemplateWrapExprTo(e.Twexpr)
 		return &ast.Expression{
 			ExpressionClause: &ast.Expression_Twexpr{
 				Twexpr: v,
 			},
 		}, err
-	case *generated.Expression_Tcexpr:
+	case *Expression_Tcexpr:
 		v, err := xtupleConsExprTo(e.Tcexpr)
 		return &ast.Expression{
 			ExpressionClause: &ast.Expression_Tcexpr{
 				Tcexpr: v,
 			},
 		}, err
-	case *generated.Expression_Uoexpr:
+	case *Expression_Uoexpr:
 		v, err := xunaryOpExprTo(e.Uoexpr)
 		return &ast.Expression{
 			ExpressionClause: &ast.Expression_Uoexpr{
@@ -887,7 +886,7 @@ func xexpressionTo(expr *generated.Expression) (*ast.Expression, error) {
 	return nil, fmt.Errorf("unknown expression type %T", expr)
 }
 
-func expressionTo(expr *ast.Expression) (*generated.Expression, error) {
+func expressionTo(expr *ast.Expression) (*Expression, error) {
 	if expr == nil {
 		return nil, nil
 	}
@@ -895,127 +894,127 @@ func expressionTo(expr *ast.Expression) (*generated.Expression, error) {
 	switch e := expr.ExpressionClause.(type) {
 	case *ast.Expression_Asexpr:
 		v, err := anonSymbolExprTo(e.Asexpr)
-		return &generated.Expression{
-			ExpressionClause: &generated.Expression_Asexpr{
+		return &Expression{
+			ExpressionClause: &Expression_Asexpr{
 				Asexpr: v,
 			},
 		}, err
 	case *ast.Expression_Boexpr:
 		v, err := binaryOpExprTo(e.Boexpr)
-		return &generated.Expression{
-			ExpressionClause: &generated.Expression_Boexpr{
+		return &Expression{
+			ExpressionClause: &Expression_Boexpr{
 				Boexpr: v,
 			},
 		}, err
 	case *ast.Expression_Cexpr:
 		v, err := conditionalExprTo(e.Cexpr)
-		return &generated.Expression{
-			ExpressionClause: &generated.Expression_Cexpr{
+		return &Expression{
+			ExpressionClause: &Expression_Cexpr{
 				Cexpr: v,
 			},
 		}, err
 	case *ast.Expression_Fexpr:
 		v, err := forExprTo(e.Fexpr)
-		return &generated.Expression{
-			ExpressionClause: &generated.Expression_Fexpr{
+		return &Expression{
+			ExpressionClause: &Expression_Fexpr{
 				Fexpr: v,
 			},
 		}, err
 	case *ast.Expression_Fcexpr:
 		v, err := functionCallExprTo(e.Fcexpr)
-		return &generated.Expression{
-			ExpressionClause: &generated.Expression_Fcexpr{
+		return &Expression{
+			ExpressionClause: &Expression_Fcexpr{
 				Fcexpr: v,
 			},
 		}, err
 	case *ast.Expression_Iexpr:
 		v, err := indexExprTo(e.Iexpr)
-		return &generated.Expression{
-			ExpressionClause: &generated.Expression_Iexpr{
+		return &Expression{
+			ExpressionClause: &Expression_Iexpr{
 				Iexpr: v,
 			},
 		}, err
 	case *ast.Expression_Lvexpr:
 		v, err := literalValueExprTo(e.Lvexpr)
-		return &generated.Expression{
-			ExpressionClause: &generated.Expression_Lvexpr{
+		return &Expression{
+			ExpressionClause: &Expression_Lvexpr{
 				Lvexpr: v,
 			},
 		}, err
 	case *ast.Expression_Ocexpr:
 		v, err := objectConsExprTo(e.Ocexpr)
-		return &generated.Expression{
-			ExpressionClause: &generated.Expression_Ocexpr{
+		return &Expression{
+			ExpressionClause: &Expression_Ocexpr{
 				Ocexpr: v,
 			},
 		}, err
 	case *ast.Expression_Ockexpr:
 		v, err := objectConsKeyExprTo(e.Ockexpr)
-		return &generated.Expression{
-			ExpressionClause: &generated.Expression_Ockexpr{
+		return &Expression{
+			ExpressionClause: &Expression_Ockexpr{
 				Ockexpr: v,
 			},
 		}, err
 	case *ast.Expression_Pexpr:
 		v, err := parenthesesExprTo(e.Pexpr)
-		return &generated.Expression{
-			ExpressionClause: &generated.Expression_Pexpr{
+		return &Expression{
+			ExpressionClause: &Expression_Pexpr{
 				Pexpr: v,
 			},
 		}, err
 	case *ast.Expression_Rtexpr:
 		v, err := relativeTraversalExprTo(e.Rtexpr)
-		return &generated.Expression{
-			ExpressionClause: &generated.Expression_Rtexpr{
+		return &Expression{
+			ExpressionClause: &Expression_Rtexpr{
 				Rtexpr: v,
 			},
 		}, err
 	case *ast.Expression_Stexpr:
 		v, err := scopeTraversalExprTo(e.Stexpr)
-		return &generated.Expression{
-			ExpressionClause: &generated.Expression_Stexpr{
+		return &Expression{
+			ExpressionClause: &Expression_Stexpr{
 				Stexpr: v,
 			},
 		}, err
 	case *ast.Expression_Sexpr:
 		v, err := splatExprTo(e.Sexpr)
-		return &generated.Expression{
-			ExpressionClause: &generated.Expression_Sexpr{
+		return &Expression{
+			ExpressionClause: &Expression_Sexpr{
 				Sexpr: v,
 			},
 		}, err
 	case *ast.Expression_Texpr:
 		v, err := templateExprTo(e.Texpr)
-		return &generated.Expression{
-			ExpressionClause: &generated.Expression_Texpr{
+		return &Expression{
+			ExpressionClause: &Expression_Texpr{
 				Texpr: v,
 			},
 		}, err
 	case *ast.Expression_Tjexpr:
 		v, err := templateJoinExprTo(e.Tjexpr)
-		return &generated.Expression{
-			ExpressionClause: &generated.Expression_Tjexpr{
+		return &Expression{
+			ExpressionClause: &Expression_Tjexpr{
 				Tjexpr: v,
 			},
 		}, err
 	case *ast.Expression_Twexpr:
 		v, err := templateWrapExprTo(e.Twexpr)
-		return &generated.Expression{
-			ExpressionClause: &generated.Expression_Twexpr{
+		return &Expression{
+			ExpressionClause: &Expression_Twexpr{
 				Twexpr: v,
 			},
 		}, err
 	case *ast.Expression_Tcexpr:
 		v, err := tupleConsExprTo(e.Tcexpr)
-		return &generated.Expression{
-			ExpressionClause: &generated.Expression_Tcexpr{
+		return &Expression{
+			ExpressionClause: &Expression_Tcexpr{
 				Tcexpr: v,
 			},
 		}, err
 	case *ast.Expression_Uoexpr:
 		v, err := unaryOpExprTo(e.Uoexpr)
-		return &generated.Expression{
-			ExpressionClause: &generated.Expression_Uoexpr{
+		return &Expression{
+			ExpressionClause: &Expression_Uoexpr{
 				Uoexpr: v,
 			},
 		}, err

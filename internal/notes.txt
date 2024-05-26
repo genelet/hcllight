@@ -1,0 +1,49 @@
+in "light"
+
+1) message Callback
+delete: repeated NamedAny specification_extension 
+2) message Paths
+delete: repeated NamedAny specification_extension
+3) message Responses {
+delete ResponseOrReference default
+but add "default" as the key
+delete: repeated NamedAny specification_extension
+
+in "hcl"
+for all functions
+*OrReferenceMapToBlocks
+and
+blocksTo*OrReferenceMap
+we are using 
+orMapToBlocks
+and 
+blocksToOrMap
+to make, except for
+SchemaOrReference (multiple single expressions)
+and PathItemOrReference (defined in this package only)
+
+for hclsyntax to accept TokenDot and TokenColon in keys:
+parser.go line 158:
+switch next.Type {
+	case TokenDot, TokenColon:
+		for {
+			ident0 := p.Read()
+			ident.Bytes = append(ident.Bytes, ident0.Bytes...)
+			ident.Range.End = ident0.Range.End
+			switch ident0.Type {
+			case TokenDot, TokenColon:
+				continue
+			case TokenIdent:
+				next = p.Peek()
+				switch next.Type {
+				case TokenEqual:
+					return p.finishParsingBodyAttribute(ident, false)
+				case TokenOQuote, TokenOBrace, TokenIdent:
+					return p.finishParsingBodyBlock(ident)
+				default:
+				}
+			default:
+				break
+			}
+		}
+	case TokenEqual:

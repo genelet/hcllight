@@ -1,8 +1,8 @@
 syntax = "proto3";
 
-package kinet;
+package light;
 
-option go_package = "./generated";
+option go_package = "./light";
 
 message CtyList {
 	repeated CtyValue values = 1;
@@ -221,7 +221,6 @@ message TemplateJoinExpr {
 message TemplateWrapExpr {
 	Expression wrapped = 1;
 }
-
 
 message TupleConsExpr {
 	repeated Expression exprs = 1;
