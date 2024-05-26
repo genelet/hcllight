@@ -55,7 +55,7 @@ func (self *Document) toHCL() (*light.Body, error) {
 	if self.Openapi != "" {
 		attrs["openapi"] = &light.Attribute{
 			Name: "openapi",
-			Expr: stringToTextValueExpr(self.Openapi),
+			Expr: light.StringToTextValueExpr(self.Openapi),
 		}
 	}
 	if self.Info != nil {
@@ -161,7 +161,7 @@ func documentFromHCL(body *light.Body) (*Document, error) {
 	for key, attr := range body.Attributes {
 		switch key {
 		case "openapi":
-			doc.Openapi = *textValueExprToString(attr.Expr)
+			doc.Openapi = *light.TextValueExprToString(attr.Expr)
 		case "servers":
 			servers, err := expressionToServers(attr.Expr)
 			if err != nil {

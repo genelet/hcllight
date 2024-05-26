@@ -10,7 +10,7 @@ func (self *SecurityRequirement) toHCL() (*light.Body, error) {
 	for k, v := range self.AdditionalProperties {
 		attrs[k] = &light.Attribute{
 			Name: k,
-			Expr: stringArrayToTupleConsEpr(v.Value),
+			Expr: light.StringArrayToTupleConsEpr(v.Value),
 		}
 	}
 	body.Attributes = attrs
@@ -27,7 +27,7 @@ func securityRequirementFromHCL(body *light.Body) (*SecurityRequirement, error) 
 	}
 	for k, v := range body.Attributes {
 		self.AdditionalProperties[k] = &StringArray{
-			Value: tupleConsExprToStringArray(v.Expr),
+			Value: light.TupleConsExprToStringArray(v.Expr),
 		}
 	}
 	return self, nil

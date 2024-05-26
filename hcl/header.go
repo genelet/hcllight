@@ -27,7 +27,7 @@ func (self *Header) toHCL() (*light.Body, error) {
 		if v {
 			attrs[k] = &light.Attribute{
 				Name: k,
-				Expr: booleanToLiteralValueExpr(v),
+				Expr: light.BooleanToLiteralValueExpr(v),
 			}
 		}
 	}
@@ -35,7 +35,7 @@ func (self *Header) toHCL() (*light.Body, error) {
 		if v != "" {
 			attrs[k] = &light.Attribute{
 				Name: k,
-				Expr: stringToTextValueExpr(v),
+				Expr: light.StringToTextValueExpr(v),
 			}
 		}
 	}
@@ -96,25 +96,25 @@ func headerFromHCL(body *light.Body) (*Header, error) {
 	for k, v := range body.Attributes {
 		switch k {
 		case "required":
-			self.Required = *literalValueExprToBoolean(v.Expr)
+			self.Required = *light.LiteralValueExprToBoolean(v.Expr)
 			found = true
 		case "deprecated":
-			self.Deprecated = *literalValueExprToBoolean(v.Expr)
+			self.Deprecated = *light.LiteralValueExprToBoolean(v.Expr)
 			found = true
 		case "allowEmptyValue":
-			self.AllowEmptyValue = *literalValueExprToBoolean(v.Expr)
+			self.AllowEmptyValue = *light.LiteralValueExprToBoolean(v.Expr)
 			found = true
 		case "explode":
-			self.Explode = *literalValueExprToBoolean(v.Expr)
+			self.Explode = *light.LiteralValueExprToBoolean(v.Expr)
 			found = true
 		case "allowReserved":
-			self.AllowReserved = *literalValueExprToBoolean(v.Expr)
+			self.AllowReserved = *light.LiteralValueExprToBoolean(v.Expr)
 			found = true
 		case "description":
-			self.Description = *textValueExprToString(v.Expr)
+			self.Description = *light.TextValueExprToString(v.Expr)
 			found = true
 		case "style":
-			self.Style = *textValueExprToString(v.Expr)
+			self.Style = *light.TextValueExprToString(v.Expr)
 			found = true
 		case "example":
 			self.Example, err = anyFromHCL(v.Expr)

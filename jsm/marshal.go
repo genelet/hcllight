@@ -46,9 +46,9 @@ func stringOrStringArrayToExpression(t *jsonschema.StringOrStringArray) *light.E
 		return nil
 	}
 	if t.String != nil {
-		return stringToTextValueExpr(*t.String)
+		return light.StringToTextValueExpr(*t.String)
 	}
-	return stringArrayToTupleConsEpr(*t.StringArray)
+	return light.StringArrayToTupleConsEpr(*t.StringArray)
 }
 
 func expressionToStringOrStringArray(expr *light.Expression) *jsonschema.StringOrStringArray {
@@ -61,7 +61,7 @@ func expressionToStringOrStringArray(expr *light.Expression) *jsonschema.StringO
 			String: &x,
 		}
 	}
-	x := tupleConsExprToStringArray(expr)
+	x := light.TupleConsExprToStringArray(expr)
 	return &jsonschema.StringOrStringArray{
 		StringArray: &x,
 	}
@@ -79,7 +79,7 @@ func mapSchemaToObjectConsExpr(s map[string]*Schema) (*light.ObjectConsExpr, err
 			return nil, err
 		}
 		items = append(items, &light.ObjectConsItem{
-			KeyExpr:   stringToLiteralValueExpr(k),
+			KeyExpr:   light.StringToLiteralValueExpr(k),
 			ValueExpr: ex,
 		})
 	}
@@ -94,7 +94,7 @@ func objectConsExprToMapSchema(o *light.ObjectConsExpr) (map[string]*Schema, err
 	}
 	m := make(map[string]*Schema)
 	for _, item := range o.Items {
-		k := literalValueExprToString(item.KeyExpr)
+		k := light.LiteralValueExprToString(item.KeyExpr)
 		if k == nil {
 			return nil, nil
 		}
@@ -183,14 +183,14 @@ func schemaOrBooleanToExpression(items *SchemaOrBoolean) (*light.Expression, err
 	if items.Schema != nil {
 		return schemaToExpression(items.Schema)
 	} else {
-		return booleanToLiteralValueExpr(*items.Boolean), nil
+		return light.BooleanToLiteralValueExpr(*items.Boolean), nil
 	}
 }
 
 func expressionToSchemaOrBoolean(expr *light.Expression) (*SchemaOrBoolean, error) {
 	if expr.GetLvexpr() != nil {
 		return &SchemaOrBoolean{
-			Boolean: literalValueExprToBoolean(expr),
+			Boolean: light.LiteralValueExprToBoolean(expr),
 		}, nil
 	} else {
 		s, err := expressionToSchema(expr)
@@ -211,9 +211,9 @@ func enumToTupleConsExpr(enumeration []jsonschema.SchemaEnumValue) (*light.Tuple
 	var enums []*light.Expression
 	for _, e := range enumeration {
 		if e.String != nil {
-			enums = append(enums, stringToTextValueExpr(*e.String))
+			enums = append(enums, light.StringToTextValueExpr(*e.String))
 		} else {
-			enums = append(enums, booleanToLiteralValueExpr(*e.Bool))
+			enums = append(enums, light.BooleanToLiteralValueExpr(*e.Bool))
 		}
 	}
 
@@ -238,9 +238,9 @@ func tupleConsExprToEnum(t *light.TupleConsExpr) ([]jsonschema.SchemaEnumValue, 
 	for _, expr := range exprs {
 		if expr.GetLvexpr() != nil {
 			if expr.GetLvexpr().GetVal().GetStringValue() != "" {
-				enums = append(enums, jsonschema.SchemaEnumValue{String: literalValueExprToString(expr)})
+				enums = append(enums, jsonschema.SchemaEnumValue{String: light.LiteralValueExprToString(expr)})
 			} else {
-				enums = append(enums, jsonschema.SchemaEnumValue{Bool: literalValueExprToBoolean(expr)})
+				enums = append(enums, jsonschema.SchemaEnumValue{Bool: light.LiteralValueExprToBoolean(expr)})
 			}
 		}
 	}
@@ -348,7 +348,7 @@ func mapSchemaOrStringArrayToBody(s map[string]*SchemaOrStringArray) (*light.Bod
 		} else {
 			attrs[k] = &light.Attribute{
 				Name: k,
-				Expr: stringArrayToTupleConsEpr(v.StringArray),
+				Expr: light.StringArrayToTupleConsEpr(v.StringArray),
 			}
 		}
 	}
@@ -369,7 +369,7 @@ func bodyToMapSchemaOrStringArray(b *light.Body) (map[string]*SchemaOrStringArra
 	for k, v := range b.Attributes {
 		if v.Expr.GetTcexpr() != nil {
 			m[k] = &SchemaOrStringArray{
-				StringArray: tupleConsExprToStringArray(v.Expr),
+				StringArray: light.TupleConsExprToStringArray(v.Expr),
 			}
 		} else {
 			s, err := expressionToSchema(v.Expr)
@@ -740,7 +740,7 @@ func schemaObjectToFcexpr(self *SchemaObject, expr *light.FunctionCallExpr) erro
 			ExpressionClause: &light.Expression_Fcexpr{
 				Fcexpr: &light.FunctionCallExpr{
 					Name: "required",
-					Args: stringArrayToTupleConsEpr(self.Required).GetTcexpr().Exprs,
+					Args: light.StringArrayToTupleConsEpr(self.Required).GetTcexpr().Exprs,
 				},
 			},
 		})
@@ -780,7 +780,7 @@ func fcexprToSchemaObject(fcexpr *light.FunctionCallExpr) (*SchemaObject, error)
 				s.MinProperties = &min
 				found = true
 			case "required":
-				s.Required = tupleConsExprToStringArray(expr.Args[0])
+				s.Required = light.TupleConsExprToStringArray(expr.Args[0])
 				found = true
 			default:
 			}
@@ -803,7 +803,7 @@ func schemaMapToFcexpr(self *SchemaMap, expr *light.FunctionCallExpr) error {
 		if self.AdditionalProperties.Schema != nil {
 			ex, err = schemaToExpression(self.AdditionalProperties.Schema)
 		} else {
-			ex = booleanToLiteralValueExpr(*self.AdditionalProperties.Boolean)
+			ex = light.BooleanToLiteralValueExpr(*self.AdditionalProperties.Boolean)
 		}
 		if err != nil {
 			return err

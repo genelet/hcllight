@@ -122,14 +122,14 @@ func (self *OauthFlow) toHCL() (*light.Body, error) {
 		if v != "" {
 			attrs[k] = &light.Attribute{
 				Name: k,
-				Expr: stringToTextValueExpr(v),
+				Expr: light.StringToTextValueExpr(v),
 			}
 		}
 	}
 	if self.Scopes != nil {
 		attrs["scopes"] = &light.Attribute{
 			Name: "scopes",
-			Expr: stringMapToObjConsExpr(self.Scopes),
+			Expr: light.StringMapToObjConsExpr(self.Scopes),
 		}
 	}
 	if err := addSpecification(self.SpecificationExtension, &blocks); err != nil {
@@ -156,16 +156,16 @@ func flowFromHCL(body *light.Body) (*OauthFlow, error) {
 	for k, v := range body.Attributes {
 		switch k {
 		case "authorizationUrl":
-			flow.AuthorizationUrl = *textValueExprToString(v.Expr)
+			flow.AuthorizationUrl = *light.TextValueExprToString(v.Expr)
 			found = true
 		case "tokenUrl":
-			flow.TokenUrl = *textValueExprToString(v.Expr)
+			flow.TokenUrl = *light.TextValueExprToString(v.Expr)
 			found = true
 		case "refreshUrl":
-			flow.RefreshUrl = *textValueExprToString(v.Expr)
+			flow.RefreshUrl = *light.TextValueExprToString(v.Expr)
 			found = true
 		case "scopes":
-			flow.Scopes = objConsExprToStringMap(v.Expr)
+			flow.Scopes = light.ObjConsExprToStringMap(v.Expr)
 			found = true
 		default:
 		}

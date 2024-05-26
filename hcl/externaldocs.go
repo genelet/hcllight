@@ -16,7 +16,7 @@ func (self *ExternalDocs) toHCL() (*light.Body, error) {
 		if v != "" {
 			attrs[k] = &light.Attribute{
 				Name: k,
-				Expr: stringToTextValueExpr(v),
+				Expr: light.StringToTextValueExpr(v),
 			}
 		}
 	}
@@ -42,10 +42,10 @@ func externalDocsFromHCL(body *light.Body) (*ExternalDocs, error) {
 	for k, v := range body.Attributes {
 		switch k {
 		case "url":
-			externalDocs.Url = *textValueExprToString(v.Expr)
+			externalDocs.Url = *light.TextValueExprToString(v.Expr)
 			found = true
 		case "description":
-			externalDocs.Description = *textValueExprToString(v.Expr)
+			externalDocs.Description = *light.TextValueExprToString(v.Expr)
 			found = true
 		}
 	}

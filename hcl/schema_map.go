@@ -8,7 +8,7 @@ func schemaOrBooleanToExpression(item *AdditionalPropertiesItem) (*light.Express
 	if x := item.GetSchemaOrReference(); x != nil {
 		return x.toExpression()
 	} else {
-		return booleanToLiteralValueExpr(item.GetBoolean()), nil
+		return light.BooleanToLiteralValueExpr(item.GetBoolean()), nil
 	}
 }
 
@@ -16,7 +16,7 @@ func expressionToSchemaOrBoolean(expr *light.Expression) (*AdditionalPropertiesI
 	if expr.GetLvexpr() != nil {
 		return &AdditionalPropertiesItem{
 			Oneof: &AdditionalPropertiesItem_Boolean{
-				Boolean: *literalValueExprToBoolean(expr),
+				Boolean: *light.LiteralValueExprToBoolean(expr),
 			},
 		}, nil
 	} else {

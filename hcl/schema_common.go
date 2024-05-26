@@ -11,13 +11,13 @@ func defaultTypeToExpression(d *DefaultType) *light.Expression {
 	switch d.Oneof.(type) {
 	case *DefaultType_Boolean:
 		t := d.GetBoolean()
-		return booleanToLiteralValueExpr(t)
+		return light.BooleanToLiteralValueExpr(t)
 	case *DefaultType_Number:
 		t := d.GetNumber()
-		return float64ToLiteralValueExpr(t)
+		return light.Float64ToLiteralValueExpr(t)
 	case *DefaultType_String_:
 		t := d.GetString_()
-		return stringToTextValueExpr(t)
+		return light.StringToTextValueExpr(t)
 	default:
 	}
 	return nil
@@ -108,19 +108,19 @@ func commonToAttributes(self *SchemaCommon, attrs map[string]*light.Attribute) e
 	if self.Type != "" {
 		attrs["type"] = &light.Attribute{
 			Name: "type",
-			Expr: stringToTextValueExpr(self.Type),
+			Expr: light.StringToTextValueExpr(self.Type),
 		}
 	}
 	if self.Format != "" {
 		attrs["format"] = &light.Attribute{
 			Name: "format",
-			Expr: stringToTextValueExpr(self.Format),
+			Expr: light.StringToTextValueExpr(self.Format),
 		}
 	}
 	if self.Description != "" {
 		attrs["description"] = &light.Attribute{
 			Name: "description",
-			Expr: stringToTextValueExpr(self.Description),
+			Expr: light.StringToTextValueExpr(self.Description),
 		}
 	}
 	if self.Default != nil {
@@ -165,15 +165,15 @@ func attributesToCommon(attrs map[string]*light.Attribute) (*SchemaCommon, error
 	var err error
 	common := &SchemaCommon{}
 	if v, ok := attrs["type"]; ok {
-		common.Type = *textValueExprToString(v.Expr)
+		common.Type = *light.TextValueExprToString(v.Expr)
 		found = true
 	}
 	if v, ok := attrs["format"]; ok {
-		common.Format = *textValueExprToString(v.Expr)
+		common.Format = *light.TextValueExprToString(v.Expr)
 		found = true
 	}
 	if v, ok := attrs["description"]; ok {
-		common.Description = *textValueExprToString(v.Expr)
+		common.Description = *light.TextValueExprToString(v.Expr)
 		found = true
 	}
 	if v, ok := attrs["default"]; ok {
@@ -272,9 +272,9 @@ func fcexprToCommon(fcexpr *light.FunctionCallExpr) (*SchemaCommon, error) {
 			name, items := fcexprToShort(arg)
 			switch name {
 			case "format":
-				common.Format = *textValueExprToString(items[0])
+				common.Format = *light.TextValueExprToString(items[0])
 			case "description":
-				common.Description = *textValueExprToString(items[0])
+				common.Description = *light.TextValueExprToString(items[0])
 			case "default":
 				common.Default = expressionToDefaultType(items[0])
 			case "example":

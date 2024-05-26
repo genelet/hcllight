@@ -25,7 +25,7 @@ func (self *SecurityScheme) toHCL() (*light.Body, error) {
 		if v != "" {
 			attrs[k] = &light.Attribute{
 				Name: k,
-				Expr: stringToTextValueExpr(v),
+				Expr: light.StringToTextValueExpr(v),
 			}
 		}
 	}
@@ -62,25 +62,25 @@ func securitySchemeFromHCL(body *light.Body) (*SecurityScheme, error) {
 	var err error
 	for k, v := range body.Attributes {
 		if k == "type" {
-			self.Type = *textValueExprToString(v.Expr)
+			self.Type = *light.TextValueExprToString(v.Expr)
 			found = true
 		} else if k == "description" {
-			self.Description = *textValueExprToString(v.Expr)
+			self.Description = *light.TextValueExprToString(v.Expr)
 			found = true
 		} else if k == "name" {
-			self.Name = *textValueExprToString(v.Expr)
+			self.Name = *light.TextValueExprToString(v.Expr)
 			found = true
 		} else if k == "in" {
-			self.In = *textValueExprToString(v.Expr)
+			self.In = *light.TextValueExprToString(v.Expr)
 			found = true
 		} else if k == "scheme" {
-			self.Scheme = *textValueExprToString(v.Expr)
+			self.Scheme = *light.TextValueExprToString(v.Expr)
 			found = true
 		} else if k == "bearerFormat" {
-			self.BearerFormat = *textValueExprToString(v.Expr)
+			self.BearerFormat = *light.TextValueExprToString(v.Expr)
 			found = true
 		} else if k == "openIdConnectUrl" {
-			self.OpenIdConnectUrl = *textValueExprToString(v.Expr)
+			self.OpenIdConnectUrl = *light.TextValueExprToString(v.Expr)
 			found = true
 		}
 	}

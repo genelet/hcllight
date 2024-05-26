@@ -13,20 +13,20 @@ func (self *Reference) toHCL() (*light.Body, error) {
 		Attributes: map[string]*light.Attribute{
 			"XRef": {
 				Name: "XRef",
-				Expr: stringToTextValueExpr(self.XRef),
+				Expr: light.StringToTextValueExpr(self.XRef),
 			},
 		},
 	}
 	if self.Summary != "" {
 		body.Attributes["summary"] = &light.Attribute{
 			Name: "summary",
-			Expr: stringToTextValueExpr(self.Summary),
+			Expr: light.StringToTextValueExpr(self.Summary),
 		}
 	}
 	if self.Description != "" {
 		body.Attributes["description"] = &light.Attribute{
 			Name: "description",
-			Expr: stringToTextValueExpr(self.Description),
+			Expr: light.StringToTextValueExpr(self.Description),
 		}
 	}
 	return body, nil
@@ -41,18 +41,18 @@ func referenceFromHCL(body *light.Body) (*Reference, error) {
 	var found bool
 	if attr, ok := body.Attributes["XRef"]; ok {
 		if attr.Expr != nil {
-			self.XRef = *textValueExprToString(attr.Expr)
+			self.XRef = *light.TextValueExprToString(attr.Expr)
 			found = true
 		}
 	}
 	if attr, ok := body.Attributes["summary"]; ok {
 		if attr.Expr != nil {
-			self.Summary = *textValueExprToString(attr.Expr)
+			self.Summary = *light.TextValueExprToString(attr.Expr)
 		}
 	}
 	if attr, ok := body.Attributes["description"]; ok {
 		if attr.Expr != nil {
-			self.Description = *textValueExprToString(attr.Expr)
+			self.Description = *light.TextValueExprToString(attr.Expr)
 		}
 	}
 
@@ -67,14 +67,14 @@ func xrefToTraversal(xref string) (*light.Expression, error) {
 	if len(arr) != 2 {
 		return nil, fmt.Errorf("invalid reference: %s", xref)
 	}
-	return stringToTraversal(arr[1]), nil
+	return light.StringToTraversal(arr[1]), nil
 }
 
 func traversalToXref(expr *light.Expression) (string, error) {
 	if expr == nil {
 		return "", nil
 	}
-	return "#/" + *traversalToString(expr), nil
+	return "#/" + *light.TraversalToString(expr), nil
 }
 
 func (self *Reference) toExpression() (*light.Expression, error) {
@@ -83,13 +83,13 @@ func (self *Reference) toExpression() (*light.Expression, error) {
 	}
 
 	args := []*light.Expression{
-		stringToTextValueExpr(self.XRef),
+		light.StringToTextValueExpr(self.XRef),
 	}
 	if self.Summary != "" {
-		args = append(args, stringToTextValueExpr(self.Summary))
+		args = append(args, light.StringToTextValueExpr(self.Summary))
 	}
 	if self.Description != "" {
-		args = append(args, stringToTextValueExpr(self.Description))
+		args = append(args, light.StringToTextValueExpr(self.Description))
 	}
 	return &light.Expression{
 		ExpressionClause: &light.Expression_Fcexpr{
@@ -122,14 +122,14 @@ func expressionToReference(expr *light.Expression) (*Reference, error) {
 				return nil, fmt.Errorf("invalid reference expression: %#v", expr)
 			}
 			arg := x.Args[0]
-			reference.XRef = *textValueExprToString(arg)
+			reference.XRef = *light.TextValueExprToString(arg)
 			if len(x.Args) > 1 {
 				arg = x.Args[1]
-				reference.Summary = *textValueExprToString(arg)
+				reference.Summary = *light.TextValueExprToString(arg)
 			}
 			if len(x.Args) > 2 {
 				arg = x.Args[2]
-				reference.Description = *textValueExprToString(arg)
+				reference.Description = *light.TextValueExprToString(arg)
 			}
 			return reference, nil
 		}

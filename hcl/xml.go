@@ -21,7 +21,7 @@ func (self *Xml) toHCL() (*light.Body, error) {
 		if v != "" {
 			attrs[k] = &light.Attribute{
 				Name: k,
-				Expr: stringToTextValueExpr(v),
+				Expr: light.StringToTextValueExpr(v),
 			}
 		}
 	}
@@ -29,7 +29,7 @@ func (self *Xml) toHCL() (*light.Body, error) {
 		if v {
 			attrs[k] = &light.Attribute{
 				Name: k,
-				Expr: booleanToLiteralValueExpr(v),
+				Expr: light.BooleanToLiteralValueExpr(v),
 			}
 		}
 	}
@@ -57,19 +57,19 @@ func xmlFromHCL(body *light.Body) (*Xml, error) {
 	for k, v := range body.Attributes {
 		switch k {
 		case "name":
-			xml.Name = *textValueExprToString(v.Expr)
+			xml.Name = *light.TextValueExprToString(v.Expr)
 			found = true
 		case "namespace":
-			xml.Namespace = *textValueExprToString(v.Expr)
+			xml.Namespace = *light.TextValueExprToString(v.Expr)
 			found = true
 		case "prefix":
-			xml.Prefix = *textValueExprToString(v.Expr)
+			xml.Prefix = *light.TextValueExprToString(v.Expr)
 			found = true
 		case "attribute":
-			xml.Attribute = *literalValueExprToBoolean(v.Expr)
+			xml.Attribute = *light.LiteralValueExprToBoolean(v.Expr)
 			found = true
 		case "wrapped":
-			xml.Wrapped = *literalValueExprToBoolean(v.Expr)
+			xml.Wrapped = *light.LiteralValueExprToBoolean(v.Expr)
 			found = true
 		default:
 		}

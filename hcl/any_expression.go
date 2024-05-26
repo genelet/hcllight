@@ -16,10 +16,10 @@ func (self *Any) toExpression(typ ...string) (*light.Expression, error) {
 		return nil, nil
 	}
 	if self.Value != nil {
-		return stringToLiteralValueExpr(fmt.Sprintf("%v", self.Value)), nil
+		return light.StringToLiteralValueExpr(fmt.Sprintf("%v", self.Value)), nil
 	}
 	if typ == nil {
-		return stringToTextValueExpr(strings.TrimSpace(self.Yaml)), nil
+		return light.StringToTextValueExpr(strings.TrimSpace(self.Yaml)), nil
 	}
 
 	var err error
@@ -28,25 +28,25 @@ func (self *Any) toExpression(typ ...string) (*light.Expression, error) {
 		var str string
 		err = yaml.Unmarshal([]byte(self.Yaml), &str)
 		if err == nil {
-			return stringToTextValueExpr(str), nil
+			return light.StringToTextValueExpr(str), nil
 		}
 	case "integer":
 		var i int
 		err = yaml.Unmarshal([]byte(self.Yaml), &i)
 		if err == nil {
-			return int64ToLiteralValueExpr(int64(i)), nil
+			return light.Int64ToLiteralValueExpr(int64(i)), nil
 		}
 	case "number":
 		var f float64
 		err = yaml.Unmarshal([]byte(self.Yaml), &f)
 		if err == nil {
-			return float64ToLiteralValueExpr(f), nil
+			return light.Float64ToLiteralValueExpr(f), nil
 		}
 	case "boolean":
 		var b bool
 		err = yaml.Unmarshal([]byte(self.Yaml), &b)
 		if err == nil {
-			return booleanToLiteralValueExpr(b), nil
+			return light.BooleanToLiteralValueExpr(b), nil
 		}
 	case "object", "map":
 		obj := make(map[string]interface{})
@@ -55,8 +55,8 @@ func (self *Any) toExpression(typ ...string) (*light.Expression, error) {
 			var items []*light.ObjectConsItem
 			for k, v := range obj {
 				items = append(items, &light.ObjectConsItem{
-					KeyExpr:   stringToLiteralValueExpr(k),
-					ValueExpr: stringToTextValueExpr(fmt.Sprintf("%v", v)),
+					KeyExpr:   light.StringToLiteralValueExpr(k),
+					ValueExpr: light.StringToTextValueExpr(fmt.Sprintf("%v", v)),
 				})
 			}
 			return &light.Expression{
@@ -73,7 +73,7 @@ func (self *Any) toExpression(typ ...string) (*light.Expression, error) {
 		if err == nil {
 			var exprs []*light.Expression
 			for _, v := range arr {
-				exprs = append(exprs, stringToTextValueExpr(fmt.Sprintf("%v", v)))
+				exprs = append(exprs, light.StringToTextValueExpr(fmt.Sprintf("%v", v)))
 			}
 			return &light.Expression{
 				ExpressionClause: &light.Expression_Tcexpr{
@@ -87,7 +87,7 @@ func (self *Any) toExpression(typ ...string) (*light.Expression, error) {
 	}
 
 	if err != nil && strings.Contains(err.Error(), "cannot unmarshal !!str ") {
-		return stringToTextValueExpr(self.Yaml), nil
+		return light.StringToTextValueExpr(self.Yaml), nil
 	}
 	return nil, err
 }
@@ -99,20 +99,20 @@ func anyFromHCL(expr *light.Expression) (*Any, error) {
 	switch expr.ExpressionClause.(type) {
 	case *light.Expression_Texpr:
 		return &Any{
-			Yaml: *textValueExprToString(expr),
+			Yaml: *light.TextValueExprToString(expr),
 		}, nil
 	case *light.Expression_Lvexpr:
 		return &Any{
-			Yaml: *literalValueExprToString(expr),
+			Yaml: *light.LiteralValueExprToString(expr),
 		}, nil
 	case *light.Expression_Ocexpr:
-		obj := objConsExprToStringMap(expr)
+		obj := light.ObjConsExprToStringMap(expr)
 		yml, err := yaml.Marshal(obj)
 		return &Any{
 			Yaml: string(yml),
 		}, err
 	case *light.Expression_Tcexpr:
-		arr := tupleConsExprToStringArray(expr)
+		arr := light.TupleConsExprToStringArray(expr)
 		yml, err := yaml.Marshal(arr)
 		return &Any{
 			Yaml: string(yml),
