@@ -155,13 +155,13 @@ func flowFromHCL(body *light.Body) (*OauthFlow, error) {
 	var err error
 	for k, v := range body.Attributes {
 		switch k {
-		case "authorizationURL":
+		case "authorizationUrl":
 			flow.AuthorizationUrl = *textValueExprToString(v.Expr)
 			found = true
-		case "tokenURL":
+		case "tokenUrl":
 			flow.TokenUrl = *textValueExprToString(v.Expr)
 			found = true
-		case "refreshURL":
+		case "refreshUrl":
 			flow.RefreshUrl = *textValueExprToString(v.Expr)
 			found = true
 		case "scopes":

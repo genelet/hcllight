@@ -28,6 +28,22 @@ func fcexprToShort(expr *light.Expression) (string, []*light.Expression) {
 	return "", nil
 }
 
+func stringToTextFcexpr(key, value string) *light.Expression {
+	return shortToFcexpr(key, stringToTextValueExpr(value))
+}
+
+func float64ToLiteralFcexpr(key string, f float64) *light.Expression {
+	return shortToFcexpr(key, float64ToLiteralValueExpr(f))
+}
+
+func in64ToLiteralFcexpr(key string, i int64) *light.Expression {
+	return shortToFcexpr(key, int64ToLiteralValueExpr(i))
+}
+
+func booleanToLiteralFcexpr(key string, b bool) *light.Expression {
+	return shortToFcexpr(key, booleanToLiteralValueExpr(b))
+}
+
 /*
 	func stringArrayToFcxpr(key string, values []string) *light.Expression {
 		var args []*light.Expression
@@ -56,12 +72,7 @@ func fcexprToShort(expr *light.Expression) (string, []*light.Expression) {
 		}
 		return name, values
 	}
-*/
-func stringToTextFcexpr(key, value string) *light.Expression {
-	return shortToFcexpr(key, stringToTextValueExpr(value))
-}
 
-/*
 	func textFcexprToString(expr *light.Expression) (string, string) {
 		name, args := fcexprToShort(expr)
 		if name == "" || args == nil {
@@ -70,12 +81,7 @@ func stringToTextFcexpr(key, value string) *light.Expression {
 
 		return name, *textValueExprToString(args[0])
 	}
-*/
-func float64ToLiteralFcexpr(key string, f float64) *light.Expression {
-	return shortToFcexpr(key, float64ToLiteralValueExpr(f))
-}
 
-/*
 	func literalFcexprToFloat64(expr *light.Expression) (string, float64) {
 		name, args := fcexprToShort(expr)
 		if name == "" || args == nil {
@@ -83,12 +89,7 @@ func float64ToLiteralFcexpr(key string, f float64) *light.Expression {
 		}
 		return name, *literalValueExprToFloat64(args[0])
 	}
-*/
-func in64ToLiteralFcexpr(key string, i int64) *light.Expression {
-	return shortToFcexpr(key, int64ToLiteralValueExpr(i))
-}
 
-/*
 	func literalFcexprToInt64(expr *light.Expression) (string, int64) {
 		name, args := fcexprToShort(expr)
 		if name == "" || args == nil {
@@ -96,12 +97,7 @@ func in64ToLiteralFcexpr(key string, i int64) *light.Expression {
 		}
 		return name, *literalValueExprToInt64(args[0])
 	}
-*/
-func booleanToLiteralFcexpr(key string, b bool) *light.Expression {
-	return shortToFcexpr(key, booleanToLiteralValueExpr(b))
-}
 
-/*
 func literalFcexprToBoolean(expr *light.Expression) (string, bool) {
 	name, args := fcexprToShort(expr)
 	if name == "" || args == nil {
