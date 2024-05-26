@@ -8,37 +8,6 @@ func (self *HeaderOrReference) getAble() ableHCL {
 	return self.GetHeader()
 }
 
-func headerOrReferenceFromHCL(body *light.Body) (*HeaderOrReference, error) {
-	if body == nil {
-		return nil, nil
-	}
-
-	reference, err := referenceFromHCL(body)
-	if err != nil {
-		return nil, err
-	}
-	if reference != nil {
-		return &HeaderOrReference{
-			Oneof: &HeaderOrReference_Reference{
-				Reference: reference,
-			},
-		}, nil
-	}
-
-	header, err := headerFromHCL(body)
-	if err != nil {
-		return nil, err
-	}
-	if header == nil {
-		return nil, nil
-	}
-	return &HeaderOrReference{
-		Oneof: &HeaderOrReference_Header{
-			Header: header,
-		},
-	}, nil
-}
-
 func (self *Header) toHCL() (*light.Body, error) {
 	body := new(light.Body)
 	attrs := make(map[string]*light.Attribute)

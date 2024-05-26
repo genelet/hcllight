@@ -15,7 +15,7 @@ type ableHCL interface {
 }
 
 func ableToTupleConsExpr(items []ableHCL) (*light.Expression, error) {
-	if items == nil || len(items) == 0 {
+	if len(items) == 0 {
 		return nil, nil
 	}
 
@@ -263,7 +263,7 @@ func bodyToOrMap(body *light.Body, fromReference func(*Reference) orHCL, fromHCL
 		for k, v := range body.Attributes {
 			str, err := traversalToXref(v.Expr)
 			if err != nil {
-
+				return nil, err
 			}
 			hash[k] = fromReference(&Reference{XRef: str})
 		}

@@ -8,37 +8,6 @@ func (self *LinkOrReference) getAble() ableHCL {
 	return self.GetLink()
 }
 
-func linkOrReferenceFromHCL(body *light.Body) (*LinkOrReference, error) {
-	if body == nil {
-		return nil, nil
-	}
-
-	reference, err := referenceFromHCL(body)
-	if err != nil {
-		return nil, err
-	}
-	if reference != nil {
-		return &LinkOrReference{
-			Oneof: &LinkOrReference_Reference{
-				Reference: reference,
-			},
-		}, nil
-	}
-
-	link, err := linkFromHCL(body)
-	if err != nil {
-		return nil, err
-	}
-	if link == nil {
-		return nil, nil
-	}
-	return &LinkOrReference{
-		Oneof: &LinkOrReference_Link{
-			Link: link,
-		},
-	}, nil
-}
-
 func (self *Link) toHCL() (*light.Body, error) {
 	body := new(light.Body)
 	attrs := make(map[string]*light.Attribute)

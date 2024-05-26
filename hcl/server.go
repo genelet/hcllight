@@ -78,7 +78,7 @@ func serverFromHCL(body *light.Body) (*Server, error) {
 }
 
 func serversToTupleConsExpr(servers []*Server) (*light.Expression, error) {
-	if servers == nil || len(servers) == 0 {
+	if len(servers) == 0 {
 		return nil, nil
 	}
 

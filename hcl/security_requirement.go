@@ -34,7 +34,7 @@ func securityRequirementFromHCL(body *light.Body) (*SecurityRequirement, error) 
 }
 
 func securityRequirementToTupleConsExpr(security []*SecurityRequirement) (*light.Expression, error) {
-	if security == nil || len(security) == 0 {
+	if len(security) == 0 {
 		return nil, nil
 	}
 	var arr []ableHCL
