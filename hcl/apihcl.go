@@ -4,11 +4,11 @@ import (
 	openapiv3 "github.com/google/gnostic-models/openapiv3"
 )
 
-func DocumentFromApi(doc *openapiv3.Document) *Document {
+func documentFromApi(doc *openapiv3.Document) *Document {
 	d := &Document{
 		Openapi:                doc.Openapi,
 		Info:                   infoFromApi(doc.Info),
-		Components:             ComponentsFromApi(doc.Components),
+		Components:             componentsFromApi(doc.Components),
 		ExternalDocs:           externalDocsFromApi(doc.ExternalDocs),
 		SpecificationExtension: extensionFromApi(doc.SpecificationExtension),
 	}
@@ -18,7 +18,7 @@ func DocumentFromApi(doc *openapiv3.Document) *Document {
 	if doc.Paths != nil {
 		d.Paths = make(map[string]*PathItemOrReference)
 		for _, v := range doc.Paths.Path {
-			d.Paths[v.Name] = PathItemOrReferenceFromApi(v.Value)
+			d.Paths[v.Name] = pathItemOrReferenceFromApi(v.Value)
 		}
 	}
 
@@ -33,47 +33,44 @@ func DocumentFromApi(doc *openapiv3.Document) *Document {
 	return d
 }
 
-func DocumentToApi(document *Document) *openapiv3.Document {
-	if document == nil {
-		return nil
-	}
+func (self *Document) ToApi() *openapiv3.Document {
 	d := &openapiv3.Document{
-		Openapi:                document.Openapi,
-		Info:                   infoToApi(document.Info),
+		Openapi:                self.Openapi,
+		Info:                   infoToApi(self.Info),
 		Servers:                []*openapiv3.Server{},
 		Paths:                  &openapiv3.Paths{},
-		Components:             ComponentsToApi(document.Components),
+		Components:             componentsToApi(self.Components),
 		Security:               []*openapiv3.SecurityRequirement{},
 		Tags:                   []*openapiv3.Tag{},
-		ExternalDocs:           externalDocsToApi(document.ExternalDocs),
-		SpecificationExtension: extensionToApi(document.SpecificationExtension),
+		ExternalDocs:           externalDocsToApi(self.ExternalDocs),
+		SpecificationExtension: extensionToApi(self.SpecificationExtension),
 	}
-	if document.Servers != nil {
-		for _, s := range document.Servers {
+	if self.Servers != nil {
+		for _, s := range self.Servers {
 			d.Servers = append(d.Servers, serverToApi(s))
 		}
 	}
-	if document.Paths != nil {
-		for k, v := range document.Paths {
+	if self.Paths != nil {
+		for k, v := range self.Paths {
 			d.Paths.Path = append(d.Paths.Path,
-				&openapiv3.NamedPathItem{Name: k, Value: PathItemOrReferenceToApi(v)},
+				&openapiv3.NamedPathItem{Name: k, Value: pathItemOrReferenceToApi(v)},
 			)
 		}
 	}
-	if document.Security != nil {
-		for _, s := range document.Security {
+	if self.Security != nil {
+		for _, s := range self.Security {
 			d.Security = append(d.Security, securityRequirementToApi(s))
 		}
 	}
-	if document.Tags != nil {
-		for _, t := range document.Tags {
+	if self.Tags != nil {
+		for _, t := range self.Tags {
 			d.Tags = append(d.Tags, tagToApi(t))
 		}
 	}
 	return d
 }
 
-func ComponentsFromApi(components *openapiv3.Components) *Components {
+func componentsFromApi(components *openapiv3.Components) *Components {
 	c := &Components{
 		SpecificationExtension: extensionFromApi(components.SpecificationExtension),
 	}
@@ -92,7 +89,7 @@ func ComponentsFromApi(components *openapiv3.Components) *Components {
 	if components.SecuritySchemes != nil {
 		c.SecuritySchemes = make(map[string]*SecuritySchemeOrReference)
 		for _, v := range components.SecuritySchemes.AdditionalProperties {
-			c.SecuritySchemes[v.Name] = securitySchemaOrReferenceFromApi(v.Value)
+			c.SecuritySchemes[v.Name] = securityshemaOrReferenceFromApi(v.Value)
 		}
 	}
 	if components.Examples != nil {
@@ -110,7 +107,7 @@ func ComponentsFromApi(components *openapiv3.Components) *Components {
 	if components.Schemas != nil {
 		c.Schemas = make(map[string]*SchemaOrReference)
 		for _, v := range components.Schemas.AdditionalProperties {
-			c.Schemas[v.Name] = SchemaOrReferenceFromApi(v.Value, true)
+			c.Schemas[v.Name] = shemaOrReferenceFromApi(v.Value, true)
 		}
 	}
 	if components.Parameters != nil {
@@ -135,7 +132,7 @@ func ComponentsFromApi(components *openapiv3.Components) *Components {
 	return c
 }
 
-func ComponentsToApi(components *Components) *openapiv3.Components {
+func componentsToApi(components *Components) *openapiv3.Components {
 	if components == nil {
 		return nil
 	}
@@ -145,7 +142,7 @@ func ComponentsToApi(components *Components) *openapiv3.Components {
 	if components.Schemas != nil {
 		for k, v := range components.Schemas {
 			c.Schemas.AdditionalProperties = append(c.Schemas.AdditionalProperties,
-				&openapiv3.NamedSchemaOrReference{Name: k, Value: SchemaOrReferenceToApi(v)},
+				&openapiv3.NamedSchemaOrReference{Name: k, Value: schemaOrReferenceToApi(v)},
 			)
 		}
 	}
@@ -187,7 +184,7 @@ func ComponentsToApi(components *Components) *openapiv3.Components {
 	return c
 }
 
-func ReferenceFromApi(reference *openapiv3.Reference) *Reference {
+func referenceFromApi(reference *openapiv3.Reference) *Reference {
 	if reference == nil {
 		return nil
 	}
@@ -198,7 +195,7 @@ func ReferenceFromApi(reference *openapiv3.Reference) *Reference {
 	}
 }
 
-func ReferenceToApi(reference *Reference) *openapiv3.Reference {
+func referenceToApi(reference *Reference) *openapiv3.Reference {
 	if reference == nil {
 		return nil
 	}
@@ -209,14 +206,14 @@ func ReferenceToApi(reference *Reference) *openapiv3.Reference {
 	}
 }
 
-func PathItemOrReferenceFromApi(path *openapiv3.PathItem) *PathItemOrReference {
+func pathItemOrReferenceFromApi(path *openapiv3.PathItem) *PathItemOrReference {
 	if path == nil {
 		return nil
 	}
 	if reference := path.XRef; reference != "" {
 		return &PathItemOrReference{
 			Oneof: &PathItemOrReference_Reference{
-				Reference: ReferenceFromApi(&openapiv3.Reference{
+				Reference: referenceFromApi(&openapiv3.Reference{
 					XRef:        reference,
 					Summary:     path.Summary,
 					Description: path.Description,
@@ -251,7 +248,7 @@ func PathItemOrReferenceFromApi(path *openapiv3.PathItem) *PathItemOrReference {
 	}
 }
 
-func PathItemOrReferenceToApi(item *PathItemOrReference) *openapiv3.PathItem {
+func pathItemOrReferenceToApi(item *PathItemOrReference) *openapiv3.PathItem {
 	if item == nil {
 		return nil
 	}
@@ -570,14 +567,14 @@ func securityRequirementToApi(securityRequirement *SecurityRequirement) *openapi
 	return s
 }
 
-func securitySchemaOrReferenceFromApi(security *openapiv3.SecuritySchemeOrReference) *SecuritySchemeOrReference {
+func securityshemaOrReferenceFromApi(security *openapiv3.SecuritySchemeOrReference) *SecuritySchemeOrReference {
 	if security == nil {
 		return nil
 	}
 	if x := security.GetReference(); x != nil {
 		return &SecuritySchemeOrReference{
 			Oneof: &SecuritySchemeOrReference_Reference{
-				Reference: ReferenceFromApi(x),
+				Reference: referenceFromApi(x),
 			},
 		}
 	}
@@ -606,7 +603,7 @@ func securitySchemeOrReferenceToApi(securitySchemeOrReference *SecuritySchemeOrR
 	if x := securitySchemeOrReference.GetReference(); x != nil {
 		return &openapiv3.SecuritySchemeOrReference{
 			Oneof: &openapiv3.SecuritySchemeOrReference_Reference{
-				Reference: ReferenceToApi(x),
+				Reference: referenceToApi(x),
 			},
 		}
 	}
@@ -700,7 +697,7 @@ func linkOrReferenceFromApi(link *openapiv3.LinkOrReference) *LinkOrReference {
 	if x := link.GetReference(); x != nil {
 		return &LinkOrReference{
 			Oneof: &LinkOrReference_Reference{
-				Reference: ReferenceFromApi(x),
+				Reference: referenceFromApi(x),
 			},
 		}
 	}
@@ -728,7 +725,7 @@ func linkOrReferenceToApi(linkOrReference *LinkOrReference) *openapiv3.LinkOrRef
 	if x := linkOrReference.GetReference(); x != nil {
 		return &openapiv3.LinkOrReference{
 			Oneof: &openapiv3.LinkOrReference_Reference{
-				Reference: ReferenceToApi(x),
+				Reference: referenceToApi(x),
 			},
 		}
 	}
@@ -778,7 +775,7 @@ func exampleOrReferenceFromApi(example *openapiv3.ExampleOrReference) *ExampleOr
 	if x := example.GetReference(); x != nil {
 		return &ExampleOrReference{
 			Oneof: &ExampleOrReference_Reference{
-				Reference: ReferenceFromApi(x),
+				Reference: referenceFromApi(x),
 			},
 		}
 	}
@@ -798,7 +795,7 @@ func exampleOrReferenceToApi(exampleOrReference *ExampleOrReference) *openapiv3.
 	if x := exampleOrReference.GetReference(); x != nil {
 		return &openapiv3.ExampleOrReference{
 			Oneof: &openapiv3.ExampleOrReference_Reference{
-				Reference: ReferenceToApi(x),
+				Reference: referenceToApi(x),
 			},
 		}
 	}
@@ -822,7 +819,7 @@ func parameterFromApi(parameter *openapiv3.Parameter) *Parameter {
 		Style:                  parameter.Style,
 		Explode:                parameter.Explode,
 		AllowReserved:          parameter.AllowReserved,
-		Schema:                 SchemaOrReferenceFromApi(parameter.Schema),
+		Schema:                 shemaOrReferenceFromApi(parameter.Schema),
 		Example:                anyFromApi(parameter.Example),
 		SpecificationExtension: extensionFromApi(parameter.SpecificationExtension),
 	}
@@ -855,7 +852,7 @@ func parameterToApi(parameter *Parameter) *openapiv3.Parameter {
 		Style:                  parameter.Style,
 		Explode:                parameter.Explode,
 		AllowReserved:          parameter.AllowReserved,
-		Schema:                 SchemaOrReferenceToApi(parameter.Schema),
+		Schema:                 schemaOrReferenceToApi(parameter.Schema),
 		Example:                anyToApi(parameter.Example),
 		SpecificationExtension: extensionToApi(parameter.SpecificationExtension),
 	}
@@ -885,7 +882,7 @@ func parameterOrReferenceFromApi(parameter *openapiv3.ParameterOrReference) *Par
 	if x := parameter.GetReference(); x != nil {
 		return &ParameterOrReference{
 			Oneof: &ParameterOrReference_Reference{
-				Reference: ReferenceFromApi(x),
+				Reference: referenceFromApi(x),
 			},
 		}
 	}
@@ -905,7 +902,7 @@ func parameterOrReferenceToApi(parameterOrReference *ParameterOrReference) *open
 	if x := parameterOrReference.GetReference(); x != nil {
 		return &openapiv3.ParameterOrReference{
 			Oneof: &openapiv3.ParameterOrReference_Reference{
-				Reference: ReferenceToApi(x),
+				Reference: referenceToApi(x),
 			},
 		}
 	}
@@ -964,7 +961,7 @@ func requestBodyOrReferenceFromApi(body *openapiv3.RequestBodyOrReference) *Requ
 	if x := body.GetReference(); x != nil {
 		return &RequestBodyOrReference{
 			Oneof: &RequestBodyOrReference_Reference{
-				Reference: ReferenceFromApi(x),
+				Reference: referenceFromApi(x),
 			},
 		}
 	}
@@ -984,7 +981,7 @@ func requestBodyOrReferenceToApi(requestBodyOrReference *RequestBodyOrReference)
 	if x := requestBodyOrReference.GetReference(); x != nil {
 		return &openapiv3.RequestBodyOrReference{
 			Oneof: &openapiv3.RequestBodyOrReference_Reference{
-				Reference: ReferenceToApi(x),
+				Reference: referenceToApi(x),
 			},
 		}
 	}
@@ -1070,7 +1067,7 @@ func responseOrReferenceFromApi(response *openapiv3.ResponseOrReference) *Respon
 	if x := response.GetReference(); x != nil {
 		return &ResponseOrReference{
 			Oneof: &ResponseOrReference_Reference{
-				Reference: ReferenceFromApi(x),
+				Reference: referenceFromApi(x),
 			},
 		}
 	}
@@ -1090,7 +1087,7 @@ func responseOrReferenceToApi(responseOrReference *ResponseOrReference) *openapi
 	if x := responseOrReference.GetReference(); x != nil {
 		return &openapiv3.ResponseOrReference{
 			Oneof: &openapiv3.ResponseOrReference_Reference{
-				Reference: ReferenceToApi(x),
+				Reference: referenceToApi(x),
 			},
 		}
 	}
@@ -1208,7 +1205,7 @@ func callbackOrReferenceFromApi(callback *openapiv3.CallbackOrReference) *Callba
 	if x := callback.GetReference(); x != nil {
 		return &CallbackOrReference{
 			Oneof: &CallbackOrReference_Reference{
-				Reference: ReferenceFromApi(x),
+				Reference: referenceFromApi(x),
 			},
 		}
 	}
@@ -1216,7 +1213,7 @@ func callbackOrReferenceFromApi(callback *openapiv3.CallbackOrReference) *Callba
 	cs := make(map[string]*PathItemOrReference)
 	call := callback.GetCallback()
 	for _, v := range call.Path {
-		cs[v.Name] = PathItemOrReferenceFromApi(v.Value)
+		cs[v.Name] = pathItemOrReferenceFromApi(v.Value)
 	}
 
 	return &CallbackOrReference{
@@ -1235,7 +1232,7 @@ func callbackOrReferenceToApi(callbackOrReference *CallbackOrReference) *openapi
 	if x := callbackOrReference.GetReference(); x != nil {
 		return &openapiv3.CallbackOrReference{
 			Oneof: &openapiv3.CallbackOrReference_Reference{
-				Reference: ReferenceToApi(x),
+				Reference: referenceToApi(x),
 			},
 		}
 	}
@@ -1243,7 +1240,7 @@ func callbackOrReferenceToApi(callbackOrReference *CallbackOrReference) *openapi
 	c := callbackOrReference.GetCallback()
 	var cs []*openapiv3.NamedPathItem
 	for k, v := range c.Path {
-		cs = append(cs, &openapiv3.NamedPathItem{Name: k, Value: PathItemOrReferenceToApi(v)})
+		cs = append(cs, &openapiv3.NamedPathItem{Name: k, Value: pathItemOrReferenceToApi(v)})
 	}
 	return &openapiv3.CallbackOrReference{
 		Oneof: &openapiv3.CallbackOrReference_Callback{
@@ -1267,7 +1264,7 @@ func headerFromApi(header *openapiv3.Header) *Header {
 		Explode:                header.Explode,
 		AllowReserved:          header.AllowReserved,
 		Example:                anyFromApi(header.Example),
-		Schema:                 SchemaOrReferenceFromApi(header.Schema),
+		Schema:                 shemaOrReferenceFromApi(header.Schema),
 		SpecificationExtension: extensionFromApi(header.SpecificationExtension),
 	}
 	if header.Examples != nil {
@@ -1298,7 +1295,7 @@ func headerToApi(header *Header) *openapiv3.Header {
 		Explode:                header.Explode,
 		AllowReserved:          header.AllowReserved,
 		Example:                anyToApi(header.Example),
-		Schema:                 SchemaOrReferenceToApi(header.Schema),
+		Schema:                 schemaOrReferenceToApi(header.Schema),
 		SpecificationExtension: extensionToApi(header.SpecificationExtension),
 	}
 	if header.Examples != nil {
@@ -1328,7 +1325,7 @@ func headerOrReferenceFromApi(header *openapiv3.HeaderOrReference) *HeaderOrRefe
 	if x := header.GetReference(); x != nil {
 		return &HeaderOrReference{
 			Oneof: &HeaderOrReference_Reference{
-				Reference: ReferenceFromApi(x),
+				Reference: referenceFromApi(x),
 			},
 		}
 	}
@@ -1348,7 +1345,7 @@ func headerOrReferenceToApi(headerOrReference *HeaderOrReference) *openapiv3.Hea
 	if x := headerOrReference.GetReference(); x != nil {
 		return &openapiv3.HeaderOrReference{
 			Oneof: &openapiv3.HeaderOrReference_Reference{
-				Reference: ReferenceToApi(x),
+				Reference: referenceToApi(x),
 			},
 		}
 	}
@@ -1367,7 +1364,7 @@ func mediaTypeFromApi(mt *openapiv3.MediaType) *MediaType {
 	}
 
 	m := &MediaType{
-		Schema:                 SchemaOrReferenceFromApi(mt.Schema),
+		Schema:                 shemaOrReferenceFromApi(mt.Schema),
 		Example:                anyFromApi(mt.Example),
 		SpecificationExtension: extensionFromApi(mt.SpecificationExtension),
 	}
@@ -1391,7 +1388,7 @@ func mediaTypeToApi(mediaType *MediaType) *openapiv3.MediaType {
 		return nil
 	}
 	m := &openapiv3.MediaType{
-		Schema:                 SchemaOrReferenceToApi(mediaType.Schema),
+		Schema:                 schemaOrReferenceToApi(mediaType.Schema),
 		Example:                anyToApi(mediaType.Example),
 		SpecificationExtension: extensionToApi(mediaType.SpecificationExtension),
 	}

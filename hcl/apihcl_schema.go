@@ -5,7 +5,7 @@ import (
 	//"github.com/k0kubun/pp/v3"
 )
 
-func SchemaOrReferenceFromApi(schema *openapiv3.SchemaOrReference, force ...bool) *SchemaOrReference {
+func shemaOrReferenceFromApi(schema *openapiv3.SchemaOrReference, force ...bool) *SchemaOrReference {
 	if schema == nil {
 		return nil
 	}
@@ -13,7 +13,7 @@ func SchemaOrReferenceFromApi(schema *openapiv3.SchemaOrReference, force ...bool
 	if x := schema.GetReference(); x != nil {
 		return &SchemaOrReference{
 			Oneof: &SchemaOrReference_Reference{
-				Reference: ReferenceFromApi(x),
+				Reference: referenceFromApi(x),
 			},
 		}
 	}
@@ -102,7 +102,7 @@ func SchemaOrReferenceFromApi(schema *openapiv3.SchemaOrReference, force ...bool
 	return nil
 }
 
-func SchemaOrReferenceToApi(schema *SchemaOrReference) *openapiv3.SchemaOrReference {
+func schemaOrReferenceToApi(schema *SchemaOrReference) *openapiv3.SchemaOrReference {
 	if schema == nil {
 		return nil
 	}
@@ -112,7 +112,7 @@ func SchemaOrReferenceToApi(schema *SchemaOrReference) *openapiv3.SchemaOrRefere
 		x := schema.GetReference()
 		return &openapiv3.SchemaOrReference{
 			Oneof: &openapiv3.SchemaOrReference_Reference{
-				Reference: ReferenceToApi(x),
+				Reference: referenceToApi(x),
 			},
 		}
 	case *SchemaOrReference_AllOf:
@@ -332,7 +332,7 @@ func additionalPropertiesItemFromApi(item *openapiv3.AdditionalPropertiesItem) *
 	} else if x := item.GetSchemaOrReference(); x != nil {
 		return &AdditionalPropertiesItem{
 			Oneof: &AdditionalPropertiesItem_SchemaOrReference{
-				SchemaOrReference: SchemaOrReferenceFromApi(x),
+				SchemaOrReference: shemaOrReferenceFromApi(x),
 			},
 		}
 	}
@@ -353,7 +353,7 @@ func additionalPropertiesItemToApi(additionalPropertiesItem *AdditionalPropertie
 	x := additionalPropertiesItem.GetSchemaOrReference()
 	return &openapiv3.AdditionalPropertiesItem{
 		Oneof: &openapiv3.AdditionalPropertiesItem_SchemaOrReference{
-			SchemaOrReference: SchemaOrReferenceToApi(x),
+			SchemaOrReference: schemaOrReferenceToApi(x),
 		},
 	}
 }
@@ -577,7 +577,7 @@ func arrayFromApi(s *openapiv3.Schema) *SchemaArray {
 	}
 	var items []*SchemaOrReference
 	for _, v := range s.Items.SchemaOrReference {
-		items = append(items, SchemaOrReferenceFromApi(v))
+		items = append(items, shemaOrReferenceFromApi(v))
 	}
 	return &SchemaArray{
 		Items:       items,
@@ -597,7 +597,7 @@ func arrayToApi(s *SchemaArray) *openapiv3.Schema {
 		UniqueItems: s.UniqueItems,
 	}
 	for _, v := range s.Items {
-		schema.Items.SchemaOrReference = append(schema.Items.SchemaOrReference, SchemaOrReferenceToApi(v))
+		schema.Items.SchemaOrReference = append(schema.Items.SchemaOrReference, schemaOrReferenceToApi(v))
 	}
 	return schema
 }
@@ -628,7 +628,7 @@ func objectFromApi(s *openapiv3.Schema) *SchemaObject {
 	if s.Properties != nil {
 		properties = make(map[string]*SchemaOrReference)
 		for _, v := range s.Properties.AdditionalProperties {
-			properties[v.Name] = SchemaOrReferenceFromApi(v.Value)
+			properties[v.Name] = shemaOrReferenceFromApi(v.Value)
 		}
 	}
 	return &SchemaObject{
@@ -652,7 +652,7 @@ func objectToApi(s *SchemaObject) *openapiv3.Schema {
 		schema.Properties = &openapiv3.Properties{}
 		for k, v := range s.Properties {
 			schema.Properties.AdditionalProperties = append(schema.Properties.AdditionalProperties,
-				&openapiv3.NamedSchemaOrReference{Name: k, Value: SchemaOrReferenceToApi(v)},
+				&openapiv3.NamedSchemaOrReference{Name: k, Value: schemaOrReferenceToApi(v)},
 			)
 		}
 	}
@@ -719,7 +719,7 @@ func allOfFromApi(s *openapiv3.Schema) *SchemaAllOf {
 	}
 	var items []*SchemaOrReference
 	for _, v := range s.AllOf {
-		items = append(items, SchemaOrReferenceFromApi(v))
+		items = append(items, shemaOrReferenceFromApi(v))
 	}
 	return &SchemaAllOf{
 		Items: items,
@@ -732,7 +732,7 @@ func allOfToApi(s *SchemaAllOf) *openapiv3.Schema {
 	}
 	schema := &openapiv3.Schema{}
 	for _, v := range s.Items {
-		schema.AllOf = append(schema.AllOf, SchemaOrReferenceToApi(v))
+		schema.AllOf = append(schema.AllOf, schemaOrReferenceToApi(v))
 	}
 	return schema
 }
@@ -743,7 +743,7 @@ func oneOfFromApi(s *openapiv3.Schema) *SchemaOneOf {
 	}
 	var items []*SchemaOrReference
 	for _, v := range s.OneOf {
-		items = append(items, SchemaOrReferenceFromApi(v))
+		items = append(items, shemaOrReferenceFromApi(v))
 	}
 	return &SchemaOneOf{
 		Items: items,
@@ -756,7 +756,7 @@ func oneOfToApi(s *SchemaOneOf) *openapiv3.Schema {
 	}
 	schema := &openapiv3.Schema{}
 	for _, v := range s.Items {
-		schema.OneOf = append(schema.OneOf, SchemaOrReferenceToApi(v))
+		schema.OneOf = append(schema.OneOf, schemaOrReferenceToApi(v))
 	}
 	return schema
 }
@@ -767,7 +767,7 @@ func anyOfFromApi(s *openapiv3.Schema) *SchemaAnyOf {
 	}
 	var items []*SchemaOrReference
 	for _, v := range s.AnyOf {
-		items = append(items, SchemaOrReferenceFromApi(v))
+		items = append(items, shemaOrReferenceFromApi(v))
 	}
 	return &SchemaAnyOf{
 		Items: items,
@@ -780,7 +780,7 @@ func anyOfToApi(s *SchemaAnyOf) *openapiv3.Schema {
 	}
 	schema := &openapiv3.Schema{}
 	for _, v := range s.Items {
-		schema.AnyOf = append(schema.AnyOf, SchemaOrReferenceToApi(v))
+		schema.AnyOf = append(schema.AnyOf, schemaOrReferenceToApi(v))
 	}
 	return schema
 }
@@ -798,7 +798,7 @@ func schemaFromApi(schema *openapiv3.Schema) *Schema {
 		ExternalDocs: externalDocsFromApi(schema.ExternalDocs),
 		Deprecated:   schema.Deprecated,
 		Title:        schema.Title,
-		Not: SchemaOrReferenceFromApi(&openapiv3.SchemaOrReference{
+		Not: shemaOrReferenceFromApi(&openapiv3.SchemaOrReference{
 			Oneof: &openapiv3.SchemaOrReference_Schema{Schema: schema.Not}}),
 		Discriminator:          discriminatorFromApi(schema.Discriminator),
 		SpecificationExtension: extensionFromApi(schema.SpecificationExtension),
