@@ -187,7 +187,7 @@ func expressionToSchemaOrReference(self *light.Expression) (*SchemaOrReference, 
 				},
 			},
 		}, nil
-	case "number":
+	case "number", "integer":
 		number, err := fcexprToSchemaNumber(expr)
 		return &SchemaOrReference{
 			Oneof: &SchemaOrReference_Number{

@@ -7,8 +7,13 @@ import (
 
 func TestHclOpen(t *testing.T) {
 	data, err := os.ReadFile("openapi.json")
+	if err != nil {
+		t.Fatal(err)
+	}
 	api, err := ParseDocument(data, "json")
-
+	if err != nil {
+		t.Fatal(err)
+	}
 	bs, err := api.MarshalHCL()
 	if err != nil {
 		t.Fatal(err)
@@ -21,8 +26,13 @@ func TestHclOpen(t *testing.T) {
 
 func TestHclTwitter(t *testing.T) {
 	data, err := os.ReadFile("twitter.json")
+	if err != nil {
+		t.Fatal(err)
+	}
 	api, err := ParseDocument(data, "json")
-
+	if err != nil {
+		t.Fatal(err)
+	}
 	bs, err := api.MarshalHCL()
 	if err != nil {
 		t.Fatal(err)

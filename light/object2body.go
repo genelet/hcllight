@@ -1,6 +1,9 @@
 package light
 
-import "strings"
+import (
+	"regexp"
+	"strings"
+)
 
 func stringToTextValueExpr(s string) *Expression {
 	if s == "" {
@@ -35,9 +38,10 @@ func textValueExprToString(t *Expression) *string {
 
 func stringToLiteralValueExpr(s string) *Expression {
 	s = strings.TrimSpace(s)
-	s = strings.Trim(s, "\"")                // people sometimes double quote strings in JSON
-	s = strings.ReplaceAll(s, "\n", "\\\\n") // newlines are not accepted in HCL
-	s = strings.ReplaceAll(s, `\/`, `/`)     // people sometimes escape slashes in JSON
+	s = strings.Trim(s, "\"")              // people sometimes double quote strings in JSON
+	s = strings.ReplaceAll(s, "\n", "\\n") // newlines are not accepted in HCL
+	s = strings.ReplaceAll(s, `\/`, `/`)   // people sometimes escape slashes in JSON
+	s = strings.ReplaceAll(s, `\`, `\\`)   // people sometimes escape backslashes in JSON
 
 	return &Expression{
 		ExpressionClause: &Expression_Lvexpr{
@@ -336,17 +340,27 @@ func traversalToString(t *Expression) *string {
 	return &x
 }
 
-func (self *Body) ToObjectConsExpr() *ObjectConsExpr {
+func reliableKeyFromString(s string, quote ...bool) *Expression {
+	if len(quote) > 0 && quote[0] {
+		return stringToTextValueExpr(s)
+	}
+	if regexp.MustCompile(`^[a-zA-Z0-9_]*$`).MatchString(s) {
+		return stringToLiteralValueExpr(s)
+	}
+	return stringToTextValueExpr(s)
+}
+
+func (self *Body) ToObjectConsExpr(quote ...bool) *ObjectConsExpr {
 	ocExpr := &ObjectConsExpr{}
 	for name, attr := range self.Attributes {
 		ocExpr.Items = append(ocExpr.Items, &ObjectConsItem{
-			KeyExpr:   stringToLiteralValueExpr(name),
+			KeyExpr:   reliableKeyFromString(name, quote...),
 			ValueExpr: attr.Expr,
 		})
 	}
 	for _, block := range self.Blocks {
 		ocExpr.Items = append(ocExpr.Items, &ObjectConsItem{
-			KeyExpr: stringToLiteralValueExpr(block.Type),
+			KeyExpr: reliableKeyFromString(block.Type, quote...),
 			ValueExpr: &Expression{
 				ExpressionClause: &Expression_Ocexpr{
 					Ocexpr: block.Bdy.ToObjectConsExpr(),

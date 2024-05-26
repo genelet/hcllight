@@ -8,37 +8,6 @@ func (self *SecuritySchemeOrReference) getAble() ableHCL {
 	return self.GetSecurityScheme()
 }
 
-func securitySchemeOrReferenceFromHCL(body *light.Body) (*SecuritySchemeOrReference, error) {
-	if body == nil {
-		return nil, nil
-	}
-
-	reference, err := referenceFromHCL(body)
-	if err != nil {
-		return nil, err
-	}
-	if reference != nil {
-		return &SecuritySchemeOrReference{
-			Oneof: &SecuritySchemeOrReference_Reference{
-				Reference: reference,
-			},
-		}, nil
-	}
-
-	securityScheme, err := securitySchemeFromHCL(body)
-	if err != nil {
-		return nil, err
-	}
-	if securityScheme == nil {
-		return nil, nil
-	}
-	return &SecuritySchemeOrReference{
-		Oneof: &SecuritySchemeOrReference_SecurityScheme{
-			SecurityScheme: securityScheme,
-		},
-	}, nil
-}
-
 func (self *SecurityScheme) toHCL() (*light.Body, error) {
 	body := new(light.Body)
 	attrs := make(map[string]*light.Attribute)

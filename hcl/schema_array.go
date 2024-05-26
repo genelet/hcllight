@@ -42,7 +42,7 @@ func tupleConsExprToArray(t *light.TupleConsExpr) ([]*SchemaOrReference, error) 
 }
 
 func itemsToAttributes(items []*SchemaOrReference, name string, attrs map[string]*light.Attribute) error {
-	if items == nil || len(items) == 0 {
+	if len(items) == 0 {
 		return nil
 	}
 

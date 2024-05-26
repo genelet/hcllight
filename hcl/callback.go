@@ -8,39 +8,6 @@ func (self *CallbackOrReference) getAble() ableHCL {
 	return self.GetCallback()
 }
 
-func callbackOrReferenceFromHCL(body *light.Body) (*CallbackOrReference, error) {
-	if body == nil {
-		return nil, nil
-	}
-
-	reference, err := referenceFromHCL(body)
-	if err != nil {
-		return nil, err
-	}
-
-	if reference != nil {
-		return &CallbackOrReference{
-			Oneof: &CallbackOrReference_Reference{
-				Reference: reference,
-			},
-		}, nil
-	}
-
-	callback, err := callbackFromHCL(body)
-	if err != nil {
-		return nil, err
-	}
-	if callback != nil {
-		return &CallbackOrReference{
-			Oneof: &CallbackOrReference_Callback{
-				Callback: callback,
-			},
-		}, nil
-	}
-
-	return nil, nil
-}
-
 func (self *Callback) toHCL() (*light.Body, error) {
 	body := new(light.Body)
 	blocks, err := pathItemOrReferenceMapToBlocks(self.Path)

@@ -31,7 +31,7 @@ func ParseDocument(data []byte, extension ...string) (*Document, error) {
 		if err != nil {
 			return nil, err
 		}
-		return DocumentFromApi(doc), nil
+		return documentFromApi(doc), nil
 	}
 
 	body, err := light.Parse(data)
