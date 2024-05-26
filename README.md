@@ -1,11 +1,10 @@
 # HCL Light
 
-[hclsyntax](https://pkg.go.dev/github.com/hashicorp/hcl/v2/hclsyntax) is the AST parsing package for HCL (HashiCorp Configuration Language).
-This *hcllight* package removes position and location tags in *hclsyntax*.
+This *hcllight* package removes position and location tags in [hclsyntax](https://pkg.go.dev/github.com/hashicorp/hcl/v2/hclsyntax) , the official AST parsing package for HCL (HashiCorp Configuration Language).
 
- - This allows for dynamic addition and deletion of attributes, variables, expressions and blocks, after which the tree can be output back to HCL data.
- - This can be done with or without the evaluation of logic expressions in HCL.
- - The package is defined by Protobuf, enabling precise tracking of changes in ythe AST status.
+ - It allows for dynamic manipulation of attributes, variables, expressions and blocks, after which the tree can be output back to HCL data.
+ - The output can be made with or without the evaluation of logic expressions in HCL.
+ - The package is defined by protobuf, enabling precise tracking of changes in the AST state.
 
 To install,
 
