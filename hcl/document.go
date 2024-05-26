@@ -7,6 +7,7 @@ import (
 	openapiv3 "github.com/google/gnostic-models/openapiv3"
 )
 
+// MarshalHCL converts a Document to HCL representation.
 func (self *Document) MarshalHCL() ([]byte, error) {
 	body, err := self.toHCL()
 	if err != nil {
@@ -15,12 +16,17 @@ func (self *Document) MarshalHCL() ([]byte, error) {
 	return body.Hcl()
 }
 
+// UnmarshalHCL converts HCL representation to a Document.
 func (self *Document) UnmarshalHCL(data []byte) error {
 	var err error
 	self, err = ParseDocument(data)
 	return err
 }
 
+// ParseDocument parses a Document from HCL, JSON, or YAML.
+// The data parameter is the input data.
+// The extension parameter is the file extension, which can be "json", "jsn", "yaml", or "yml".
+// If the extension parameter is not provided, it is default to "hcl".
 func ParseDocument(data []byte, extension ...string) (*Document, error) {
 	var typ string
 	if extension != nil {
@@ -31,7 +37,7 @@ func ParseDocument(data []byte, extension ...string) (*Document, error) {
 		if err != nil {
 			return nil, err
 		}
-		return documentFromApi(doc), nil
+		return DocumentFromApi(doc), nil
 	}
 
 	body, err := light.Parse(data)

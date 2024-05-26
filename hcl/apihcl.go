@@ -4,7 +4,9 @@ import (
 	openapiv3 "github.com/google/gnostic-models/openapiv3"
 )
 
-func documentFromApi(doc *openapiv3.Document) *Document {
+// Document is the root document object of the OpenAPI document.
+// DocumentFromApi converts an openapiv3.Document object to a Document object.
+func DocumentFromApi(doc *openapiv3.Document) *Document {
 	d := &Document{
 		Openapi:                doc.Openapi,
 		Info:                   infoFromApi(doc.Info),
@@ -33,6 +35,7 @@ func documentFromApi(doc *openapiv3.Document) *Document {
 	return d
 }
 
+// ToApi() converts the Document object to the openapiv3.Document object.
 func (self *Document) ToApi() *openapiv3.Document {
 	d := &openapiv3.Document{
 		Openapi:                self.Openapi,
@@ -424,10 +427,8 @@ func serverFromApi(server *openapiv3.Server) *Server {
 		SpecificationExtension: extensionFromApi(server.SpecificationExtension),
 	}
 	if server.Variables != nil {
+		s.Variables = make(map[string]*ServerVariable)
 		for _, v := range server.Variables.AdditionalProperties {
-			if s.Variables == nil {
-				s.Variables = make(map[string]*ServerVariable)
-			}
 			s.Variables[v.Name] = serverVariableFromApi(v.Value)
 		}
 	}
@@ -1000,22 +1001,22 @@ func responseFromApi(response *openapiv3.Response) *Response {
 	}
 	r := &Response{
 		Description:            response.Description,
-		Headers:                make(map[string]*HeaderOrReference),
-		Content:                make(map[string]*MediaType),
-		Links:                  make(map[string]*LinkOrReference),
 		SpecificationExtension: extensionFromApi(response.SpecificationExtension),
 	}
 	if response.Headers != nil {
+		r.Headers = make(map[string]*HeaderOrReference)
 		for _, s := range response.Headers.AdditionalProperties {
 			r.Headers[s.Name] = headerOrReferenceFromApi(s.Value)
 		}
 	}
 	if response.Content != nil {
+		r.Content = make(map[string]*MediaType)
 		for _, s := range response.Content.AdditionalProperties {
 			r.Content[s.Name] = mediaTypeFromApi(s.Value)
 		}
 	}
 	if response.Links != nil {
+		r.Links = make(map[string]*LinkOrReference)
 		for _, s := range response.Links.AdditionalProperties {
 			r.Links[s.Name] = linkOrReferenceFromApi(s.Value)
 		}
@@ -1210,8 +1211,11 @@ func callbackOrReferenceFromApi(callback *openapiv3.CallbackOrReference) *Callba
 		}
 	}
 
-	cs := make(map[string]*PathItemOrReference)
 	call := callback.GetCallback()
+	if call == nil {
+		return nil
+	}
+	cs := make(map[string]*PathItemOrReference)
 	for _, v := range call.Path {
 		cs[v.Name] = pathItemOrReferenceFromApi(v.Value)
 	}
@@ -1418,13 +1422,13 @@ func encodingFromApi(encoding *openapiv3.Encoding) *Encoding {
 
 	e := &Encoding{
 		ContentType:            encoding.ContentType,
-		Headers:                make(map[string]*HeaderOrReference),
 		Style:                  encoding.Style,
 		Explode:                encoding.Explode,
 		AllowReserved:          encoding.AllowReserved,
 		SpecificationExtension: extensionFromApi(encoding.SpecificationExtension),
 	}
 	if encoding.Headers != nil {
+		e.Headers = make(map[string]*HeaderOrReference)
 		for _, v := range encoding.Headers.AdditionalProperties {
 			e.Headers[v.Name] = headerOrReferenceFromApi(v.Value)
 		}
