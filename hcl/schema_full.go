@@ -79,7 +79,7 @@ func (self *Schema) toHCL() (*light.Body, error) {
 			Expr: expr,
 		}
 	}
-	if err := addSpecificationBlock(self.SpecificationExtension, &blocks); err != nil {
+	if err := addSpecification(self.SpecificationExtension, &blocks); err != nil {
 		return nil, err
 	}
 

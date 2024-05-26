@@ -133,7 +133,7 @@ func (self *Document) toHCL() (*light.Body, error) {
 			Expr: expr,
 		}
 	}
-	if err := addSpecificationBlock(self.SpecificationExtension, &blocks); err != nil {
+	if err := addSpecification(self.SpecificationExtension, &blocks); err != nil {
 		return nil, err
 	}
 	if len(attrs) > 0 {
@@ -205,12 +205,7 @@ func documentFromHCL(body *light.Body) (*Document, error) {
 				Labels: block.Labels[1:],
 				Bdy:    block.Bdy,
 			})
-		case "specification":
-			se, err := bodyToAnyMap(block.Bdy)
-			if err != nil {
-				return nil, err
-			}
-			doc.SpecificationExtension = se
+		default:
 		}
 	}
 
@@ -227,6 +222,11 @@ func documentFromHCL(body *light.Body) (*Document, error) {
 			return nil, err
 		}
 		doc.Components = components
+	}
+	var err error
+	doc.SpecificationExtension, err = getSpecification(body)
+	if err != nil {
+		return nil, err
 	}
 
 	return doc, nil

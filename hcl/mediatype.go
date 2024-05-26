@@ -78,30 +78,36 @@ func mediaTypeFromHCL(body *light.Body) (*MediaType, error) {
 		default:
 		}
 	}
-	for _, blk := range body.Blocks {
-		switch blk.Type {
-		case "examples":
-			examples, err := blocksToExampleOrReferenceMap(blk.Bdy.Blocks, "examples")
-			if err != nil {
-				return nil, err
-			}
-			mediaType.Examples = examples
-			found = true
-		case "encoding":
-			encoding, err := blocksToEncodingMap(blk.Bdy.Blocks)
-			if err != nil {
-				return nil, err
-			}
-			mediaType.Encoding = encoding
-			found = true
-		default:
-		}
+
+	examples, err := blocksToExampleOrReferenceMap(body.Blocks, "examples")
+	if err != nil {
+		return nil, err
+	}
+	if examples != nil {
+		mediaType.Examples = examples
+		found = true
 	}
 
-	if found {
-		return mediaType, nil
+	encoding, err := blocksToEncodingMap(body.Blocks)
+	if err != nil {
+		return nil, err
 	}
-	return nil, nil
+	if encoding != nil {
+		mediaType.Encoding = encoding
+		found = true
+	}
+	mediaType.SpecificationExtension, err = getSpecification(body)
+	if err != nil {
+		return nil, err
+	}
+	if mediaType.SpecificationExtension != nil {
+		found = true
+	}
+
+	if !found {
+		return nil, nil
+	}
+	return mediaType, nil
 }
 
 func mediaTypeMapToBlocks(content map[string]*MediaType) ([]*light.Block, error) {
@@ -119,8 +125,14 @@ func blocksToMediaTypeMap(blocks []*light.Block) (map[string]*MediaType, error) 
 	if blocks == nil {
 		return nil, nil
 	}
-	hash := make(map[string]*MediaType)
+	var hash map[string]*MediaType
 	for _, block := range blocks {
+		if block.Type != "content" {
+			continue
+		}
+		if hash == nil {
+			hash = make(map[string]*MediaType)
+		}
 		able, err := mediaTypeFromHCL(block.Bdy)
 		if err != nil {
 			return nil, err

@@ -47,7 +47,7 @@ func (self *OauthFlows) toHCL() (*light.Body, error) {
 			Bdy:  blk,
 		})
 	}
-	if err := addSpecificationBlock(self.SpecificationExtension, &blocks); err != nil {
+	if err := addSpecification(self.SpecificationExtension, &blocks); err != nil {
 		return nil, err
 	}
 
@@ -127,21 +127,12 @@ func (self *OauthFlow) toHCL() (*light.Body, error) {
 		}
 	}
 	if self.Scopes != nil {
-		bdy := &light.Body{
-			Attributes: map[string]*light.Attribute{},
+		attrs["scopes"] = &light.Attribute{
+			Name: "scopes",
+			Expr: stringMapToObjConsExpr(self.Scopes),
 		}
-		for k, v := range self.Scopes {
-			bdy.Attributes[k] = &light.Attribute{
-				Name: k,
-				Expr: stringToTextValueExpr(v),
-			}
-		}
-		blocks = append(blocks, &light.Block{
-			Type: "scopes",
-			Bdy:  bdy,
-		})
 	}
-	if err := addSpecificationBlock(self.SpecificationExtension, &blocks); err != nil {
+	if err := addSpecification(self.SpecificationExtension, &blocks); err != nil {
 		return nil, err
 	}
 
@@ -163,35 +154,33 @@ func flowFromHCL(body *light.Body) (*OauthFlow, error) {
 	var found bool
 	var err error
 	for k, v := range body.Attributes {
-		if k == "authorizationURL" {
+		switch k {
+		case "authorizationURL":
 			flow.AuthorizationUrl = *textValueExprToString(v.Expr)
 			found = true
-		} else if k == "tokenURL" {
+		case "tokenURL":
 			flow.TokenUrl = *textValueExprToString(v.Expr)
 			found = true
-		} else if k == "refreshURL" {
+		case "refreshURL":
 			flow.RefreshUrl = *textValueExprToString(v.Expr)
 			found = true
-		}
-	}
-	for _, blk := range body.Blocks {
-		if blk.Type == "scopes" {
-			flow.Scopes = make(map[string]string)
-			for k, v := range blk.Bdy.Attributes {
-				flow.Scopes[k] = *textValueExprToString(v.Expr)
-			}
+		case "scopes":
+			flow.Scopes = objConsExprToStringMap(v.Expr)
 			found = true
-		} else if blk.Type == "specificationExtension" {
-			flow.SpecificationExtension, err = bodyToAnyMap(blk.Bdy)
-			if err != nil {
-				return nil, err
-			}
-			found = true
+		default:
 		}
 	}
 
-	if found {
-		return flow, nil
+	flow.SpecificationExtension, err = getSpecification(body)
+	if err != nil {
+		return nil, err
 	}
-	return nil, nil
+	if flow.SpecificationExtension != nil {
+		found = true
+	}
+
+	if !found {
+		return nil, nil
+	}
+	return flow, nil
 }

@@ -51,9 +51,6 @@ func (self *Response) toHCL() (*light.Body, error) {
 			},
 		}
 	}
-	if err := addSpecificationBlock(self.SpecificationExtension, &blocks); err != nil {
-		return nil, err
-	}
 
 	if self.Content != nil {
 		blks, err := mediaTypeMapToBlocks(self.Content)
@@ -75,6 +72,9 @@ func (self *Response) toHCL() (*light.Body, error) {
 			return nil, err
 		}
 		blocks = append(blocks, blks...)
+	}
+	if err := addSpecification(self.SpecificationExtension, &blocks); err != nil {
+		return nil, err
 	}
 
 	if len(attrs) > 0 {
@@ -101,34 +101,35 @@ func responseFromHCL(body *light.Body) (*Response, error) {
 		default:
 		}
 	}
-	for _, block := range body.Blocks {
-		switch block.Type {
-		case "specification":
-			response.SpecificationExtension, err = bodyToAnyMap(block.Bdy)
-			if err != nil {
-				return nil, err
-			}
-			found = true
-		case "content":
-			response.Content, err = blocksToMediaTypeMap(block.Bdy.Blocks)
-			if err != nil {
-				return nil, err
-			}
-			found = true
-		case "headers":
-			response.Headers, err = blocksToHeaderOrReferenceMap(block.Bdy.Blocks, "headers")
-			if err != nil {
-				return nil, err
-			}
-			found = true
-		case "links":
-			response.Links, err = blocksToLinkOrReferenceMap(block.Bdy.Blocks, "links")
-			if err != nil {
-				return nil, err
-			}
-		default:
-		}
+
+	response.Content, err = blocksToMediaTypeMap(body.Blocks)
+	if err != nil {
+		return nil, err
 	}
+	if response.Content == nil {
+		found = true
+	}
+	response.Headers, err = blocksToHeaderOrReferenceMap(body.Blocks, "headers")
+	if err != nil {
+		return nil, err
+	}
+	if response.Headers == nil {
+		found = true
+	}
+	response.Links, err = blocksToLinkOrReferenceMap(body.Blocks, "links")
+	if err != nil {
+		return nil, err
+	}
+	if response.Links == nil {
+		found = true
+	}
+	response.SpecificationExtension, err = getSpecification(body)
+	if err != nil {
+		return nil, err
+	} else if response.SpecificationExtension == nil {
+		found = true
+	}
+
 	if !found {
 		return nil, nil
 	}

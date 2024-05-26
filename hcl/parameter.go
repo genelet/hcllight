@@ -89,7 +89,7 @@ func (self *Parameter) toHCL() (*light.Body, error) {
 		}
 		blocks = append(blocks, blk...)
 	}
-	if err := addSpecificationBlock(self.SpecificationExtension, &blocks); err != nil {
+	if err := addSpecification(self.SpecificationExtension, &blocks); err != nil {
 		return nil, err
 	}
 
@@ -170,29 +170,32 @@ func parameterFromHCL(body *light.Body) (*Parameter, error) {
 			found = true
 		default:
 		}
-		for _, block := range body.Blocks {
-			switch block.Type {
-			case "examples":
-				parameter.Examples, err = blocksToExampleOrReferenceMap(block.Bdy.Blocks, "examples")
-				if err != nil {
-					return nil, err
-				}
-				found = true
-			case "content":
-				parameter.Content, err = blocksToMediaTypeMap(block.Bdy.Blocks)
-				if err != nil {
-					return nil, err
-				}
-				found = true
-			case "specification":
-				parameter.SpecificationExtension, err = bodyToAnyMap(block.Bdy)
-				if err != nil {
-					return nil, err
-				}
-				found = true
+	}
+
+	parameter.Examples, err = blocksToExampleOrReferenceMap(body.Blocks, "examples")
+	if err != nil {
+		return nil, err
+	}
+	if parameter.Examples == nil {
+		found = true
+	}
+	parameter.Content, err = blocksToMediaTypeMap(body.Blocks)
+	if err != nil {
+		return nil, err
+	}
+	if parameter.Content == nil {
+		found = true
+	}
+	for _, block := range body.Blocks {
+		if block.Type == "specification" {
+			parameter.SpecificationExtension, err = bodyToAnyMap(block.Bdy)
+			if err != nil {
+				return nil, err
 			}
+			found = true
 		}
 	}
+
 	if !found {
 		return nil, nil
 	}

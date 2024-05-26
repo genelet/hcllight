@@ -26,7 +26,7 @@ func (self *ServerVariable) toHCL() (*light.Body, error) {
 			Expr: expr,
 		}
 	}
-	if err := addSpecificationBlock(self.SpecificationExtension, &body.Blocks); err != nil {
+	if err := addSpecification(self.SpecificationExtension, &body.Blocks); err != nil {
 		return nil, err
 	}
 	if len(attrs) > 0 {
@@ -56,20 +56,16 @@ func serverVariableFromHCL(body *light.Body) (*ServerVariable, error) {
 		self.Enum = tupleConsExprToStringArray(attr.Expr)
 		found = true
 	}
-	for _, block := range body.Blocks {
-		if block.Type == "SpecificationExtension" {
-			self.SpecificationExtension, err = bodyToAnyMap(block.Bdy)
-			if err != nil {
-				return nil, err
-			}
-			found = true
-		}
+	if self.SpecificationExtension, err = getSpecification(body); err != nil {
+		return nil, err
+	} else if self.SpecificationExtension != nil {
+		found = true
 	}
 
-	if found {
-		return self, nil
+	if !found {
+		return nil, nil
 	}
-	return nil, nil
+	return self, nil
 }
 
 func serverVariableMapToBlocks(serverVariables map[string]*ServerVariable) ([]*light.Block, error) {
@@ -89,6 +85,9 @@ func blocksToServerVariableMap(blocks []*light.Block) (map[string]*ServerVariabl
 	}
 	hash := make(map[string]*ServerVariable)
 	for _, block := range blocks {
+		if block.Type != "serverVariable" {
+			continue
+		}
 		able, err := serverVariableFromHCL(block.Bdy)
 		if err != nil {
 			return nil, err

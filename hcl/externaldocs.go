@@ -20,7 +20,7 @@ func (self *ExternalDocs) toHCL() (*light.Body, error) {
 			}
 		}
 	}
-	if err := addSpecificationBlock(self.SpecificationExtension, &blocks); err != nil {
+	if err := addSpecification(self.SpecificationExtension, &blocks); err != nil {
 		return nil, err
 	}
 

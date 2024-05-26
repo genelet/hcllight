@@ -19,19 +19,16 @@ func (self *Discriminator) toHCL() (*light.Body, error) {
 		}
 	}
 	if self.Mapping != nil {
-		bdy := &light.Body{
-			Attributes: make(map[string]*light.Attribute),
+		attrs["mapping"] = &light.Attribute{
+			Name: "mapping",
+			Expr: stringMapToObjConsExpr(self.Mapping),
 		}
-		for k, v := range self.Mapping {
-			bdy.Attributes[k] = &light.Attribute{
-				Name: k,
-				Expr: stringToTextValueExpr(v),
-			}
+	}
+	if self.SpecificationExtension != nil {
+		body.Blocks = make([]*light.Block, 0)
+		if err := addSpecification(self.SpecificationExtension, &body.Blocks); err != nil {
+			return nil, err
 		}
-		body.Blocks = append(body.Blocks, &light.Block{
-			Type: "mapping",
-			Bdy:  bdy,
-		})
 	}
 
 	if len(attrs) > 0 {
@@ -51,17 +48,19 @@ func discriminatorFromHCL(body *light.Body) (*Discriminator, error) {
 		case "propertyName":
 			discriminator.PropertyName = *textValueExprToString(v.Expr)
 			found = true
+		case "mapping":
+			discriminator.Mapping = objConsExprToStringMap(v.Expr)
+			found = true
+		default:
 		}
 	}
-	for _, v := range body.Blocks {
-		switch v.Type {
-		case "mapping":
-			discriminator.Mapping = make(map[string]string)
-			for k, v := range v.Bdy.Attributes {
-				discriminator.Mapping[k] = *textValueExprToString(v.Expr)
-			}
-			found = true
-		}
+	var err error
+	discriminator.SpecificationExtension, err = getSpecification(body)
+	if err != nil {
+		return nil, err
+	}
+	if discriminator.SpecificationExtension != nil {
+		found = true
 	}
 
 	if !found {

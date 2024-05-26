@@ -32,9 +32,6 @@ func (self *Encoding) toHCL() (*light.Body, error) {
 			}
 		}
 	}
-	if err := addSpecificationBlock(self.SpecificationExtension, &blocks); err != nil {
-		return nil, err
-	}
 
 	if self.Headers != nil {
 		blks, err := headerOrReferenceMapToBlocks(self.Headers, "headers")
@@ -43,6 +40,10 @@ func (self *Encoding) toHCL() (*light.Body, error) {
 		}
 		blocks = append(blocks, blks...)
 	}
+	if err := addSpecification(self.SpecificationExtension, &blocks); err != nil {
+		return nil, err
+	}
+
 	if len(attrs) > 0 {
 		body.Attributes = attrs
 	}
@@ -76,24 +77,27 @@ func encodingFromHCL(body *light.Body) (*Encoding, error) {
 			found = true
 		}
 	}
-	for _, block := range body.Blocks {
-		switch block.Labels[0] {
-		case "header":
-			self.Headers, err = blocksToHeaderOrReferenceMap(block.Bdy.Blocks, "headers")
-			if err != nil {
-				return nil, err
-			}
-			found = true
-		case "specification":
-			self.SpecificationExtension, err = bodyToAnyMap(block.Bdy)
-			found = true
-		}
+
+	self.Headers, err = blocksToHeaderOrReferenceMap(body.Blocks, "headers")
+	if err != nil {
+		return nil, err
+	}
+	if self.Headers != nil {
+		found = true
 	}
 
-	if found {
-		return self, nil
+	self.SpecificationExtension, err = getSpecification(body)
+	if err != nil {
+		return nil, err
 	}
-	return nil, nil
+	if self.SpecificationExtension != nil {
+		found = true
+	}
+
+	if !found {
+		return nil, nil
+	}
+	return self, nil
 }
 
 func encodingMapToBlocks(encodings map[string]*Encoding) ([]*light.Block, error) {
@@ -111,8 +115,14 @@ func blocksToEncodingMap(blocks []*light.Block) (map[string]*Encoding, error) {
 	if blocks == nil {
 		return nil, nil
 	}
-	hash := make(map[string]*Encoding)
+	var hash map[string]*Encoding
 	for _, block := range blocks {
+		if block.Type != "encoding" {
+			continue
+		}
+		if hash == nil {
+			hash = make(map[string]*Encoding)
+		}
 		able, err := encodingFromHCL(block.Bdy)
 		if err != nil {
 			return nil, err

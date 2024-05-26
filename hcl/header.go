@@ -87,7 +87,7 @@ func (self *Header) toHCL() (*light.Body, error) {
 		}
 		blocks = append(blocks, blk...)
 	}
-	if err := addSpecificationBlock(self.SpecificationExtension, &blocks); err != nil {
+	if err := addSpecification(self.SpecificationExtension, &blocks); err != nil {
 		return nil, err
 	}
 	if self.Schema != nil {
@@ -162,33 +162,32 @@ func headerFromHCL(body *light.Body) (*Header, error) {
 		default:
 		}
 	}
-	for _, block := range body.Blocks {
-		switch block.Type {
-		case "examples":
-			self.Examples, err = blocksToExampleOrReferenceMap(block.Bdy.Blocks)
-			if err != nil {
-				return nil, err
-			}
-			found = true
-		case "content":
-			self.Content, err = blocksToMediaTypeMap(block.Bdy.Blocks)
-			if err != nil {
-				return nil, err
-			}
-			found = true
-		case "specification":
-			self.SpecificationExtension, err = bodyToAnyMap(block.Bdy)
-			if err != nil {
-				return nil, err
-			}
-			found = true
-		default:
-		}
+
+	self.Examples, err = blocksToExampleOrReferenceMap(body.Blocks, "examples")
+	if err != nil {
+		return nil, err
 	}
-	if found {
-		return self, nil
+	if self.Examples != nil {
+		found = true
 	}
-	return nil, nil
+	self.Content, err = blocksToMediaTypeMap(body.Blocks)
+	if err != nil {
+		return nil, err
+	}
+	if self.Content != nil {
+		found = true
+	}
+	self.SpecificationExtension, err = getSpecification(body)
+	if err != nil {
+		return nil, err
+	} else if self.SpecificationExtension != nil {
+		found = true
+	}
+
+	if !found {
+		return nil, nil
+	}
+	return self, nil
 }
 
 func headerOrReferenceMapToBlocks(headers map[string]*HeaderOrReference, names ...string) ([]*light.Block, error) {

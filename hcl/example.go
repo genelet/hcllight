@@ -66,7 +66,7 @@ func (self *Example) toHCL() (*light.Body, error) {
 			Expr: expr,
 		}
 	}
-	if err := addSpecificationBlock(self.SpecificationExtension, &blocks); err != nil {
+	if err := addSpecification(self.SpecificationExtension, &blocks); err != nil {
 		return nil, err
 	}
 	if len(attrs) > 0 {
@@ -104,15 +104,13 @@ func exampleFromHCL(body *light.Body) (*Example, error) {
 			found = true
 		}
 	}
-	for _, block := range body.Blocks {
-		switch block.Type {
-		case "specification":
-			example.SpecificationExtension, err = bodyToAnyMap(block.Bdy)
-			if err != nil {
-				return nil, err
-			}
-		}
+	example.SpecificationExtension, err = getSpecification(body)
+	if err != nil {
+		return nil, err
+	} else if example.SpecificationExtension != nil {
+		found = true
 	}
+
 	if found {
 		return example, nil
 	}

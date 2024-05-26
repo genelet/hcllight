@@ -46,6 +46,10 @@ func tagFromHCL(body *light.Body) (*Tag, error) {
 		self.Description = *textValueExprToString(attr.Expr)
 		found = true
 	}
+	if attr, ok := body.Attributes["name"]; ok {
+		self.Name = *textValueExprToString(attr.Expr)
+		found = true
+	}
 	for _, block := range body.Blocks {
 		switch block.Type {
 		case "externalDocs":

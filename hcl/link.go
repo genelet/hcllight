@@ -66,7 +66,7 @@ func (self *Link) toHCL() (*light.Body, error) {
 			Bdy:  bdy,
 		})
 	}
-	if err := addSpecificationBlock(self.SpecificationExtension, &blocks); err != nil {
+	if err := addSpecification(self.SpecificationExtension, &blocks); err != nil {
 		return nil, err
 	}
 
@@ -142,17 +142,19 @@ func linkFromHCL(body *light.Body) (*Link, error) {
 			}
 			link.Server = server
 		default:
-			link.SpecificationExtension, err = bodyToAnyMap(body)
-			if err != nil {
-				return nil, err
-			}
 		}
 	}
-
-	if found {
-		return link, nil
+	link.SpecificationExtension, err = getSpecification(body)
+	if err != nil {
+		return nil, err
+	} else if link.SpecificationExtension != nil {
+		found = true
 	}
-	return nil, nil
+
+	if !found {
+		return nil, nil
+	}
+	return link, nil
 }
 
 func linkOrReferenceMapToBlocks(links map[string]*LinkOrReference, names ...string) ([]*light.Block, error) {

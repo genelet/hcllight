@@ -41,7 +41,7 @@ func (self *Info) toHCL() (*light.Body, error) {
 			Bdy:  bdy,
 		})
 	}
-	if err := addSpecificationBlock(self.SpecificationExtension, &body.Blocks); err != nil {
+	if err := addSpecification(self.SpecificationExtension, &body.Blocks); err != nil {
 		return nil, err
 	}
 	if len(attrs) > 0 {
@@ -91,14 +91,14 @@ func infoFromHCL(body *light.Body) (*Info, error) {
 			}
 			info.License = license
 			found = true
-		case "specification":
-			info.SpecificationExtension, err = bodyToAnyMap(block.Bdy)
-			if err != nil {
-				return nil, err
-			}
-			found = true
 		default:
 		}
+	}
+	info.SpecificationExtension, err = getSpecification(body)
+	if err != nil {
+		return nil, err
+	} else if info.SpecificationExtension != nil {
+		found = true
 	}
 
 	if !found {

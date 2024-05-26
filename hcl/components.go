@@ -70,7 +70,7 @@ func (self *Components) toHCL() (*light.Body, error) {
 		}
 		blocks = append(blocks, blks...)
 	}
-	if err := addSpecificationBlock(self.SpecificationExtension, &blocks); err != nil {
+	if err := addSpecification(self.SpecificationExtension, &blocks); err != nil {
 		return nil, err
 	}
 
@@ -121,14 +121,10 @@ func componentsFromHCL(body *light.Body) (*Components, error) {
 	if err != nil {
 		return nil, err
 	}
-	var specificationExtension map[string]*Any
-	for _, block := range body.Blocks {
-		if block.Type == "specification" {
-			specificationExtension, err = bodyToAnyMap(block.Bdy)
-			if err != nil {
-				return nil, err
-			}
-		}
+
+	specificationExtension, err := getSpecification(body)
+	if err != nil {
+		return nil, err
 	}
 
 	if schemaOrReferenceMap == nil && responseOrReferenceMap == nil && parameters == nil &&

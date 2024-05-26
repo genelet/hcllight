@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-func Test2HclOpen(t *testing.T) {
+func TestHclOpen(t *testing.T) {
 	data, err := os.ReadFile("openapi.json")
 	api, err := ParseDocument(data, "json")
 
@@ -19,7 +19,7 @@ func Test2HclOpen(t *testing.T) {
 	}
 }
 
-func Test2HclTwitter(t *testing.T) {
+func TestHclTwitter(t *testing.T) {
 	data, err := os.ReadFile("twitter.json")
 	api, err := ParseDocument(data, "json")
 

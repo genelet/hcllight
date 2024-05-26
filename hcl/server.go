@@ -20,9 +20,6 @@ func (self *Server) toHCL() (*light.Body, error) {
 			}
 		}
 	}
-	if err := addSpecificationBlock(self.SpecificationExtension, &blocks); err != nil {
-		return nil, err
-	}
 	if self.Variables != nil {
 		blks, err := serverVariableMapToBlocks(self.Variables)
 		if err != nil {
@@ -30,6 +27,10 @@ func (self *Server) toHCL() (*light.Body, error) {
 		}
 		blocks = append(blocks, blks...)
 	}
+	if err := addSpecification(self.SpecificationExtension, &blocks); err != nil {
+		return nil, err
+	}
+
 	if len(attrs) > 0 {
 		body.Attributes = attrs
 	}
@@ -55,25 +56,23 @@ func serverFromHCL(body *light.Body) (*Server, error) {
 		self.Description = *textValueExprToString(attr.Expr)
 		found = true
 	}
-	for _, block := range body.Blocks {
-		if block.Type == "SpecificationExtension" {
-			self.SpecificationExtension, err = bodyToAnyMap(block.Bdy)
-			if err != nil {
-				return nil, err
-			}
-			found = true
-		} else if block.Type == "serverVariable" {
-			variables, err := blocksToServerVariableMap(body.Blocks)
-			if err != nil {
-				return nil, err
-			}
-			self.Variables = variables
-			found = true
-		}
+
+	variables, err := blocksToServerVariableMap(body.Blocks)
+	if err != nil {
+		return nil, err
+	}
+	if variables != nil {
+		self.Variables = variables
+		found = true
+	}
+	if self.SpecificationExtension, err = getSpecification(body); err != nil {
+		return nil, err
+	} else if self.SpecificationExtension != nil {
+		found = true
 	}
 
 	if !found {
-		return nil, ErrInvalidType(1005, "servers")
+		return nil, nil
 	}
 	return self, nil
 }

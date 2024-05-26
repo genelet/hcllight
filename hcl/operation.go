@@ -93,7 +93,7 @@ func (self *Operation) toHCL() (*light.Body, error) {
 			Expr: expr,
 		}
 	}
-	if err := addSpecificationBlock(self.SpecificationExtension, &blocks); err != nil {
+	if err := addSpecification(self.SpecificationExtension, &blocks); err != nil {
 		return nil, err
 	}
 	if len(attrs) > 0 {
@@ -146,6 +146,17 @@ func operationFromHCL(body *light.Body) (*Operation, error) {
 		}
 	}
 
+	for _, block := range body.Blocks {
+		switch block.Type {
+		case "requestBody":
+			self.RequestBody, err = requestBodyOrReferenceFromHCL(block.Bdy)
+			if err != nil {
+				return nil, err
+			}
+			found = true
+		default:
+		}
+	}
 	parameters, err := bodyToParameterOrReferenceArray(body, "parameters")
 	if err != nil {
 		return nil, err
@@ -172,21 +183,11 @@ func operationFromHCL(body *light.Body) (*Operation, error) {
 		self.Callbacks = callbacks
 		found = true
 	}
-	for _, block := range body.Blocks {
-		switch block.Type {
-		case "requestBody":
-			self.RequestBody, err = requestBodyOrReferenceFromHCL(block.Bdy)
-			if err != nil {
-				return nil, err
-			}
-			found = true
-		case "specification":
-			self.SpecificationExtension, err = bodyToAnyMap(block.Bdy)
-			if err != nil {
-				return nil, err
-			}
-			found = true
-		}
+	self.SpecificationExtension, err = getSpecification(body)
+	if err != nil {
+		return nil, err
+	} else if self.SpecificationExtension != nil {
+		found = true
 	}
 
 	if !found {
@@ -195,6 +196,7 @@ func operationFromHCL(body *light.Body) (*Operation, error) {
 	return self, nil
 }
 
+/*
 func operationMapToBlocks(op map[string]*Operation) ([]*light.Block, error) {
 	if op == nil {
 		return nil, nil
@@ -212,12 +214,16 @@ func blocksToOperationMap(blocks []*light.Block) (map[string]*Operation, error) 
 	}
 	hash := make(map[string]*Operation)
 	for _, block := range blocks {
+		if block.Type != "op" {
+			continue
+		}
 		able, err := operationFromHCL(block.Bdy)
 		if err != nil {
 			return nil, err
 		}
-		hash[block.Type] = able
+		hash[block.Labels[0]] = able
 	}
 
 	return hash, nil
 }
+*/

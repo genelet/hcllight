@@ -109,23 +109,6 @@ func (self *Any) toFcexpr(typ ...string) (*light.Expression, error) {
 	}, nil
 }
 
-/*
-	func fcexprToAny(expr *light.Expression) (*Any, error) {
-		if expr == nil {
-			return nil, nil
-		}
-		switch expr.ExpressionClause.(type) {
-		case *light.Expression_Fcexpr:
-			return &Any{
-				Value: &anypb.Any{
-					Value: []byte(fmt.Sprintf("%v", expr.GetFcexpr().Args[0].GetLvexpr().Val)),
-				},
-			}, nil
-		default:
-		}
-		return nil, nil
-	}
-*/
 func anyFromHCL(expr *light.Expression) (*Any, error) {
 	if expr == nil {
 		return nil, nil
@@ -133,26 +116,30 @@ func anyFromHCL(expr *light.Expression) (*Any, error) {
 	switch expr.ExpressionClause.(type) {
 	case *light.Expression_Texpr:
 		return &Any{
-			Yaml: expr.GetTexpr().Parts[0].GetLvexpr().GetVal().GetStringValue(),
+			Yaml: *textValueExprToString(expr),
 		}, nil
 	case *light.Expression_Lvexpr:
 		return &Any{
-			Yaml: fmt.Sprintf("%v", expr.GetLvexpr().Val),
+			Yaml: *literalValueExprToString(expr),
 		}, nil
 	case *light.Expression_Ocexpr:
+		obj := objConsExprToStringMap(expr)
+		yml, err := yaml.Marshal(obj)
 		return &Any{
-			Yaml: fmt.Sprintf("%v", expr.GetOcexpr().ToBody()),
-		}, nil
+			Yaml: string(yml),
+		}, err
 	case *light.Expression_Tcexpr:
+		arr := tupleConsExprToStringArray(expr)
+		yml, err := yaml.Marshal(arr)
 		return &Any{
-			Yaml: fmt.Sprintf("%v", expr.GetTcexpr().GetExprs()),
-		}, nil
+			Yaml: string(yml),
+		}, err
 	default:
 	}
 	return nil, nil
 }
 
-func addSpecificationBlock(se map[string]*Any, blocks *[]*light.Block) error {
+func addSpecification(se map[string]*Any, blocks *[]*light.Block) error {
 	if se == nil || len(se) == 0 {
 		return nil
 	}
@@ -160,11 +147,26 @@ func addSpecificationBlock(se map[string]*Any, blocks *[]*light.Block) error {
 	if err != nil {
 		return err
 	}
+	if bdy == nil {
+		return nil
+	}
 	*blocks = append(*blocks, &light.Block{
 		Type: "specificationExtension",
 		Bdy:  bdy,
 	})
 	return nil
+}
+
+func getSpecification(body *light.Body) (map[string]*Any, error) {
+	if body == nil {
+		return nil, nil
+	}
+	for _, block := range body.Blocks {
+		if block.Type == "specificationExtension" {
+			return bodyToAnyMap(body)
+		}
+	}
+	return nil, nil
 }
 
 func anyMapToBody(content map[string]*Any) (*light.Body, error) {

@@ -1,8 +1,6 @@
 package hcl
 
 import (
-	"log"
-
 	"github.com/genelet/hcllight/light"
 )
 
@@ -128,7 +126,6 @@ func fcexprToSchemaObject(fcexpr *light.FunctionCallExpr) (*SchemaObject, error)
 				s.MinProperties = *literalValueExprToInt64(expr.Args[0])
 				found = true
 			case "required":
-				log.Printf("required %v", expr.Args)
 				s.Required = tupleConsExprToStringArray(&light.Expression{
 					ExpressionClause: &light.Expression_Tcexpr{
 						Tcexpr: &light.TupleConsExpr{
