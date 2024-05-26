@@ -24,7 +24,7 @@ func TestParseSchemaJSON(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Error converting expression to HCL: %v", err)
 	}
-	err = os.WriteFile("y.hcl", data, 0644)
+	err = os.WriteFile("openapi-3.1_gnostic.hcl", data, 0644)
 	if err != nil {
 		t.Fatalf("Error writing HCL: %v", err)
 	}
