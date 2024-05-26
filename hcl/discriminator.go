@@ -14,14 +14,14 @@ func (self *Discriminator) toHCL() (*light.Body, error) {
 		if v != "" {
 			attrs[k] = &light.Attribute{
 				Name: k,
-				Expr: stringToTextValueExpr(v),
+				Expr: light.StringToTextValueExpr(v),
 			}
 		}
 	}
 	if self.Mapping != nil {
 		attrs["mapping"] = &light.Attribute{
 			Name: "mapping",
-			Expr: stringMapToObjConsExpr(self.Mapping),
+			Expr: light.StringMapToObjConsExpr(self.Mapping),
 		}
 	}
 	if self.SpecificationExtension != nil {
@@ -46,10 +46,10 @@ func discriminatorFromHCL(body *light.Body) (*Discriminator, error) {
 	for k, v := range body.Attributes {
 		switch k {
 		case "propertyName":
-			discriminator.PropertyName = *textValueExprToString(v.Expr)
+			discriminator.PropertyName = *light.TextValueExprToString(v.Expr)
 			found = true
 		case "mapping":
-			discriminator.Mapping = objConsExprToStringMap(v.Expr)
+			discriminator.Mapping = light.ObjConsExprToStringMap(v.Expr)
 			found = true
 		default:
 		}

@@ -15,12 +15,12 @@ func (self *ServerVariable) toHCL() (*light.Body, error) {
 		if v != "" {
 			attrs[k] = &light.Attribute{
 				Name: k,
-				Expr: stringToTextValueExpr(v),
+				Expr: light.StringToTextValueExpr(v),
 			}
 		}
 	}
 	if self.Enum != nil {
-		expr := stringArrayToTupleConsEpr(self.Enum)
+		expr := light.StringArrayToTupleConsEpr(self.Enum)
 		attrs["enum"] = &light.Attribute{
 			Name: "enum",
 			Expr: expr,
@@ -45,15 +45,15 @@ func serverVariableFromHCL(body *light.Body) (*ServerVariable, error) {
 	var found bool
 	var err error
 	if attr, ok := body.Attributes["default"]; ok {
-		self.Default = *textValueExprToString(attr.Expr)
+		self.Default = *light.TextValueExprToString(attr.Expr)
 		found = true
 	}
 	if attr, ok := body.Attributes["description"]; ok {
-		self.Description = *textValueExprToString(attr.Expr)
+		self.Description = *light.TextValueExprToString(attr.Expr)
 		found = true
 	}
 	if attr, ok := body.Attributes["enum"]; ok {
-		self.Enum = tupleConsExprToStringArray(attr.Expr)
+		self.Enum = light.TupleConsExprToStringArray(attr.Expr)
 		found = true
 	}
 	if self.SpecificationExtension, err = getSpecification(body); err != nil {

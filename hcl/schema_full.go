@@ -26,7 +26,7 @@ func (self *Schema) toHCL() (*light.Body, error) {
 		if v {
 			attrs[k] = &light.Attribute{
 				Name: k,
-				Expr: booleanToLiteralValueExpr(v),
+				Expr: light.BooleanToLiteralValueExpr(v),
 			}
 		}
 	}
@@ -34,7 +34,7 @@ func (self *Schema) toHCL() (*light.Body, error) {
 		if v != "" {
 			attrs[k] = &light.Attribute{
 				Name: k,
-				Expr: stringToTextValueExpr(v),
+				Expr: light.StringToTextValueExpr(v),
 			}
 		}
 	}
@@ -190,15 +190,15 @@ func schemaFullFromHCL(body *light.Body) (*Schema, error) {
 				return nil, err
 			}
 		case "nullable":
-			s.Nullable = *literalValueExprToBoolean(v.Expr)
+			s.Nullable = *light.LiteralValueExprToBoolean(v.Expr)
 		case "readOnly":
-			s.ReadOnly = *literalValueExprToBoolean(v.Expr)
+			s.ReadOnly = *light.LiteralValueExprToBoolean(v.Expr)
 		case "writeOnly":
-			s.WriteOnly = *literalValueExprToBoolean(v.Expr)
+			s.WriteOnly = *light.LiteralValueExprToBoolean(v.Expr)
 		case "deprecated":
-			s.Deprecated = *literalValueExprToBoolean(v.Expr)
+			s.Deprecated = *light.LiteralValueExprToBoolean(v.Expr)
 		case "title":
-			s.Title = *textValueExprToString(v.Expr)
+			s.Title = *light.TextValueExprToString(v.Expr)
 		default:
 		}
 	}

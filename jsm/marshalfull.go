@@ -17,13 +17,13 @@ func commonToAttributes(self *Common, attrs map[string]*light.Attribute) error {
 	if self.Format != nil {
 		attrs["format"] = &light.Attribute{
 			Name: "format",
-			Expr: stringToTextValueExpr(*self.Format),
+			Expr: light.StringToTextValueExpr(*self.Format),
 		}
 	}
 	if self.Default != nil {
 		attrs["default"] = &light.Attribute{
 			Name: "default",
-			Expr: stringToLiteralValueExpr(self.Default.Value),
+			Expr: light.StringToLiteralValueExpr(self.Default.Value),
 		}
 	}
 	if self.Enumeration != nil {
@@ -55,7 +55,7 @@ func attributesToCommon(attrs map[string]*light.Attribute) (*Common, error) {
 			common.Type = expressionToStringOrStringArray(attr.Expr)
 			found = true
 		case "format":
-			common.Format = textValueExprToString(attr.Expr)
+			common.Format = light.TextValueExprToString(attr.Expr)
 			found = true
 		case "default":
 			//for _, t := range attr.Expr.GetStexpr().Traversal {
@@ -63,7 +63,7 @@ func attributesToCommon(attrs map[string]*light.Attribute) (*Common, error) {
 			//}
 			common.Default = &yaml.Node{
 				Kind: yaml.ScalarNode,
-				//Value: *literalValueExprToString(attr.Expr),
+				//Value: *light.LiteralValueExprToString(attr.Expr),
 				Value: attr.Expr.String(),
 			}
 			found = true
@@ -84,12 +84,12 @@ func numberToAttributes(self *SchemaNumber, attrs map[string]*light.Attribute) e
 		if self.Minimum.Float != nil {
 			attrs["minimum"] = &light.Attribute{
 				Name: "minimum",
-				Expr: float64ToLiteralValueExpr(*self.Minimum.Float),
+				Expr: light.Float64ToLiteralValueExpr(*self.Minimum.Float),
 			}
 		} else {
 			attrs["minimum"] = &light.Attribute{
 				Name: "minimum",
-				Expr: int64ToLiteralValueExpr(*self.Minimum.Integer),
+				Expr: light.Int64ToLiteralValueExpr(*self.Minimum.Integer),
 			}
 		}
 	}
@@ -97,37 +97,37 @@ func numberToAttributes(self *SchemaNumber, attrs map[string]*light.Attribute) e
 		if self.Maximum.Float != nil {
 			attrs["maximum"] = &light.Attribute{
 				Name: "maximum",
-				Expr: float64ToLiteralValueExpr(*self.Maximum.Float),
+				Expr: light.Float64ToLiteralValueExpr(*self.Maximum.Float),
 			}
 		} else {
 			attrs["maximum"] = &light.Attribute{
 				Name: "maximum",
-				Expr: int64ToLiteralValueExpr(*self.Maximum.Integer),
+				Expr: light.Int64ToLiteralValueExpr(*self.Maximum.Integer),
 			}
 		}
 	}
 	if self.ExclusiveMinimum != nil {
 		attrs["exclusiveMinimum"] = &light.Attribute{
 			Name: "exclusiveMinimum",
-			Expr: booleanToLiteralValueExpr(*self.ExclusiveMinimum),
+			Expr: light.BooleanToLiteralValueExpr(*self.ExclusiveMinimum),
 		}
 	}
 	if self.ExclusiveMaximum != nil {
 		attrs["exclusiveMaximum"] = &light.Attribute{
 			Name: "exclusiveMaximum",
-			Expr: booleanToLiteralValueExpr(*self.ExclusiveMaximum),
+			Expr: light.BooleanToLiteralValueExpr(*self.ExclusiveMaximum),
 		}
 	}
 	if self.MultipleOf != nil {
 		if self.MultipleOf.Float != nil {
 			attrs["multipleOf"] = &light.Attribute{
 				Name: "multipleOf",
-				Expr: float64ToLiteralValueExpr(*self.MultipleOf.Float),
+				Expr: light.Float64ToLiteralValueExpr(*self.MultipleOf.Float),
 			}
 		} else {
 			attrs["multipleOf"] = &light.Attribute{
 				Name: "multipleOf",
-				Expr: int64ToLiteralValueExpr(*self.MultipleOf.Integer),
+				Expr: light.Int64ToLiteralValueExpr(*self.MultipleOf.Integer),
 			}
 		}
 	}
@@ -145,39 +145,39 @@ func attributesToNumber(attrs map[string]*light.Attribute, typ ...*jsonschema.St
 		case "minimum":
 			if typ != nil && typ[0].String != nil && *typ[0].String == "integer" {
 				number.Minimum = &jsonschema.SchemaNumber{
-					Integer: literalValueExprToInt64(attr.Expr),
+					Integer: light.LiteralValueExprToInt64(attr.Expr),
 				}
 			} else {
 				number.Minimum = &jsonschema.SchemaNumber{
-					Float: literalValueExprToFloat64(attr.Expr),
+					Float: light.LiteralValueExprToFloat64(attr.Expr),
 				}
 			}
 			found = true
 		case "maximum":
 			if typ != nil && typ[0].String != nil && *typ[0].String == "integer" {
 				number.Maximum = &jsonschema.SchemaNumber{
-					Integer: literalValueExprToInt64(attr.Expr),
+					Integer: light.LiteralValueExprToInt64(attr.Expr),
 				}
 			} else {
 				number.Maximum = &jsonschema.SchemaNumber{
-					Float: literalValueExprToFloat64(attr.Expr),
+					Float: light.LiteralValueExprToFloat64(attr.Expr),
 				}
 			}
 			found = true
 		case "exclusiveMinimum":
-			number.ExclusiveMinimum = literalValueExprToBoolean(attr.Expr)
+			number.ExclusiveMinimum = light.LiteralValueExprToBoolean(attr.Expr)
 			found = true
 		case "exclusiveMaximum":
-			number.ExclusiveMaximum = literalValueExprToBoolean(attr.Expr)
+			number.ExclusiveMaximum = light.LiteralValueExprToBoolean(attr.Expr)
 			found = true
 		case "multipleOf":
 			if typ != nil && typ[0].String != nil && *typ[0].String == "integer" {
 				number.MultipleOf = &jsonschema.SchemaNumber{
-					Integer: literalValueExprToInt64(attr.Expr),
+					Integer: light.LiteralValueExprToInt64(attr.Expr),
 				}
 			} else {
 				number.MultipleOf = &jsonschema.SchemaNumber{
-					Float: literalValueExprToFloat64(attr.Expr),
+					Float: light.LiteralValueExprToFloat64(attr.Expr),
 				}
 			}
 			found = true
@@ -195,19 +195,19 @@ func stringToAttributes(self *SchemaString, attrs map[string]*light.Attribute) e
 	if self.MaxLength != nil {
 		attrs["maxLength"] = &light.Attribute{
 			Name: "maxLength",
-			Expr: int64ToLiteralValueExpr(*self.MaxLength),
+			Expr: light.Int64ToLiteralValueExpr(*self.MaxLength),
 		}
 	}
 	if self.MinLength != nil {
 		attrs["minLength"] = &light.Attribute{
 			Name: "minLength",
-			Expr: int64ToLiteralValueExpr(*self.MinLength),
+			Expr: light.Int64ToLiteralValueExpr(*self.MinLength),
 		}
 	}
 	if self.Pattern != nil {
 		attrs["pattern"] = &light.Attribute{
 			Name: "pattern",
-			Expr: stringToTextValueExpr(*self.Pattern),
+			Expr: light.StringToTextValueExpr(*self.Pattern),
 		}
 	}
 	return nil
@@ -222,13 +222,13 @@ func attributesToString(attrs map[string]*light.Attribute) (*SchemaString, error
 	for _, attr := range attrs {
 		switch attr.Name {
 		case "maxLength":
-			str.MaxLength = literalValueExprToInt64(attr.Expr)
+			str.MaxLength = light.LiteralValueExprToInt64(attr.Expr)
 			found = true
 		case "minLength":
-			str.MinLength = literalValueExprToInt64(attr.Expr)
+			str.MinLength = light.LiteralValueExprToInt64(attr.Expr)
 			found = true
 		case "pattern":
-			str.Pattern = textValueExprToString(attr.Expr)
+			str.Pattern = light.TextValueExprToString(attr.Expr)
 			found = true
 		default:
 		}
@@ -244,19 +244,19 @@ func arrayToAttributes(self *SchemaArray, attrs map[string]*light.Attribute) err
 	if self.MaxItems != nil {
 		attrs["maxItems"] = &light.Attribute{
 			Name: "maxItems",
-			Expr: int64ToLiteralValueExpr(*self.MaxItems),
+			Expr: light.Int64ToLiteralValueExpr(*self.MaxItems),
 		}
 	}
 	if self.MinItems != nil {
 		attrs["minItems"] = &light.Attribute{
 			Name: "minItems",
-			Expr: int64ToLiteralValueExpr(*self.MinItems),
+			Expr: light.Int64ToLiteralValueExpr(*self.MinItems),
 		}
 	}
 	if self.UniqueItems != nil {
 		attrs["uniqueItems"] = &light.Attribute{
 			Name: "uniqueItems",
-			Expr: booleanToLiteralValueExpr(*self.UniqueItems),
+			Expr: light.BooleanToLiteralValueExpr(*self.UniqueItems),
 		}
 	}
 	if self.Items != nil {
@@ -281,13 +281,13 @@ func attributesToArray(attrs map[string]*light.Attribute) (*SchemaArray, error) 
 	for _, attr := range attrs {
 		switch attr.Name {
 		case "maxItems":
-			array.MaxItems = literalValueExprToInt64(attr.Expr)
+			array.MaxItems = light.LiteralValueExprToInt64(attr.Expr)
 			found = true
 		case "minItems":
-			array.MinItems = literalValueExprToInt64(attr.Expr)
+			array.MinItems = light.LiteralValueExprToInt64(attr.Expr)
 			found = true
 		case "uniqueItems":
-			array.UniqueItems = literalValueExprToBoolean(attr.Expr)
+			array.UniqueItems = light.LiteralValueExprToBoolean(attr.Expr)
 			found = true
 		case "items":
 			array.Items, err = expressionToSchemaOrSchemaArray(attr.Expr)
@@ -302,23 +302,23 @@ func attributesToArray(attrs map[string]*light.Attribute) (*SchemaArray, error) 
 	return nil, nil
 }
 
-func objectToAttributesBlocks(self *SchemaObject, attrs map[string]*light.Attribute, blocks *[]*light.Block) error {
+func objectToAttributesBlocks(self *SchemaObject, attrs map[string]*light.Attribute) error {
 	if self.MaxProperties != nil {
 		attrs["maxProperties"] = &light.Attribute{
 			Name: "maxProperties",
-			Expr: int64ToLiteralValueExpr(*self.MaxProperties),
+			Expr: light.Int64ToLiteralValueExpr(*self.MaxProperties),
 		}
 	}
 	if self.MinProperties != nil {
 		attrs["minProperties"] = &light.Attribute{
 			Name: "minProperties",
-			Expr: int64ToLiteralValueExpr(*self.MinProperties),
+			Expr: light.Int64ToLiteralValueExpr(*self.MinProperties),
 		}
 	}
 	if self.Required != nil {
 		attrs["required"] = &light.Attribute{
 			Name: "required",
-			Expr: stringArrayToTupleConsEpr(self.Required),
+			Expr: light.StringArrayToTupleConsEpr(self.Required),
 		}
 	}
 	if self.Properties != nil {
@@ -339,7 +339,7 @@ func objectToAttributesBlocks(self *SchemaObject, attrs map[string]*light.Attrib
 	return nil
 }
 
-func attributesBlocksToObject(attrs map[string]*light.Attribute, blocks []*light.Block) (*SchemaObject, error) {
+func attributesBlocksToObject(attrs map[string]*light.Attribute) (*SchemaObject, error) {
 	object := &SchemaObject{}
 
 	var err error
@@ -348,13 +348,13 @@ func attributesBlocksToObject(attrs map[string]*light.Attribute, blocks []*light
 	for _, attr := range attrs {
 		switch attr.Name {
 		case "maxProperties":
-			object.MaxProperties = literalValueExprToInt64(attr.Expr)
+			object.MaxProperties = light.LiteralValueExprToInt64(attr.Expr)
 			found = true
 		case "minProperties":
-			object.MinProperties = literalValueExprToInt64(attr.Expr)
+			object.MinProperties = light.LiteralValueExprToInt64(attr.Expr)
 			found = true
 		case "required":
-			object.Required = tupleConsExprToStringArray(attr.Expr)
+			object.Required = light.TupleConsExprToStringArray(attr.Expr)
 		case "properties":
 			object.Properties, err = bodyToMapSchema(attr.Expr.GetOcexpr().ToBody())
 			found = true
@@ -381,7 +381,7 @@ func mapToAttributes(self *SchemaMap, attrs map[string]*light.Attribute) error {
 	} else {
 		attrs["additionalProperties"] = &light.Attribute{
 			Name: "additionalProperties",
-			Expr: booleanToLiteralValueExpr(*self.AdditionalProperties.Boolean),
+			Expr: light.BooleanToLiteralValueExpr(*self.AdditionalProperties.Boolean),
 		}
 	}
 
@@ -402,7 +402,7 @@ func attributesToMap(attrs map[string]*light.Attribute) (*SchemaMap, error) {
 			if attr.Expr.GetOcexpr() != nil {
 				mmap.AdditionalProperties.Schema, err = expressionToSchema(attr.Expr)
 			} else {
-				mmap.AdditionalProperties.Boolean = literalValueExprToBoolean(attr.Expr)
+				mmap.AdditionalProperties.Boolean = light.LiteralValueExprToBoolean(attr.Expr)
 			}
 			found = true
 		default:
@@ -457,7 +457,7 @@ func shortsToBody(
 		}
 	}
 	if object != nil {
-		if err := objectToAttributesBlocks(object, attrs, &blocks); err != nil {
+		if err := objectToAttributesBlocks(object, attrs); err != nil {
 			return nil, err
 		}
 	}
@@ -501,7 +501,7 @@ func bodyToShorts(body *light.Body) (*Reference, *Common, *SchemaNumber, *Schema
 	if err != nil {
 		return seven(err)
 	}
-	schemaObject, err := attributesBlocksToObject(body.Attributes, body.Blocks)
+	schemaObject, err := attributesBlocksToObject(body.Attributes)
 	if err != nil {
 		return seven(err)
 	}
@@ -578,25 +578,25 @@ func schemaFullToBody(self *SchemaFull) (*light.Body, error) {
 	if self.Schema != nil {
 		attrs["schema"] = &light.Attribute{
 			Name: "schema",
-			Expr: stringToTextValueExpr(*self.Schema),
+			Expr: light.StringToTextValueExpr(*self.Schema),
 		}
 	}
 	if self.ID != nil {
 		attrs["id"] = &light.Attribute{
 			Name: "id",
-			Expr: stringToTextValueExpr(*self.ID),
+			Expr: light.StringToTextValueExpr(*self.ID),
 		}
 	}
 	if self.ReadOnly != nil {
 		attrs["readOnly"] = &light.Attribute{
 			Name: "readOnly",
-			Expr: booleanToLiteralValueExpr(*self.ReadOnly),
+			Expr: light.BooleanToLiteralValueExpr(*self.ReadOnly),
 		}
 	}
 	if self.WriteOnly != nil {
 		attrs["writeOnly"] = &light.Attribute{
 			Name: "writeOnly",
-			Expr: booleanToLiteralValueExpr(*self.WriteOnly),
+			Expr: light.BooleanToLiteralValueExpr(*self.WriteOnly),
 		}
 	}
 	if self.AdditionalItems != nil {
@@ -698,13 +698,13 @@ func schemaFullToBody(self *SchemaFull) (*light.Body, error) {
 	if self.Title != nil {
 		attrs["title"] = &light.Attribute{
 			Name: "title",
-			Expr: stringToTextValueExpr(*self.Title),
+			Expr: light.StringToTextValueExpr(*self.Title),
 		}
 	}
 	if self.Description != nil {
 		attrs["description"] = &light.Attribute{
 			Name: "description",
-			Expr: stringToTextValueExpr(*self.Description),
+			Expr: light.StringToTextValueExpr(*self.Description),
 		}
 	}
 
@@ -737,13 +737,13 @@ func bodyToSchemaFull(body *light.Body) (*SchemaFull, error) {
 		for name, attr := range body.Attributes {
 			switch name {
 			case "schema":
-				full.Schema = literalValueExprToString(attr.Expr)
+				full.Schema = light.LiteralValueExprToString(attr.Expr)
 			case "id":
-				full.ID = literalValueExprToString(attr.Expr)
+				full.ID = light.LiteralValueExprToString(attr.Expr)
 			case "readOnly":
-				full.ReadOnly = literalValueExprToBoolean(attr.Expr)
+				full.ReadOnly = light.LiteralValueExprToBoolean(attr.Expr)
 			case "writeOnly":
-				full.WriteOnly = literalValueExprToBoolean(attr.Expr)
+				full.WriteOnly = light.LiteralValueExprToBoolean(attr.Expr)
 			case "additionalItems":
 				full.AdditionalItems, err = expressionToSchemaOrBoolean(attr.Expr)
 			case "patternProperties":

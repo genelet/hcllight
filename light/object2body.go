@@ -5,7 +5,7 @@ import (
 	"strings"
 )
 
-func stringToTextValueExpr(s string) *Expression {
+func StringToTextValueExpr(s string) *Expression {
 	if s == "" {
 		return nil
 	}
@@ -13,13 +13,13 @@ func stringToTextValueExpr(s string) *Expression {
 	return &Expression{
 		ExpressionClause: &Expression_Texpr{
 			Texpr: &TemplateExpr{
-				Parts: []*Expression{stringToLiteralValueExpr(s)},
+				Parts: []*Expression{StringToLiteralValueExpr(s)},
 			},
 		},
 	}
 }
 
-func textValueExprToString(t *Expression) *string {
+func TextValueExprToString(t *Expression) *string {
 	if t == nil {
 		return nil
 	}
@@ -33,10 +33,10 @@ func textValueExprToString(t *Expression) *string {
 	if parts[0].GetLvexpr() == nil {
 		return nil
 	}
-	return literalValueExprToString(parts[0])
+	return LiteralValueExprToString(parts[0])
 }
 
-func stringToLiteralValueExpr(s string) *Expression {
+func StringToLiteralValueExpr(s string) *Expression {
 	s = strings.TrimSpace(s)
 	s = strings.Trim(s, "\"")              // people sometimes double quote strings in JSON
 	s = strings.ReplaceAll(s, "\n", "\\n") // newlines are not accepted in HCL
@@ -56,7 +56,7 @@ func stringToLiteralValueExpr(s string) *Expression {
 	}
 }
 
-func literalValueExprToString(l *Expression) *string {
+func LiteralValueExprToString(l *Expression) *string {
 	if l == nil {
 		return nil
 	}
@@ -70,25 +70,25 @@ func literalValueExprToString(l *Expression) *string {
 	return &x
 }
 
-func keyValueExprToString(l *Expression) *string {
+func KeyValueExprToString(l *Expression) *string {
 	if l == nil {
 		return nil
 	}
 
 	switch l.ExpressionClause.(type) {
 	case *Expression_Lvexpr:
-		return literalValueExprToString(l)
+		return LiteralValueExprToString(l)
 	case *Expression_Texpr:
-		return textValueExprToString(l)
+		return TextValueExprToString(l)
 	case *Expression_Ockexpr:
 		k := l.GetOckexpr()
 		if k.ForceNonLiteral {
 		} else {
 			switch k.Wrapped.ExpressionClause.(type) {
 			case *Expression_Texpr:
-				return textValueExprToString(k.Wrapped)
+				return TextValueExprToString(k.Wrapped)
 			case *Expression_Stexpr:
-				return traversalToString(k.Wrapped)
+				return TraversalToString(k.Wrapped)
 			default:
 			}
 		}
@@ -97,7 +97,7 @@ func keyValueExprToString(l *Expression) *string {
 	return nil
 }
 
-func int64ToLiteralValueExpr(i int64) *Expression {
+func Int64ToLiteralValueExpr(i int64) *Expression {
 	return &Expression{
 		ExpressionClause: &Expression_Lvexpr{
 			Lvexpr: &LiteralValueExpr{
@@ -111,7 +111,7 @@ func int64ToLiteralValueExpr(i int64) *Expression {
 	}
 }
 
-func literalValueExprToInt64(l *Expression) *int64 {
+func LiteralValueExprToInt64(l *Expression) *int64 {
 	if l == nil {
 		return nil
 	}
@@ -125,7 +125,7 @@ func literalValueExprToInt64(l *Expression) *int64 {
 	return &x
 }
 
-func float64ToLiteralValueExpr(f float64) *Expression {
+func Float64ToLiteralValueExpr(f float64) *Expression {
 	return &Expression{
 		ExpressionClause: &Expression_Lvexpr{
 			Lvexpr: &LiteralValueExpr{
@@ -139,7 +139,7 @@ func float64ToLiteralValueExpr(f float64) *Expression {
 	}
 }
 
-func literalValueExprToFloat64(l *Expression) *float64 {
+func LiteralValueExprToFloat64(l *Expression) *float64 {
 	if l == nil {
 		return nil
 	}
@@ -157,18 +157,18 @@ func literalValueExprToFloat64(l *Expression) *float64 {
 	case *Expression_Uoexpr:
 		u := l.GetUoexpr()
 		if u.Op.Sign == TokenType_Minus {
-			y := *literalValueExprToFloat64(u.Val)
+			y := *LiteralValueExprToFloat64(u.Val)
 			y *= -1
 			return &y
 		}
-		return literalValueExprToFloat64(u.Val)
+		return LiteralValueExprToFloat64(u.Val)
 	default:
 	}
 
 	return nil
 }
 
-func booleanToLiteralValueExpr(b bool) *Expression {
+func BooleanToLiteralValueExpr(b bool) *Expression {
 	return &Expression{
 		ExpressionClause: &Expression_Lvexpr{
 			Lvexpr: &LiteralValueExpr{
@@ -182,7 +182,7 @@ func booleanToLiteralValueExpr(b bool) *Expression {
 	}
 }
 
-func literalValueExprToBoolean(l *Expression) *bool {
+func LiteralValueExprToBoolean(l *Expression) *bool {
 	if l == nil {
 		return nil
 	}
@@ -196,12 +196,12 @@ func literalValueExprToBoolean(l *Expression) *bool {
 	return &x
 }
 
-func stringMapToObjConsExpr(items map[string]string) *Expression {
+func StringMapToObjConsExpr(items map[string]string) *Expression {
 	var args []*ObjectConsItem
 	for k, v := range items {
 		args = append(args, &ObjectConsItem{
-			KeyExpr:   stringToTextValueExpr(k),
-			ValueExpr: stringToTextValueExpr(v),
+			KeyExpr:   StringToTextValueExpr(k),
+			ValueExpr: StringToTextValueExpr(v),
 		})
 	}
 
@@ -214,7 +214,7 @@ func stringMapToObjConsExpr(items map[string]string) *Expression {
 	}
 }
 
-func objConsExprToStringMap(expr *Expression) map[string]string {
+func ObjConsExprToStringMap(expr *Expression) map[string]string {
 	if expr == nil {
 		return nil
 	}
@@ -226,14 +226,14 @@ func objConsExprToStringMap(expr *Expression) map[string]string {
 
 	items := make(map[string]string)
 	for _, item := range o.Items {
-		k := *keyValueExprToString(item.KeyExpr)
-		v := *textValueExprToString(item.ValueExpr)
+		k := *KeyValueExprToString(item.KeyExpr)
+		v := *TextValueExprToString(item.ValueExpr)
 		items[k] = v
 	}
 	return items
 }
 
-func stringArrayToTupleConsEpr(items []string) *Expression {
+func StringArrayToTupleConsEpr(items []string) *Expression {
 	return &Expression{
 		ExpressionClause: &Expression_Tcexpr{
 			Tcexpr: &TupleConsExpr{
@@ -243,7 +243,7 @@ func stringArrayToTupleConsEpr(items []string) *Expression {
 	}
 }
 
-func tupleConsExprToStringArray(expr *Expression) []string {
+func TupleConsExprToStringArray(expr *Expression) []string {
 	if expr == nil {
 		return nil
 	}
@@ -256,7 +256,7 @@ func tupleConsExprToStringArray(expr *Expression) []string {
 		x := t.Exprs[0]
 		switch x.ExpressionClause.(type) {
 		case *Expression_Tcexpr:
-			return tupleConsExprToStringArray(x)
+			return TupleConsExprToStringArray(x)
 		default:
 		}
 	}
@@ -267,7 +267,7 @@ func tupleConsExprToStringArray(expr *Expression) []string {
 func stringArrayToTextValueArray(items []string) []*Expression {
 	var exprs []*Expression
 	for _, item := range items {
-		exprs = append(exprs, stringToTextValueExpr(item))
+		exprs = append(exprs, StringToTextValueExpr(item))
 	}
 	return exprs
 }
@@ -280,18 +280,18 @@ func textValueArrayToStringArray(args []*Expression) []string {
 	for _, expr := range args {
 		switch expr.ExpressionClause.(type) {
 		case *Expression_Texpr:
-			items = append(items, *textValueExprToString(expr))
+			items = append(items, *TextValueExprToString(expr))
 		case *Expression_Lvexpr:
-			items = append(items, *literalValueExprToString(expr))
+			items = append(items, *LiteralValueExprToString(expr))
 		case *Expression_Stexpr:
-			items = append(items, *traversalToString(expr))
+			items = append(items, *TraversalToString(expr))
 		default:
 		}
 	}
 	return items
 }
 
-func stringToTraversal(str string) *Expression {
+func StringToTraversal(str string) *Expression {
 	parts := strings.SplitN(str, "/", -1)
 	args := []*Traverser{
 		{TraverserClause: &Traverser_TRoot{
@@ -316,7 +316,7 @@ func stringToTraversal(str string) *Expression {
 	}
 }
 
-func traversalToString(t *Expression) *string {
+func TraversalToString(t *Expression) *string {
 	if t == nil {
 		return nil
 	}
@@ -342,12 +342,12 @@ func traversalToString(t *Expression) *string {
 
 func reliableKeyFromString(s string, quote ...bool) *Expression {
 	if len(quote) > 0 && quote[0] {
-		return stringToTextValueExpr(s)
+		return StringToTextValueExpr(s)
 	}
 	if regexp.MustCompile(`^[a-zA-Z0-9_]*$`).MatchString(s) {
-		return stringToLiteralValueExpr(s)
+		return StringToLiteralValueExpr(s)
 	}
-	return stringToTextValueExpr(s)
+	return StringToTextValueExpr(s)
 }
 
 func (self *Body) ToObjectConsExpr(quote ...bool) *ObjectConsExpr {
@@ -374,7 +374,7 @@ func (self *Body) ToObjectConsExpr(quote ...bool) *ObjectConsExpr {
 func (self *ObjectConsExpr) ToBody() *Body {
 	body := &Body{}
 	for _, item := range self.Items {
-		key := *keyValueExprToString(item.KeyExpr)
+		key := *KeyValueExprToString(item.KeyExpr)
 		if x := item.ValueExpr.GetOcexpr(); x != nil {
 			body.Blocks = append(body.Blocks, &Block{
 				Type: key,

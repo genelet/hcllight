@@ -29,7 +29,7 @@ func (self *Parameter) toHCL() (*light.Body, error) {
 		if v {
 			attrs[k] = &light.Attribute{
 				Name: k,
-				Expr: booleanToLiteralValueExpr(v),
+				Expr: light.BooleanToLiteralValueExpr(v),
 			}
 		}
 	}
@@ -37,7 +37,7 @@ func (self *Parameter) toHCL() (*light.Body, error) {
 		if v != "" {
 			attrs[k] = &light.Attribute{
 				Name: k,
-				Expr: stringToTextValueExpr(v),
+				Expr: light.StringToTextValueExpr(v),
 			}
 		}
 	}
@@ -99,31 +99,31 @@ func parameterFromHCL(body *light.Body) (*Parameter, error) {
 	for k, v := range body.Attributes {
 		switch k {
 		case "required":
-			parameter.Required = *literalValueExprToBoolean(v.Expr)
+			parameter.Required = *light.LiteralValueExprToBoolean(v.Expr)
 			found = true
 		case "deprecated":
-			parameter.Deprecated = *literalValueExprToBoolean(v.Expr)
+			parameter.Deprecated = *light.LiteralValueExprToBoolean(v.Expr)
 			found = true
 		case "allowEmptyValue":
-			parameter.AllowEmptyValue = *literalValueExprToBoolean(v.Expr)
+			parameter.AllowEmptyValue = *light.LiteralValueExprToBoolean(v.Expr)
 			found = true
 		case "explode":
-			parameter.Explode = *literalValueExprToBoolean(v.Expr)
+			parameter.Explode = *light.LiteralValueExprToBoolean(v.Expr)
 			found = true
 		case "allowReserved":
-			parameter.AllowReserved = *literalValueExprToBoolean(v.Expr)
+			parameter.AllowReserved = *light.LiteralValueExprToBoolean(v.Expr)
 			found = true
 		case "name":
-			parameter.Name = *textValueExprToString(v.Expr)
+			parameter.Name = *light.TextValueExprToString(v.Expr)
 			found = true
 		case "in":
-			parameter.In = *textValueExprToString(v.Expr)
+			parameter.In = *light.TextValueExprToString(v.Expr)
 			found = true
 		case "description":
-			parameter.Description = *textValueExprToString(v.Expr)
+			parameter.Description = *light.TextValueExprToString(v.Expr)
 			found = true
 		case "style":
-			parameter.Style = *textValueExprToString(v.Expr)
+			parameter.Style = *light.TextValueExprToString(v.Expr)
 			found = true
 		case "example":
 			parameter.Example, err = anyFromHCL(v.Expr)

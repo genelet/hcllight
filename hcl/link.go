@@ -21,7 +21,7 @@ func (self *Link) toHCL() (*light.Body, error) {
 		if v != "" {
 			attrs[k] = &light.Attribute{
 				Name: k,
-				Expr: stringToTextValueExpr(v),
+				Expr: light.StringToTextValueExpr(v),
 			}
 		}
 	}
@@ -79,13 +79,13 @@ func linkFromHCL(body *light.Body) (*Link, error) {
 	for k, v := range body.Attributes {
 		switch k {
 		case "operationRef":
-			link.OperationRef = *textValueExprToString(v.Expr)
+			link.OperationRef = *light.TextValueExprToString(v.Expr)
 			found = true
 		case "operationId":
-			link.OperationId = *textValueExprToString(v.Expr)
+			link.OperationId = *light.TextValueExprToString(v.Expr)
 			found = true
 		case "description":
-			link.Description = *textValueExprToString(v.Expr)
+			link.Description = *light.TextValueExprToString(v.Expr)
 			found = true
 		case "parameters":
 			link.Parameters, err = anyOrExpressionFromHCL(v.Expr)

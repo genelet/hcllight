@@ -21,7 +21,7 @@ func (self *Example) toHCL() (*light.Body, error) {
 		if v != "" {
 			attrs[k] = &light.Attribute{
 				Name: k,
-				Expr: stringToTextValueExpr(v),
+				Expr: light.StringToTextValueExpr(v),
 			}
 		}
 	}
@@ -57,13 +57,13 @@ func exampleFromHCL(body *light.Body) (*Example, error) {
 	for k, v := range body.Attributes {
 		switch k {
 		case "summary":
-			example.Summary = *textValueExprToString(v.Expr)
+			example.Summary = *light.TextValueExprToString(v.Expr)
 			found = true
 		case "description":
-			example.Description = *textValueExprToString(v.Expr)
+			example.Description = *light.TextValueExprToString(v.Expr)
 			found = true
 		case "externalValue":
-			example.ExternalValue = *textValueExprToString(v.Expr)
+			example.ExternalValue = *light.TextValueExprToString(v.Expr)
 			found = true
 		case "value":
 			example.Value, err = anyFromHCL(v.Expr)

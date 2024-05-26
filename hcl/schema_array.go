@@ -133,19 +133,19 @@ func arrayToAttributes(self *SchemaArray, attrs map[string]*light.Attribute) err
 	if self.MinItems != 0 {
 		attrs["minItems"] = &light.Attribute{
 			Name: "minItems",
-			Expr: int64ToLiteralValueExpr(self.MinItems),
+			Expr: light.Int64ToLiteralValueExpr(self.MinItems),
 		}
 	}
 	if self.MaxItems != 0 {
 		attrs["maxItems"] = &light.Attribute{
 			Name: "maxItems",
-			Expr: int64ToLiteralValueExpr(self.MaxItems),
+			Expr: light.Int64ToLiteralValueExpr(self.MaxItems),
 		}
 	}
 	if self.UniqueItems {
 		attrs["uniqueItems"] = &light.Attribute{
 			Name: "uniqueItems",
-			Expr: booleanToLiteralValueExpr(self.UniqueItems),
+			Expr: light.BooleanToLiteralValueExpr(self.UniqueItems),
 		}
 	}
 
@@ -161,15 +161,15 @@ func attributesToArray(attrs map[string]*light.Attribute) (*SchemaArray, error) 
 	var err error
 	array := &SchemaArray{}
 	if v, ok := attrs["minItems"]; ok {
-		array.MinItems = *literalValueExprToInt64(v.Expr)
+		array.MinItems = *light.LiteralValueExprToInt64(v.Expr)
 		found = true
 	}
 	if v, ok := attrs["maxItems"]; ok {
-		array.MaxItems = *literalValueExprToInt64(v.Expr)
+		array.MaxItems = *light.LiteralValueExprToInt64(v.Expr)
 		found = true
 	}
 	if v, ok := attrs["uniqueItems"]; ok {
-		array.UniqueItems = *literalValueExprToBoolean(v.Expr)
+		array.UniqueItems = *light.LiteralValueExprToBoolean(v.Expr)
 		found = true
 	}
 
@@ -227,13 +227,13 @@ func fcexprToSchemaArray(fcexpr *light.FunctionCallExpr) (*SchemaArray, error) {
 			expr := arg.GetFcexpr()
 			switch expr.Name {
 			case "maxItems":
-				s.MaxItems = *literalValueExprToInt64(expr.Args[0])
+				s.MaxItems = *light.LiteralValueExprToInt64(expr.Args[0])
 				found = true
 			case "minItems":
-				s.MinItems = *literalValueExprToInt64(expr.Args[0])
+				s.MinItems = *light.LiteralValueExprToInt64(expr.Args[0])
 				found = true
 			case "uniqueItems":
-				s.UniqueItems = *literalValueExprToBoolean(expr.Args[0])
+				s.UniqueItems = *light.LiteralValueExprToBoolean(expr.Args[0])
 				found = true
 			default:
 			}

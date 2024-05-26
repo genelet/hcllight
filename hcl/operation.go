@@ -20,7 +20,7 @@ func (self *Operation) toHCL() (*light.Body, error) {
 		if v {
 			attrs[k] = &light.Attribute{
 				Name: k,
-				Expr: booleanToLiteralValueExpr(v),
+				Expr: light.BooleanToLiteralValueExpr(v),
 			}
 		}
 	}
@@ -28,12 +28,12 @@ func (self *Operation) toHCL() (*light.Body, error) {
 		if v != "" {
 			attrs[k] = &light.Attribute{
 				Name: k,
-				Expr: stringToTextValueExpr(v),
+				Expr: light.StringToTextValueExpr(v),
 			}
 		}
 	}
 	if self.Tags != nil {
-		expr := stringArrayToTupleConsEpr(self.Tags)
+		expr := light.StringArrayToTupleConsEpr(self.Tags)
 		attrs["tags"] = &light.Attribute{
 			Name: "tags",
 			Expr: expr,
@@ -116,19 +116,19 @@ func operationFromHCL(body *light.Body) (*Operation, error) {
 	for k, v := range body.Attributes {
 		switch k {
 		case "deprecated":
-			self.Deprecated = *literalValueExprToBoolean(v.Expr)
+			self.Deprecated = *light.LiteralValueExprToBoolean(v.Expr)
 			found = true
 		case "summary":
-			self.Summary = *textValueExprToString(v.Expr)
+			self.Summary = *light.TextValueExprToString(v.Expr)
 			found = true
 		case "description":
-			self.Description = *textValueExprToString(v.Expr)
+			self.Description = *light.TextValueExprToString(v.Expr)
 			found = true
 		case "operationId":
-			self.OperationId = *textValueExprToString(v.Expr)
+			self.OperationId = *light.TextValueExprToString(v.Expr)
 			found = true
 		case "tags":
-			self.Tags = tupleConsExprToStringArray(v.Expr)
+			self.Tags = light.TupleConsExprToStringArray(v.Expr)
 			found = true
 		case "security":
 			self.Security, err = expressionToSecurityRequirement(v.Expr)

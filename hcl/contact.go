@@ -16,7 +16,7 @@ func (self *Contact) toHCL() (*light.Body, error) {
 		if v != "" {
 			attrs[k] = &light.Attribute{
 				Name: k,
-				Expr: stringToTextValueExpr(v),
+				Expr: light.StringToTextValueExpr(v),
 			}
 		}
 	}
@@ -36,19 +36,19 @@ func contactFromHCL(body *light.Body) (*Contact, error) {
 	var found bool
 	if attr, ok := body.Attributes["name"]; ok {
 		if attr.Expr != nil {
-			self.Name = *textValueExprToString(attr.Expr)
+			self.Name = *light.TextValueExprToString(attr.Expr)
 			found = true
 		}
 	}
 	if attr, ok := body.Attributes["url"]; ok {
 		if attr.Expr != nil {
-			self.Url = *textValueExprToString(attr.Expr)
+			self.Url = *light.TextValueExprToString(attr.Expr)
 			found = true
 		}
 	}
 	if attr, ok := body.Attributes["email"]; ok {
 		if attr.Expr != nil {
-			self.Email = *textValueExprToString(attr.Expr)
+			self.Email = *light.TextValueExprToString(attr.Expr)
 			found = true
 		}
 

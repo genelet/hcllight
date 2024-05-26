@@ -46,13 +46,13 @@ func (self *RequestBody) toHCL() (*light.Body, error) {
 	if self.Description != "" {
 		attrs["description"] = &light.Attribute{
 			Name: "description",
-			Expr: stringToTextValueExpr(self.Description),
+			Expr: light.StringToTextValueExpr(self.Description),
 		}
 	}
 	if self.Required {
 		attrs["required"] = &light.Attribute{
 			Name: "required",
-			Expr: booleanToLiteralValueExpr(self.Required),
+			Expr: light.BooleanToLiteralValueExpr(self.Required),
 		}
 	}
 	if err := addSpecification(self.SpecificationExtension, &blocks); err != nil {
@@ -88,10 +88,10 @@ func requestBodyFromHCL(body *light.Body) (*RequestBody, error) {
 	for k, v := range body.Attributes {
 		switch k {
 		case "description":
-			requestBody.Description = *textValueExprToString(v.Expr)
+			requestBody.Description = *light.TextValueExprToString(v.Expr)
 			found = true
 		case "required":
-			requestBody.Required = *literalValueExprToBoolean(v.Expr)
+			requestBody.Required = *light.LiteralValueExprToBoolean(v.Expr)
 			found = true
 		default:
 		}

@@ -17,7 +17,7 @@ func (self *Info) toHCL() (*light.Body, error) {
 		if v != "" {
 			attrs[k] = &light.Attribute{
 				Name: k,
-				Expr: stringToTextValueExpr(v),
+				Expr: light.StringToTextValueExpr(v),
 			}
 		}
 	}
@@ -62,16 +62,16 @@ func infoFromHCL(body *light.Body) (*Info, error) {
 	for k, v := range body.Attributes {
 		switch k {
 		case "title":
-			info.Title = *textValueExprToString(v.Expr)
+			info.Title = *light.TextValueExprToString(v.Expr)
 			found = true
 		case "description":
-			info.Description = *textValueExprToString(v.Expr)
+			info.Description = *light.TextValueExprToString(v.Expr)
 			found = true
 		case "termsOfService":
-			info.TermsOfService = *textValueExprToString(v.Expr)
+			info.TermsOfService = *light.TextValueExprToString(v.Expr)
 			found = true
 		case "version":
-			info.Version = *textValueExprToString(v.Expr)
+			info.Version = *light.TextValueExprToString(v.Expr)
 			found = true
 		}
 	}

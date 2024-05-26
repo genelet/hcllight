@@ -16,7 +16,7 @@ func (self *Server) toHCL() (*light.Body, error) {
 		if v != "" {
 			attrs[k] = &light.Attribute{
 				Name: k,
-				Expr: stringToTextValueExpr(v),
+				Expr: light.StringToTextValueExpr(v),
 			}
 		}
 	}
@@ -49,11 +49,11 @@ func serverFromHCL(body *light.Body) (*Server, error) {
 	var found bool
 	var err error
 	if attr, ok := body.Attributes["url"]; ok {
-		self.Url = *textValueExprToString(attr.Expr)
+		self.Url = *light.TextValueExprToString(attr.Expr)
 		found = true
 	}
 	if attr, ok := body.Attributes["description"]; ok {
-		self.Description = *textValueExprToString(attr.Expr)
+		self.Description = *light.TextValueExprToString(attr.Expr)
 		found = true
 	}
 

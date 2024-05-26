@@ -12,31 +12,31 @@ func numberToAttributes(self *SchemaNumber, attrs map[string]*light.Attribute) e
 	if self.Minimum != 0 {
 		attrs["minimum"] = &light.Attribute{
 			Name: "minimum",
-			Expr: float64ToLiteralValueExpr(self.Minimum),
+			Expr: light.Float64ToLiteralValueExpr(self.Minimum),
 		}
 	}
 	if self.Maximum != 0 {
 		attrs["maximum"] = &light.Attribute{
 			Name: "maximum",
-			Expr: float64ToLiteralValueExpr(self.Maximum),
+			Expr: light.Float64ToLiteralValueExpr(self.Maximum),
 		}
 	}
 	if self.ExclusiveMinimum {
 		attrs["exclusiveMinimum"] = &light.Attribute{
 			Name: "exclusiveMinimum",
-			Expr: booleanToLiteralValueExpr(self.ExclusiveMinimum),
+			Expr: light.BooleanToLiteralValueExpr(self.ExclusiveMinimum),
 		}
 	}
 	if self.ExclusiveMaximum {
 		attrs["exclusiveMaximum"] = &light.Attribute{
 			Name: "exclusiveMaximum",
-			Expr: booleanToLiteralValueExpr(self.ExclusiveMaximum),
+			Expr: light.BooleanToLiteralValueExpr(self.ExclusiveMaximum),
 		}
 	}
 	if self.MultipleOf != 0 {
 		attrs["multipleOf"] = &light.Attribute{
 			Name: "multipleOf",
-			Expr: float64ToLiteralValueExpr(self.MultipleOf),
+			Expr: light.Float64ToLiteralValueExpr(self.MultipleOf),
 		}
 	}
 	return nil
@@ -50,23 +50,23 @@ func attributesToNumber(attrs map[string]*light.Attribute) (*SchemaNumber, error
 	var found bool
 	number := &SchemaNumber{}
 	if v, ok := attrs["minimum"]; ok {
-		number.Minimum = *literalValueExprToFloat64(v.Expr)
+		number.Minimum = *light.LiteralValueExprToFloat64(v.Expr)
 		found = true
 	}
 	if v, ok := attrs["maximum"]; ok {
-		number.Maximum = *literalValueExprToFloat64(v.Expr)
+		number.Maximum = *light.LiteralValueExprToFloat64(v.Expr)
 		found = true
 	}
 	if v, ok := attrs["exclusiveMinimum"]; ok {
-		number.ExclusiveMinimum = *literalValueExprToBoolean(v.Expr)
+		number.ExclusiveMinimum = *light.LiteralValueExprToBoolean(v.Expr)
 		found = true
 	}
 	if v, ok := attrs["exclusiveMaximum"]; ok {
-		number.ExclusiveMaximum = *literalValueExprToBoolean(v.Expr)
+		number.ExclusiveMaximum = *light.LiteralValueExprToBoolean(v.Expr)
 		found = true
 	}
 	if v, ok := attrs["multipleOf"]; ok {
-		number.MultipleOf = *literalValueExprToFloat64(v.Expr)
+		number.MultipleOf = *light.LiteralValueExprToFloat64(v.Expr)
 		found = true
 	}
 
@@ -113,19 +113,19 @@ func fcexprToSchemaNumber(fcexpr *light.FunctionCallExpr) (*SchemaNumber, error)
 			expr := arg.GetFcexpr()
 			switch expr.Name {
 			case "minimum":
-				s.Minimum = *literalValueExprToFloat64(expr.Args[0])
+				s.Minimum = *light.LiteralValueExprToFloat64(expr.Args[0])
 				found = true
 			case "maximum":
-				s.Maximum = *literalValueExprToFloat64(expr.Args[0])
+				s.Maximum = *light.LiteralValueExprToFloat64(expr.Args[0])
 				found = true
 			case "exclusiveMinimum":
-				s.ExclusiveMinimum = *literalValueExprToBoolean(expr.Args[0])
+				s.ExclusiveMinimum = *light.LiteralValueExprToBoolean(expr.Args[0])
 				found = true
 			case "exclusiveMaximum":
-				s.ExclusiveMaximum = *literalValueExprToBoolean(expr.Args[0])
+				s.ExclusiveMaximum = *light.LiteralValueExprToBoolean(expr.Args[0])
 				found = true
 			case "multipleOf":
-				s.MultipleOf = *literalValueExprToFloat64(expr.Args[0])
+				s.MultipleOf = *light.LiteralValueExprToFloat64(expr.Args[0])
 				found = true
 			default:
 			}

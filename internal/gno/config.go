@@ -307,7 +307,7 @@ func refToScopeTraversalExpr(ref string) (*light.ScopeTraversalExpr, error) {
 	}, nil
 }
 
-func stringToLiteralValueExpr(s string) *light.Expression {
+func light.StringToLiteralValueExpr(s string) *light.Expression {
 	return &light.Expression{
 		ExpressionClause: &light.Expression_Lvexpr{
 			Lvexpr: &light.LiteralValueExpr{
@@ -402,7 +402,7 @@ func (self *GnoConfig) exprSchema(v *openapiv3.Schema) (*light.Expression, error
 				return nil, err
 			}
 			items = append(items, &light.ObjectConsItem{
-				KeyExpr:   stringToLiteralValueExpr(item.Name),
+				KeyExpr:   light.StringToLiteralValueExpr(item.Name),
 				ValueExpr: expr,
 			})
 		}

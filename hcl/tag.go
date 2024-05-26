@@ -15,7 +15,7 @@ func (self *Tag) toHCL() (*light.Body, error) {
 		if v != "" {
 			attrs[k] = &light.Attribute{
 				Name: k,
-				Expr: stringToTextValueExpr(v),
+				Expr: light.StringToTextValueExpr(v),
 			}
 		}
 	}
@@ -43,11 +43,11 @@ func tagFromHCL(body *light.Body) (*Tag, error) {
 	self := &Tag{}
 	var found bool
 	if attr, ok := body.Attributes["description"]; ok {
-		self.Description = *textValueExprToString(attr.Expr)
+		self.Description = *light.TextValueExprToString(attr.Expr)
 		found = true
 	}
 	if attr, ok := body.Attributes["name"]; ok {
-		self.Name = *textValueExprToString(attr.Expr)
+		self.Name = *light.TextValueExprToString(attr.Expr)
 		found = true
 	}
 	for _, block := range body.Blocks {

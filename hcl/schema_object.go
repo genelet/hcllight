@@ -12,17 +12,17 @@ func objectToAttributesBlocks(self *SchemaObject, attrs map[string]*light.Attrib
 	if self.MinProperties != 0 {
 		attrs["minProperties"] = &light.Attribute{
 			Name: "minProperties",
-			Expr: int64ToLiteralValueExpr(self.MinProperties),
+			Expr: light.Int64ToLiteralValueExpr(self.MinProperties),
 		}
 	}
 	if self.MaxProperties != 0 {
 		attrs["maxProperties"] = &light.Attribute{
 			Name: "maxProperties",
-			Expr: int64ToLiteralValueExpr(self.MaxProperties),
+			Expr: light.Int64ToLiteralValueExpr(self.MaxProperties),
 		}
 	}
 	if self.Required != nil {
-		expr := stringArrayToTupleConsEpr(self.Required)
+		expr := light.StringArrayToTupleConsEpr(self.Required)
 		attrs["required"] = &light.Attribute{
 			Name: "required",
 			Expr: expr,
@@ -49,15 +49,15 @@ func attributesBlocksToObject(attrs map[string]*light.Attribute, blocks []*light
 	var found bool
 
 	if v, ok := attrs["minProperties"]; ok {
-		object.MinProperties = *literalValueExprToInt64(v.Expr)
+		object.MinProperties = *light.LiteralValueExprToInt64(v.Expr)
 		found = true
 	}
 	if v, ok := attrs["maxProperties"]; ok {
-		object.MaxProperties = *literalValueExprToInt64(v.Expr)
+		object.MaxProperties = *light.LiteralValueExprToInt64(v.Expr)
 		found = true
 	}
 	if v, ok := attrs["required"]; ok {
-		object.Required = tupleConsExprToStringArray(v.Expr)
+		object.Required = light.TupleConsExprToStringArray(v.Expr)
 		found = true
 	}
 
@@ -89,7 +89,7 @@ func schemaObjectToFcexpr(self *SchemaObject, expr *light.FunctionCallExpr) erro
 		expr.Args = append(expr.Args, in64ToLiteralFcexpr("minProperties", self.MinProperties))
 	}
 	if self.Required != nil {
-		tcexpr := stringArrayToTupleConsEpr(self.Required)
+		tcexpr := light.StringArrayToTupleConsEpr(self.Required)
 		expr.Args = append(expr.Args, shortToFcexpr("required", tcexpr))
 	}
 	if self.Properties != nil {
@@ -120,13 +120,13 @@ func fcexprToSchemaObject(fcexpr *light.FunctionCallExpr) (*SchemaObject, error)
 			expr := arg.GetFcexpr()
 			switch expr.Name {
 			case "maxProperties":
-				s.MaxProperties = *literalValueExprToInt64(expr.Args[0])
+				s.MaxProperties = *light.LiteralValueExprToInt64(expr.Args[0])
 				found = true
 			case "minProperties":
-				s.MinProperties = *literalValueExprToInt64(expr.Args[0])
+				s.MinProperties = *light.LiteralValueExprToInt64(expr.Args[0])
 				found = true
 			case "required":
-				s.Required = tupleConsExprToStringArray(&light.Expression{
+				s.Required = light.TupleConsExprToStringArray(&light.Expression{
 					ExpressionClause: &light.Expression_Tcexpr{
 						Tcexpr: &light.TupleConsExpr{
 							Exprs: expr.Args,

@@ -255,7 +255,7 @@ func mapSchemaOrReferenceToObjectConsExpr(m map[string]*SchemaOrReference) (*lig
 			return nil, err
 		}
 		exprs = append(exprs, &light.ObjectConsItem{
-			KeyExpr:   stringToLiteralValueExpr(k),
+			KeyExpr:   light.StringToLiteralValueExpr(k),
 			ValueExpr: expr,
 		})
 	}
@@ -270,7 +270,7 @@ func objectConsExprToMapSchemaOrReference(o *light.ObjectConsExpr) (map[string]*
 	}
 	m := make(map[string]*SchemaOrReference)
 	for _, item := range o.Items {
-		key := *keyValueExprToString(item.KeyExpr)
+		key := *light.KeyValueExprToString(item.KeyExpr)
 		value, err := expressionToSchemaOrReference(item.ValueExpr)
 		if err != nil {
 			return nil, err

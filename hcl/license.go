@@ -15,7 +15,7 @@ func (self *License) toHCL() (*light.Body, error) {
 		if v != "" {
 			attrs[k] = &light.Attribute{
 				Name: k,
-				Expr: stringToTextValueExpr(v),
+				Expr: light.StringToTextValueExpr(v),
 			}
 		}
 	}
@@ -35,13 +35,13 @@ func licenseFromHCL(body *light.Body) (*License, error) {
 	var found bool
 	if attr, ok := body.Attributes["name"]; ok {
 		if attr.Expr != nil {
-			self.Name = *textValueExprToString(attr.Expr)
+			self.Name = *light.TextValueExprToString(attr.Expr)
 			found = true
 		}
 	}
 	if attr, ok := body.Attributes["url"]; ok {
 		if attr.Expr != nil {
-			self.Url = *textValueExprToString(attr.Expr)
+			self.Url = *light.TextValueExprToString(attr.Expr)
 		}
 	}
 

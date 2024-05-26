@@ -12,19 +12,19 @@ func stringToAttributes(self *SchemaString, attrs map[string]*light.Attribute) e
 	if self.MinLength != 0 {
 		attrs["minLength"] = &light.Attribute{
 			Name: "minLength",
-			Expr: int64ToLiteralValueExpr(self.MinLength),
+			Expr: light.Int64ToLiteralValueExpr(self.MinLength),
 		}
 	}
 	if self.MaxLength != 0 {
 		attrs["maxLength"] = &light.Attribute{
 			Name: "maxLength",
-			Expr: int64ToLiteralValueExpr(self.MaxLength),
+			Expr: light.Int64ToLiteralValueExpr(self.MaxLength),
 		}
 	}
 	if self.Pattern != "" {
 		attrs["pattern"] = &light.Attribute{
 			Name: "pattern",
-			Expr: stringToTextValueExpr(self.Pattern),
+			Expr: light.StringToTextValueExpr(self.Pattern),
 		}
 	}
 	return nil
@@ -38,15 +38,15 @@ func attributesToString(attrs map[string]*light.Attribute) (*SchemaString, error
 	var found bool
 	str := &SchemaString{}
 	if v, ok := attrs["minLength"]; ok {
-		str.MinLength = *literalValueExprToInt64(v.Expr)
+		str.MinLength = *light.LiteralValueExprToInt64(v.Expr)
 		found = true
 	}
 	if v, ok := attrs["maxLength"]; ok {
-		str.MaxLength = *literalValueExprToInt64(v.Expr)
+		str.MaxLength = *light.LiteralValueExprToInt64(v.Expr)
 		found = true
 	}
 	if v, ok := attrs["pattern"]; ok {
-		str.Pattern = *textValueExprToString(v.Expr)
+		str.Pattern = *light.TextValueExprToString(v.Expr)
 		found = true
 	}
 
@@ -81,13 +81,13 @@ func fcexprToSchemaString(fcexpr *light.FunctionCallExpr) (*SchemaString, error)
 			expr := arg.GetFcexpr()
 			switch expr.Name {
 			case "maxLength":
-				s.MaxLength = *literalValueExprToInt64(expr.Args[0])
+				s.MaxLength = *light.LiteralValueExprToInt64(expr.Args[0])
 				found = true
 			case "minLength":
-				s.MinLength = *literalValueExprToInt64(expr.Args[0])
+				s.MinLength = *light.LiteralValueExprToInt64(expr.Args[0])
 				found = true
 			case "pattern":
-				s.Pattern = *textValueExprToString(expr.Args[0])
+				s.Pattern = *light.TextValueExprToString(expr.Args[0])
 				found = true
 			default:
 			}

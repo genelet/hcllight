@@ -16,7 +16,7 @@ func (self *Response) toHCL() (*light.Body, error) {
 		body.Attributes = map[string]*light.Attribute{
 			"description": {
 				Name: "description",
-				Expr: stringToTextValueExpr(self.Description),
+				Expr: light.StringToTextValueExpr(self.Description),
 			},
 		}
 	}
@@ -65,7 +65,7 @@ func responseFromHCL(body *light.Body) (*Response, error) {
 	for k, v := range body.Attributes {
 		switch k {
 		case "description":
-			response.Description = *textValueExprToString(v.Expr)
+			response.Description = *light.TextValueExprToString(v.Expr)
 			found = true
 		default:
 		}
