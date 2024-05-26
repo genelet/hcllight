@@ -68,7 +68,7 @@ func tagFromHCL(body *light.Body) (*Tag, error) {
 }
 
 func tagsToTupleConsExpr(tags []*Tag) (*light.Expression, error) {
-	if tags == nil || len(tags) == 0 {
+	if len(tags) == 0 {
 		return nil, nil
 	}
 	var arr []ableHCL

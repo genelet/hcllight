@@ -92,23 +92,6 @@ func (self *Any) toExpression(typ ...string) (*light.Expression, error) {
 	return nil, err
 }
 
-func (self *Any) toFcexpr(typ ...string) (*light.Expression, error) {
-	expr, err := self.toExpression(typ...)
-	if err != nil {
-		return nil, err
-	}
-	args := []*light.Expression{expr}
-
-	return &light.Expression{
-		ExpressionClause: &light.Expression_Fcexpr{
-			Fcexpr: &light.FunctionCallExpr{
-				Name: "example",
-				Args: args,
-			},
-		},
-	}, nil
-}
-
 func anyFromHCL(expr *light.Expression) (*Any, error) {
 	if expr == nil {
 		return nil, nil
@@ -140,7 +123,7 @@ func anyFromHCL(expr *light.Expression) (*Any, error) {
 }
 
 func addSpecification(se map[string]*Any, blocks *[]*light.Block) error {
-	if se == nil || len(se) == 0 {
+	if len(se) == 0 {
 		return nil
 	}
 	bdy, err := anyMapToBody(se)
@@ -163,7 +146,7 @@ func getSpecification(body *light.Body) (map[string]*Any, error) {
 	}
 	for _, block := range body.Blocks {
 		if block.Type == "specificationExtension" {
-			return bodyToAnyMap(body)
+			return bodyToAnyMap(block.Bdy)
 		}
 	}
 	return nil, nil

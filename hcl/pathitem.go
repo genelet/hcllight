@@ -5,53 +5,35 @@ import (
 	//pp "github.com/k0kubun/pp/v3"
 )
 
-func (self *PathItemOrReference) toExpression() (*light.Expression, error) {
-	switch self.Oneof.(type) {
-	case *PathItemOrReference_Item:
-		body, err := self.GetItem().toHCL()
-		if err != nil {
-			return nil, err
+/*
+	func expressionToPathItemOrReference(expr *light.Expression) (*PathItemOrReference, error) {
+		if expr == nil {
+			return nil, nil
 		}
-		return &light.Expression{
-			ExpressionClause: &light.Expression_Ocexpr{
-				Ocexpr: body.ToObjectConsExpr(),
-			},
-		}, nil
-	case *PathItemOrReference_Reference:
-		return self.GetReference().toExpression()
-	default:
-	}
-	return nil, nil
-}
 
-func expressionToPathItemOrReference(expr *light.Expression) (*PathItemOrReference, error) {
-	if expr == nil {
-		return nil, nil
-	}
-
-	switch expr.ExpressionClause.(type) {
-	case *light.Expression_Ocexpr:
-		body := expr.GetOcexpr().ToBody()
-		item, err := pathItemFromHCL(body)
-		if err != nil {
-			return nil, err
+		switch expr.ExpressionClause.(type) {
+		case *light.Expression_Ocexpr:
+			body := expr.GetOcexpr().ToBody()
+			item, err := pathItemFromHCL(body)
+			if err != nil {
+				return nil, err
+			}
+			return &PathItemOrReference{
+				Oneof: &PathItemOrReference_Item{
+					Item: item,
+				},
+			}, nil
+		default:
 		}
+
+		reference, err := expressionToReference(expr)
 		return &PathItemOrReference{
-			Oneof: &PathItemOrReference_Item{
-				Item: item,
+			Oneof: &PathItemOrReference_Reference{
+				Reference: reference,
 			},
-		}, nil
-	default:
+		}, err
 	}
-
-	reference, err := expressionToReference(expr)
-	return &PathItemOrReference{
-		Oneof: &PathItemOrReference_Reference{
-			Reference: reference,
-		},
-	}, err
-}
-
+*/
 func (self *PathItem) toHCL() (*light.Body, error) {
 	hash := self.toOperationMap()
 	blocks := make([]*light.Block, 0)
@@ -72,26 +54,27 @@ func (self *PathItem) toHCL() (*light.Body, error) {
 	}, nil
 }
 
-func pathItemFromHCL(body *light.Body) (*PathItem, error) {
-	if body == nil {
+/*
+	func pathItemFromHCL(body *light.Body) (*PathItem, error) {
+		if body == nil {
+			return nil, nil
+		}
+		for _, block := range body.Blocks {
+			if block.Type == "pathItem" {
+				hash := make(map[string]*Operation)
+				for _, b := range block.Bdy.Blocks {
+					operation, err := operationFromHCL(b.Bdy)
+					if err != nil {
+						return nil, err
+					}
+					hash[b.Labels[0]] = operation
+				}
+				return pathItemFromOperationMap(hash), nil
+			}
+		}
 		return nil, nil
 	}
-	for _, block := range body.Blocks {
-		if block.Type == "pathItem" {
-			hash := make(map[string]*Operation)
-			for _, b := range block.Bdy.Blocks {
-				operation, err := operationFromHCL(b.Bdy)
-				if err != nil {
-					return nil, err
-				}
-				hash[b.Labels[0]] = operation
-			}
-			return pathItemFromOperationMap(hash), nil
-		}
-	}
-	return nil, nil
-}
-
+*/
 func (self *PathItem) toOperationMap() map[string]*Operation {
 	p := make(map[string]*Operation)
 	if self.Get != nil {
@@ -132,44 +115,45 @@ func (self *PathItem) toOperationMap() map[string]*Operation {
 	return p
 }
 
-func pathItemFromOperationMap(hash map[string]*Operation) *PathItem {
-	if hash == nil {
-		return nil
-	}
-
-	p := &PathItem{}
-	for k, v := range hash {
-		switch k {
-		case "get":
-			p.Get = v
-		case "put":
-			p.Put = v
-		case "post":
-			p.Post = v
-		case "delete":
-			p.Delete = v
-		case "options":
-			p.Options = v
-		case "head":
-			p.Head = v
-		case "patch":
-			p.Patch = v
-		case "trace":
-			p.Trace = v
-		case "common":
-			p.Summary = v.Summary
-			p.Description = v.Description
-			p.Servers = v.Servers
-			p.Parameters = v.Parameters
-			p.SpecificationExtension = v.SpecificationExtension
+/*
+	func pathItemFromOperationMap(hash map[string]*Operation) *PathItem {
+		if hash == nil {
+			return nil
 		}
+
+		p := &PathItem{}
+		for k, v := range hash {
+			switch k {
+			case "get":
+				p.Get = v
+			case "put":
+				p.Put = v
+			case "post":
+				p.Post = v
+			case "delete":
+				p.Delete = v
+			case "options":
+				p.Options = v
+			case "head":
+				p.Head = v
+			case "patch":
+				p.Patch = v
+			case "trace":
+				p.Trace = v
+			case "common":
+				p.Summary = v.Summary
+				p.Description = v.Description
+				p.Servers = v.Servers
+				p.Parameters = v.Parameters
+				p.SpecificationExtension = v.SpecificationExtension
+			}
+		}
+
+		return p
 	}
-
-	return p
-}
-
+*/
 func pathItemOrReferenceMapToBlocks(paths map[string]*PathItemOrReference) ([]*light.Block, error) {
-	if paths == nil || len(paths) == 0 {
+	if len(paths) == 0 {
 		return nil, nil
 	}
 

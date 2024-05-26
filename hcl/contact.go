@@ -43,12 +43,15 @@ func contactFromHCL(body *light.Body) (*Contact, error) {
 	if attr, ok := body.Attributes["url"]; ok {
 		if attr.Expr != nil {
 			self.Url = *textValueExprToString(attr.Expr)
+			found = true
 		}
 	}
 	if attr, ok := body.Attributes["email"]; ok {
 		if attr.Expr != nil {
 			self.Email = *textValueExprToString(attr.Expr)
+			found = true
 		}
+
 	}
 
 	if !found {

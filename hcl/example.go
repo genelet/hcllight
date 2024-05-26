@@ -8,37 +8,6 @@ func (self *ExampleOrReference) getAble() ableHCL {
 	return self.GetExample()
 }
 
-func exampleOrReferenceFromHCL(body *light.Body) (*ExampleOrReference, error) {
-	if body == nil {
-		return nil, nil
-	}
-
-	reference, err := referenceFromHCL(body)
-	if err != nil {
-		return nil, err
-	}
-	if reference != nil {
-		return &ExampleOrReference{
-			Oneof: &ExampleOrReference_Reference{
-				Reference: reference,
-			},
-		}, nil
-	}
-
-	example, err := exampleFromHCL(body)
-	if err != nil {
-		return nil, err
-	}
-	if example == nil {
-		return nil, nil
-	}
-	return &ExampleOrReference{
-		Oneof: &ExampleOrReference_Example{
-			Example: example,
-		},
-	}, nil
-}
-
 func (self *Example) toHCL() (*light.Body, error) {
 	body := new(light.Body)
 	attrs := make(map[string]*light.Attribute)

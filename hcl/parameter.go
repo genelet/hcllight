@@ -8,37 +8,6 @@ func (self *ParameterOrReference) getAble() ableHCL {
 	return self.GetParameter()
 }
 
-func parameterOrReferenceFromHCL(body *light.Body) (*ParameterOrReference, error) {
-	if body == nil {
-		return nil, nil
-	}
-
-	reference, err := referenceFromHCL(body)
-	if err != nil {
-		return nil, err
-	}
-	if reference != nil {
-		return &ParameterOrReference{
-			Oneof: &ParameterOrReference_Reference{
-				Reference: reference,
-			},
-		}, nil
-	}
-
-	parameter, err := parameterFromHCL(body)
-	if err != nil {
-		return nil, err
-	}
-	if parameter == nil {
-		return nil, nil
-	}
-	return &ParameterOrReference{
-		Oneof: &ParameterOrReference_Parameter{
-			Parameter: parameter,
-		},
-	}, nil
-}
-
 func (self *Parameter) toHCL() (*light.Body, error) {
 	body := new(light.Body)
 	attrs := make(map[string]*light.Attribute)

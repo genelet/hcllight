@@ -40,7 +40,8 @@ func textValueExprToString(t *light.Expression) *string {
 func stringToLiteralValueExpr(s string) *light.Expression {
 	s = strings.TrimSpace(s)
 	s = strings.Trim(s, "\"")                // people sometimes double quote strings in JSON
-	s = strings.ReplaceAll(s, "\n", "\\\\n") // newlines are not accepted in HCL
+	//s = strings.ReplaceAll(s, "\n", "\\\\n") // newlines are not accepted in HCL
+	s = strings.ReplaceAll(s, "\n", "\\n") // newlines are not accepted in HCL
 	s = strings.ReplaceAll(s, `\/`, `/`)     // people sometimes escape slashes in JSON
 
 	return &light.Expression{

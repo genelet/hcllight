@@ -23,33 +23,6 @@ func defaultTypeToExpression(d *DefaultType) *light.Expression {
 	return nil
 }
 
-func defaultTypeToFcexpr(d *DefaultType) *light.Expression {
-	if d == nil {
-		return nil
-	}
-	args := []*light.Expression{defaultTypeToExpression(d)}
-	return &light.Expression{
-		ExpressionClause: &light.Expression_Fcexpr{
-			Fcexpr: &light.FunctionCallExpr{
-				Name: "default",
-				Args: args,
-			},
-		},
-	}
-}
-
-func fcexprToDefaultType(expr *light.Expression) *DefaultType {
-	if expr == nil {
-		return nil
-	}
-	switch expr.ExpressionClause.(type) {
-	case *light.Expression_Fcexpr:
-		return expressionToDefaultType(expr.GetFcexpr().Args[0])
-	default:
-	}
-	return nil
-}
-
 func expressionToDefaultType(e *light.Expression) *DefaultType {
 	if e == nil {
 		return nil
@@ -153,7 +126,7 @@ func commonToAttributes(self *SchemaCommon, attrs map[string]*light.Attribute) e
 	if self.Default != nil {
 		attrs["default"] = &light.Attribute{
 			Name: "default",
-			Expr: stringToLiteralValueExpr(self.Default.String()),
+			Expr: defaultTypeToExpression(self.Default),
 		}
 	}
 	if self.Example != nil {
@@ -241,14 +214,29 @@ func commonToFcexpr(self *SchemaCommon) (*light.FunctionCallExpr, error) {
 		fnc.Args = append(fnc.Args, stringToTextFcexpr("description", self.Description))
 	}
 	if self.Default != nil {
-		fnc.Args = append(fnc.Args, defaultTypeToFcexpr(self.Default))
+		expr := defaultTypeToExpression(self.Default)
+		fnc.Args = append(fnc.Args, &light.Expression{
+			ExpressionClause: &light.Expression_Fcexpr{
+				Fcexpr: &light.FunctionCallExpr{
+					Name: "default",
+					Args: []*light.Expression{expr},
+				},
+			},
+		})
 	}
 	if self.Example != nil {
-		expr, err := self.Example.toFcexpr(self.Type)
+		expr, err := self.Example.toExpression(self.Type)
 		if err != nil {
 			return nil, err
 		}
-		fnc.Args = append(fnc.Args, expr)
+		fnc.Args = append(fnc.Args, &light.Expression{
+			ExpressionClause: &light.Expression_Fcexpr{
+				Fcexpr: &light.FunctionCallExpr{
+					Name: "example",
+					Args: []*light.Expression{expr},
+				},
+			},
+		})
 	}
 	if self.Enum != nil {
 		expr, err := enumToTupleConsExpr(self.Enum, self.Type)

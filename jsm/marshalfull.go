@@ -326,10 +326,14 @@ func objectToAttributesBlocks(self *SchemaObject, attrs map[string]*light.Attrib
 		if err != nil {
 			return err
 		}
-		*blocks = append(*blocks, &light.Block{
-			Type: "properties",
-			Bdy:  bdy,
-		})
+		attrs["properties"] = &light.Attribute{
+			Name: "properties",
+			Expr: &light.Expression{
+				ExpressionClause: &light.Expression_Ocexpr{
+					Ocexpr: bdy.ToObjectConsExpr(),
+				},
+			},
+		}
 	}
 
 	return nil
@@ -351,14 +355,10 @@ func attributesBlocksToObject(attrs map[string]*light.Attribute, blocks []*light
 			found = true
 		case "required":
 			object.Required = tupleConsExprToStringArray(attr.Expr)
-		default:
-		}
-	}
-
-	for _, block := range blocks {
-		if block.Type == "properties" {
-			object.Properties, err = bodyToMapSchema(block.Bdy)
+		case "properties":
+			object.Properties, err = bodyToMapSchema(attr.Expr.GetOcexpr().ToBody())
 			found = true
+		default:
 		}
 	}
 
@@ -614,10 +614,14 @@ func schemaFullToBody(self *SchemaFull) (*light.Body, error) {
 		if err != nil {
 			return nil, err
 		}
-		blocks = append(blocks, &light.Block{
-			Type: "patternProperties",
-			Bdy:  bdy,
-		})
+		attrs["patternProperties"] = &light.Attribute{
+			Name: "patternProperties",
+			Expr: &light.Expression{
+				ExpressionClause: &light.Expression_Ocexpr{
+					Ocexpr: bdy.ToObjectConsExpr(true),
+				},
+			},
+		}
 	}
 	if self.Definitions != nil {
 		bdy, err := mapSchemaToBody(self.Definitions)
@@ -742,6 +746,9 @@ func bodyToSchemaFull(body *light.Body) (*SchemaFull, error) {
 				full.WriteOnly = literalValueExprToBoolean(attr.Expr)
 			case "additionalItems":
 				full.AdditionalItems, err = expressionToSchemaOrBoolean(attr.Expr)
+			case "patternProperties":
+				full.PatternProperties, err = bodyToMapSchema(attr.Expr.GetOcexpr().ToBody())
+			default:
 			}
 		}
 	}
@@ -749,8 +756,6 @@ func bodyToSchemaFull(body *light.Body) (*SchemaFull, error) {
 	if body.Blocks != nil {
 		for _, block := range body.Blocks {
 			switch block.Type {
-			case "patternProperties":
-				full.PatternProperties, err = bodyToMapSchema(block.Bdy)
 			case "definitions":
 				full.Definitions, err = bodyToMapSchema(block.Bdy)
 			case "dependencies":
