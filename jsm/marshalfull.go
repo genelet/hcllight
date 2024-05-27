@@ -1,6 +1,8 @@
 package jsm
 
 import (
+	"fmt"
+
 	"github.com/genelet/hcllight/light"
 	"github.com/google/gnostic/jsonschema"
 	"gopkg.in/yaml.v3"
@@ -343,6 +345,15 @@ func attributesBlocksToObject(attrs map[string]*light.Attribute, blocks []*light
 	var err error
 	var found bool
 
+	if ocexpr := getOcexprFromBlocks(blocks, "properties"); ocexpr != nil {
+		object.Properties, err = ocexprToMapSchema(ocexpr)
+		if err != nil {
+			return nil, err
+		} else if object.Properties != nil {
+			found = true
+		}
+	}
+
 	for _, attr := range attrs {
 		switch attr.Name {
 		case "maxProperties":
@@ -355,18 +366,12 @@ func attributesBlocksToObject(attrs map[string]*light.Attribute, blocks []*light
 			object.Required = light.TupleConsExprToStringArray(attr.Expr)
 			found = true
 		case "properties":
+			if object.Properties != nil {
+				return nil, fmt.Errorf("properties already set")
+			}
 			object.Properties, err = ocexprToMapSchema(attr.Expr.GetOcexpr())
 			found = true
 		default:
-		}
-	}
-
-	if object.Properties == nil {
-		object.Properties, err = blocksZeroToMapSchema(blocks, "properties")
-		if err != nil {
-			return nil, err
-		} else if object.Properties != nil {
-			found = true
 		}
 	}
 
@@ -380,49 +385,40 @@ func mapToAttributes(self *SchemaMap, attrs map[string]*light.Attribute) error {
 	if self == nil || self.AdditionalProperties == nil {
 		return nil
 	}
-	if self.AdditionalProperties.Schema != nil {
-		expr, err := schemaToExpression(self.AdditionalProperties.Schema)
-		if err != nil {
-			return err
-		}
-		attrs["additionalProperties"] = &light.Attribute{
-			Name: "additionalProperties",
-			Expr: expr,
-		}
-	} else if self.AdditionalProperties.Boolean != nil {
-		attrs["additionalProperties"] = &light.Attribute{
-			Name: "additionalProperties",
-			Expr: light.BooleanToLiteralValueExpr(*self.AdditionalProperties.Boolean),
-		}
+	expr, err := schemaOrBooleanToExpression(self.AdditionalProperties)
+	attrs["additionalProperties"] = &light.Attribute{
+		Name: "additionalProperties",
+		Expr: expr,
 	}
 
-	return nil
+	return err
 }
 
-func attributesToMap(attrs map[string]*light.Attribute) (*SchemaMap, error) {
-	mmap := &SchemaMap{
-		AdditionalProperties: &SchemaOrBoolean{},
-	}
-
-	var err error
-	var found bool
-
-	for _, attr := range attrs {
-		switch attr.Name {
+func attributesBlocksToMap(attrs map[string]*light.Attribute, blocks []*light.Block) (*SchemaMap, error) {
+	for _, block := range blocks {
+		switch block.Type {
 		case "additionalProperties":
-			if attr.Expr.GetOcexpr() != nil {
-				mmap.AdditionalProperties.Schema, err = expressionToSchema(attr.Expr)
-			} else {
-				mmap.AdditionalProperties.Boolean = light.LiteralValueExprToBoolean(attr.Expr)
-			}
-			found = true
+			schema, err := schemaFromBody(block.Bdy)
+			return &SchemaMap{
+				AdditionalProperties: &SchemaOrBoolean{
+					Schema: schema,
+				},
+			}, err
 		default:
 		}
 	}
 
-	if found {
-		return mmap, err
+	for _, attr := range attrs {
+		switch attr.Name {
+		case "additionalProperties":
+			additionalProperties, err := expressionToSchemaOrBoolean(attr.Expr)
+			return &SchemaMap{
+				AdditionalProperties: additionalProperties,
+			}, err
+		default:
+		}
 	}
+
 	return nil, nil
 }
 
@@ -496,6 +492,7 @@ func bodyToShorts(body *light.Body) (*Schema, error) {
 		return nil, nil
 	}
 
+	n := len(body.Attributes)
 	for name, attr := range body.Attributes {
 		if name == "ref" {
 			ref, err := expressionToReference(attr.Expr)
@@ -507,7 +504,7 @@ func bodyToShorts(body *light.Body) (*Schema, error) {
 			}, nil
 		}
 
-		if fcexp := attr.Expr.GetFcexpr(); fcexp != nil {
+		if fcexp := attr.Expr.GetFcexpr(); fcexp != nil && n == 1 {
 			return fcexprToSchema(fcexp)
 		}
 	}
@@ -751,11 +748,13 @@ func bodyToSchemaFull(body *light.Body, common *Common, number *SchemaNumber, st
 
 	// because patternProperties could be in attrs if we once called BodyToExpress
 	if full.PatternProperties == nil {
-		full.PatternProperties, err = blocksZeroToMapSchema(body.Blocks, "patternProperties")
-		if err != nil {
-			return nil, err
-		} else if full.PatternProperties != nil {
-			found = true
+		if ocexpr := getOcexprFromBlocks(body.Blocks, "patternProperties"); ocexpr != nil {
+			full.PatternProperties, err = ocexprToMapSchema(ocexpr)
+			if err != nil {
+				return nil, err
+			} else if full.PatternProperties != nil {
+				found = true
+			}
 		}
 	}
 
@@ -783,12 +782,13 @@ func bodyToSchemaFull(body *light.Body, common *Common, number *SchemaNumber, st
 	}
 
 	if full.Not == nil {
+	OUTER:
 		for _, block := range body.Blocks {
 			switch block.Type {
 			case "not":
 				full.Not, err = schemaFromBody(block.Bdy)
 				found = true
-				break
+				break OUTER
 			default:
 			}
 		}
@@ -817,7 +817,7 @@ func bodyToSchemaFull(body *light.Body, common *Common, number *SchemaNumber, st
 		combo++
 	}
 	// usuallg only object and mmap can co-existing. But we check general combo case anyway.
-	if found || combo > 1 || common == nil || common.Type == nil || common.Type.String == nil {
+	if found || combo > 1 || common == nil || common.Type == nil || common.Type.String == nil || *common.Type.String == "null" {
 		return full, nil
 	}
 	return nil, nil
