@@ -782,12 +782,13 @@ func bodyToSchemaFull(body *light.Body, common *Common, number *SchemaNumber, st
 	}
 
 	if full.Not == nil {
+	OUTER:
 		for _, block := range body.Blocks {
 			switch block.Type {
 			case "not":
 				full.Not, err = schemaFromBody(block.Bdy)
 				found = true
-				break
+				break OUTER
 			default:
 			}
 		}
