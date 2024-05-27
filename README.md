@@ -1,11 +1,5 @@
 # HCL Light
 
-This *hcllight* package removes position and location tags in [hclsyntax](https://pkg.go.dev/github.com/hashicorp/hcl/v2/hclsyntax) , the official AST parsing package for HCL (HashiCorp Configuration Language).
-
- - It allows for dynamic manipulation of attributes, variables, expressions and blocks, after which the tree can be output back to HCL data.
- - The output can be made with or without the evaluation of logic expressions in HCL.
- - The package is defined by protobuf, enabling precise tracking of changes in the AST state.
-
 To install,
 
 ```bash
@@ -15,6 +9,20 @@ go install github.com/genelet/hcllight
 To use the *hcllight* package,
 
 [![GoDoc](https://godoc.org/github.com/genelet/hcllight?status.svg)](https://godoc.org/github.com/genelet/hcllight)
+
+This *hcllight* package removes position and location tags in [hclsyntax](https://pkg.go.dev/github.com/hashicorp/hcl/v2/hclsyntax) , the official AST parsing package for HCL (HashiCorp Configuration Language).
+
+ - It allows for dynamic manipulation of attributes, variables, expressions and blocks, after which the tree can be output back to HCL data.
+ - The output can be made with or without the evaluation of logic expressions in HCL.
+
+Two applications are in this package: 
+
+ - [jsm](./jsm), to parse JSON Schema document, draft-04, in HCL
+ - [hcl](./hcl), to parse OpenAPI description, version 3.0 and 3.1, in HCL
+
+We obtain OpenAPI and JSON Schema files that are intuitive, readable, and succinct.
+
+
 
 ## Example
 
