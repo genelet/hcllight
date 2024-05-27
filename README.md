@@ -6,9 +6,8 @@ This *hcllight* package removes position and location tags in [hclsyntax](https:
  - It allows for dynamic manipulation of attributes, variables, expressions and blocks, after which the tree can be output back to HCL data.
  - The output can be made with or without the evaluation of logic expressions in HCL.
 
-Two applications are in this package: 
+Two applications are packed together: 
 
- - [light](./light), the main AST package
  - [jsm](./jsm), to parse JSON Schema document, draft-04, in HCL
  - [hcl](./hcl), to parse OpenAPI description, version 3.0 and 3.1, in HCL
 
@@ -21,7 +20,7 @@ To install,
 go install github.com/genelet/hcllight
 ```
 
-To use the *hcllight* package,
+See the reference to use *hcllight*, *JSON Schema* and *OpenAPI* packages,
 
 [![GoDoc](https://godoc.org/github.com/genelet/hcllight?status.svg)](https://godoc.org/github.com/genelet/hcllight)
 
