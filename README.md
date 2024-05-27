@@ -1,27 +1,28 @@
 # HCL Light
 
-To install,
-
-```bash
-go install github.com/genelet/hcllight
-```
-
-To use the *hcllight* package,
-
-[![GoDoc](https://godoc.org/github.com/genelet/hcllight?status.svg)](https://godoc.org/github.com/genelet/hcllight)
 
 This *hcllight* package removes position and location tags in [hclsyntax](https://pkg.go.dev/github.com/hashicorp/hcl/v2/hclsyntax) , the official AST parsing package for HCL (HashiCorp Configuration Language).
 
  - It allows for dynamic manipulation of attributes, variables, expressions and blocks, after which the tree can be output back to HCL data.
  - The output can be made with or without the evaluation of logic expressions in HCL.
 
-Two applications are in this package: 
+Two applications are packed together: 
 
  - [jsm](./jsm), to parse JSON Schema document, draft-04, in HCL
  - [hcl](./hcl), to parse OpenAPI description, version 3.0 and 3.1, in HCL
 
-We obtain OpenAPI and JSON Schema files that are intuitive, readable, and succinct.
+We obtain OpenAPI and JSON Schema files that are not only of 50% in size of the corresponding JSON files, but also intuitive, readable, and succinct.
 
+
+To install,
+
+```bash
+go install github.com/genelet/hcllight
+```
+
+See the reference to use *hcllight*, *JSON Schema* and *OpenAPI* packages,
+
+[![GoDoc](https://godoc.org/github.com/genelet/hcllight?status.svg)](https://godoc.org/github.com/genelet/hcllight)
 
 
 ## Example
@@ -54,7 +55,7 @@ job e2e "running integration tests" {
 }
 ```
 
-This program parses the HCL data into the document node, *generated.Body*, and outputs it in HCL format, both with and without evaluation.
+This program parses the HCL data into the document node, *Body*, and outputs it in HCL format, with and without evaluation.
 
 ```go
 package main
@@ -64,7 +65,6 @@ import (
 	"math/rand"
 	"os"
 
-	"github.com/genelet/hcllight/generated"
 	"github.com/genelet/hcllight/light"
 
 	"github.com/zclconf/go-cty/cty"
@@ -76,13 +76,13 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	hcl, err := light.Hcl(body)
+	hcl, err := body.Hcl()
 	if err != nil {
 		panic(err)
 	}
 
 	ref := getRef()
-	eval, err := light.Evaluate(body, ref)
+	eval, err := body.Evaluate(ref)
 	if err != nil {
 		panic(err)
 	}
@@ -91,7 +91,7 @@ func main() {
 	fmt.Printf("evaluated: %s\n", eval)
 }
 
-func parseFile(filename string) (*generated.Body, error) {
+func parseFile(filename string) (*light.Body, error) {
 	dat, err := os.ReadFile(filename)
 	if err != nil {
 		return nil, err
