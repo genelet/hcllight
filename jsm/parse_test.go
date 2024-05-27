@@ -84,3 +84,23 @@ func TestHCLParse(t *testing.T) {
 		t.Fatalf("%v", err)
 	}
 }
+
+func TestX(t *testing.T) {
+	bs, err := os.ReadFile("x.hcl")
+	if err != nil {
+		t.Fatalf("Error reading HCL: %v", err)
+	}
+
+	schema, err := ParseSchema(bs)
+	if err != nil {
+		t.Fatalf("error %v", err)
+	}
+	data, err := schema.MarshalHCL()
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+	err = os.WriteFile("y.hcl", data, 0644)
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+}

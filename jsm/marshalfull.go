@@ -492,7 +492,6 @@ func bodyToShorts(body *light.Body) (*Schema, error) {
 		return nil, nil
 	}
 
-	n := len(body.Attributes)
 	for name, attr := range body.Attributes {
 		if name == "ref" {
 			ref, err := expressionToReference(attr.Expr)
@@ -502,10 +501,6 @@ func bodyToShorts(body *light.Body) (*Schema, error) {
 			return &Schema{
 				Reference: &Reference{Ref: &ref},
 			}, nil
-		}
-
-		if fcexp := attr.Expr.GetFcexpr(); fcexp != nil && n == 1 {
-			return fcexprToSchema(fcexp)
 		}
 	}
 
