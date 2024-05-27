@@ -4,6 +4,7 @@ import (
 	"github.com/google/gnostic/jsonschema"
 )
 
+// NewSchemaFromJSM converts a jsonschema Schema to a Schema.
 func NewSchemaFromJSM(s *jsonschema.Schema) *Schema {
 	if s == nil {
 		return nil
@@ -61,6 +62,7 @@ func NewSchemaFromJSM(s *jsonschema.Schema) *Schema {
 	return schemaFullToHcl(s)
 }
 
+// ToJSM converts a Schema to a jsonschema Schema.
 func (s *Schema) ToJSM() *jsonschema.Schema {
 	if s == nil {
 		return nil

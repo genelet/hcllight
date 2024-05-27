@@ -48,7 +48,6 @@ func attributesToCommon(attrs map[string]*light.Attribute) (*Common, error) {
 
 	var err error
 	var found bool
-
 	for _, attr := range attrs {
 		switch attr.Name {
 		case "type":
@@ -58,9 +57,6 @@ func attributesToCommon(attrs map[string]*light.Attribute) (*Common, error) {
 			common.Format = light.TextValueExprToString(attr.Expr)
 			found = true
 		case "default":
-			//for _, t := range attr.Expr.GetStexpr().Traversal {
-			//	log.Printf("default: %#v", t)
-			//}
 			common.Default = &yaml.Node{
 				Kind: yaml.ScalarNode,
 				//Value: *light.LiteralValueExprToString(attr.Expr),
@@ -69,14 +65,16 @@ func attributesToCommon(attrs map[string]*light.Attribute) (*Common, error) {
 			found = true
 		case "enum":
 			common.Enumeration, err = tupleConsExprToEnum(attr.Expr.GetTcexpr())
+			found = true
 		default:
 		}
 	}
 
-	if found {
-		return common, err
+	if !found {
+		return nil, nil
 	}
-	return nil, nil
+
+	return common, err
 }
 
 func numberToAttributes(self *SchemaNumber, attrs map[string]*light.Attribute) error {
@@ -322,7 +320,7 @@ func objectToAttributesBlocks(self *SchemaObject, attrs map[string]*light.Attrib
 		}
 	}
 	if self.Properties != nil {
-		bdy, err := mapSchemaToBody(self.Properties)
+		ex, err := mapSchemaToOcexpr(self.Properties)
 		if err != nil {
 			return err
 		}
@@ -330,7 +328,7 @@ func objectToAttributesBlocks(self *SchemaObject, attrs map[string]*light.Attrib
 			Name: "properties",
 			Expr: &light.Expression{
 				ExpressionClause: &light.Expression_Ocexpr{
-					Ocexpr: bdy.ToObjectConsExpr(),
+					Ocexpr: ex,
 				},
 			},
 		}
@@ -339,7 +337,7 @@ func objectToAttributesBlocks(self *SchemaObject, attrs map[string]*light.Attrib
 	return nil
 }
 
-func attributesBlocksToObject(attrs map[string]*light.Attribute) (*SchemaObject, error) {
+func attributesBlocksToObject(attrs map[string]*light.Attribute, blocks []*light.Block) (*SchemaObject, error) {
 	object := &SchemaObject{}
 
 	var err error
@@ -355,20 +353,33 @@ func attributesBlocksToObject(attrs map[string]*light.Attribute) (*SchemaObject,
 			found = true
 		case "required":
 			object.Required = light.TupleConsExprToStringArray(attr.Expr)
+			found = true
 		case "properties":
-			object.Properties, err = bodyToMapSchema(attr.Expr.GetOcexpr().ToBody())
+			object.Properties, err = ocexprToMapSchema(attr.Expr.GetOcexpr())
 			found = true
 		default:
 		}
 	}
 
-	if found {
-		return object, err
+	if object.Properties == nil {
+		object.Properties, err = blocksZeroToMapSchema(blocks, "properties")
+		if err != nil {
+			return nil, err
+		} else if object.Properties != nil {
+			found = true
+		}
 	}
-	return nil, nil
+
+	if !found {
+		return nil, nil
+	}
+	return object, err
 }
 
 func mapToAttributes(self *SchemaMap, attrs map[string]*light.Attribute) error {
+	if self == nil || self.AdditionalProperties == nil {
+		return nil
+	}
 	if self.AdditionalProperties.Schema != nil {
 		expr, err := schemaToExpression(self.AdditionalProperties.Schema)
 		if err != nil {
@@ -378,7 +389,7 @@ func mapToAttributes(self *SchemaMap, attrs map[string]*light.Attribute) error {
 			Name: "additionalProperties",
 			Expr: expr,
 		}
-	} else {
+	} else if self.AdditionalProperties.Boolean != nil {
 		attrs["additionalProperties"] = &light.Attribute{
 			Name: "additionalProperties",
 			Expr: light.BooleanToLiteralValueExpr(*self.AdditionalProperties.Boolean),
@@ -480,73 +491,28 @@ func shortsToBody(
 	return body, nil
 }
 
-func bodyToShorts(body *light.Body) (*Reference, *Common, *SchemaNumber, *SchemaString, *SchemaArray, *SchemaObject, *SchemaMap, error) {
-	seven := func(err error) (*Reference, *Common, *SchemaNumber, *SchemaString, *SchemaArray, *SchemaObject, *SchemaMap, error) {
-		return nil, nil, nil, nil, nil, nil, nil, err
-	}
-	var reference *Reference
-	common, err := attributesToCommon(body.Attributes)
-	if err != nil {
-		return seven(err)
-	}
-	schemaNumber, err := attributesToNumber(body.Attributes)
-	if err != nil {
-		return seven(err)
-	}
-	schemaString, err := attributesToString(body.Attributes)
-	if err != nil {
-		return seven(err)
-	}
-	schemaArray, err := attributesToArray(body.Attributes)
-	if err != nil {
-		return seven(err)
-	}
-	schemaObject, err := attributesBlocksToObject(body.Attributes)
-	if err != nil {
-		return seven(err)
-	}
-	schemaMap, err := attributesToMap(body.Attributes)
-	if err != nil {
-		return seven(err)
+func bodyToShorts(body *light.Body) (*Schema, error) {
+	if body == nil {
+		return nil, nil
 	}
 
 	for name, attr := range body.Attributes {
 		if name == "ref" {
 			ref, err := expressionToReference(attr.Expr)
 			if err != nil {
-				return seven(err)
+				return nil, err
 			}
-			reference = &Reference{Ref: &ref}
-			continue
+			return &Schema{
+				Reference: &Reference{Ref: &ref},
+			}, nil
 		}
 
 		if fcexp := attr.Expr.GetFcexpr(); fcexp != nil {
-			schema, err := fcexprToSchema(fcexp)
-			if err != nil {
-				return seven(err)
-			}
-			if schema.Common != nil {
-				common = schema.Common
-			}
-			if schema.SchemaNumber != nil {
-				schemaNumber = schema.SchemaNumber
-			}
-			if schema.SchemaString != nil {
-				schemaString = schema.SchemaString
-			}
-			if schema.SchemaArray != nil {
-				schemaArray = schema.SchemaArray
-			}
-			if schema.SchemaObject != nil {
-				schemaObject = schema.SchemaObject
-			}
-			if schema.SchemaMap != nil {
-				schemaMap = schema.SchemaMap
-			}
-			continue
+			return fcexprToSchema(fcexp)
 		}
 	}
-	return reference, common, schemaNumber, schemaString, schemaArray, schemaObject, schemaMap, nil
+
+	return nil, nil
 }
 
 func schemaFullToBody(self *SchemaFull) (*light.Body, error) {
@@ -610,7 +576,7 @@ func schemaFullToBody(self *SchemaFull) (*light.Body, error) {
 		}
 	}
 	if self.PatternProperties != nil {
-		bdy, err := mapSchemaToBody(self.PatternProperties)
+		ex, err := mapSchemaToOcexpr(self.PatternProperties)
 		if err != nil {
 			return nil, err
 		}
@@ -618,20 +584,23 @@ func schemaFullToBody(self *SchemaFull) (*light.Body, error) {
 			Name: "patternProperties",
 			Expr: &light.Expression{
 				ExpressionClause: &light.Expression_Ocexpr{
-					Ocexpr: bdy.ToObjectConsExpr(true),
+					Ocexpr: ex,
 				},
 			},
 		}
 	}
 	if self.Definitions != nil {
-		bdy, err := mapSchemaToBody(self.Definitions)
+		blks, err := mapSchemaToBlocks(self.Definitions)
 		if err != nil {
 			return nil, err
 		}
-		blocks = append(blocks, &light.Block{
-			Type: "definitions",
-			Bdy:  bdy,
-		})
+		for _, blk := range blks {
+			blocks = append(blocks, &light.Block{
+				Type:   "definitions",
+				Labels: []string{blk.Type},
+				Bdy:    blk.Bdy,
+			})
+		}
 	}
 	if self.Dependencies != nil {
 		bdy, err := mapSchemaOrStringArrayToBody(self.Dependencies)
@@ -717,14 +686,8 @@ func schemaFullToBody(self *SchemaFull) (*light.Body, error) {
 	return body, nil
 }
 
-func bodyToSchemaFull(body *light.Body) (*SchemaFull, error) {
-	reference, common, number, str, array, object, mmap, err := bodyToShorts(body)
-	if err != nil {
-		return nil, err
-	}
-
+func bodyToSchemaFull(body *light.Body, common *Common, number *SchemaNumber, str *SchemaString, array *SchemaArray, object *SchemaObject, mmap *SchemaMap) (*SchemaFull, error) {
 	full := &SchemaFull{
-		Reference:    reference,
 		Common:       common,
 		SchemaNumber: number,
 		SchemaString: str,
@@ -733,36 +696,129 @@ func bodyToSchemaFull(body *light.Body) (*SchemaFull, error) {
 		SchemaMap:    mmap,
 	}
 
-	if body.Attributes != nil {
-		for name, attr := range body.Attributes {
-			switch name {
-			case "schema":
-				full.Schema = light.LiteralValueExprToString(attr.Expr)
-			case "id":
-				full.ID = light.LiteralValueExprToString(attr.Expr)
-			case "readOnly":
-				full.ReadOnly = light.LiteralValueExprToBoolean(attr.Expr)
-			case "writeOnly":
-				full.WriteOnly = light.LiteralValueExprToBoolean(attr.Expr)
-			case "additionalItems":
-				full.AdditionalItems, err = expressionToSchemaOrBoolean(attr.Expr)
-			case "patternProperties":
-				full.PatternProperties, err = bodyToMapSchema(attr.Expr.GetOcexpr().ToBody())
+	var err error
+	var found bool
+
+	for name, attr := range body.Attributes {
+		switch name {
+		case "schema":
+			full.Schema = light.TextValueExprToString(attr.Expr)
+			found = true
+		case "id":
+			full.ID = light.TextValueExprToString(attr.Expr)
+			found = true
+		case "description":
+			full.Description = light.TextValueExprToString(attr.Expr)
+			found = true
+		case "title":
+			full.Title = light.TextValueExprToString(attr.Expr)
+			found = true
+		case "not":
+			full.Not, err = expressionToSchema(attr.Expr)
+			found = true
+		case "readOnly":
+			full.ReadOnly = light.LiteralValueExprToBoolean(attr.Expr)
+			found = true
+		case "writeOnly":
+			full.WriteOnly = light.LiteralValueExprToBoolean(attr.Expr)
+			found = true
+		case "additionalItems":
+			full.AdditionalItems, err = expressionToSchemaOrBoolean(attr.Expr)
+			found = true
+		case "patternProperties":
+			full.PatternProperties, err = ocexprToMapSchema(attr.Expr.GetOcexpr())
+			found = true
+		case "dependencies":
+			full.Dependencies, err = bodyToMapSchemaOrStringArray(attr.Expr.GetOcexpr().ToBody())
+			found = true
+		case "definitions":
+			full.Definitions, err = blocksToMapSchema(attr.Expr.GetOcexpr().ToBody().Blocks, "definitions")
+		case "allOf":
+			full.AllOf, err = tupleConsExprToSlice(attr.Expr.GetTcexpr())
+			found = true
+		case "anyOf":
+			full.AnyOf, err = tupleConsExprToSlice(attr.Expr.GetTcexpr())
+			found = true
+		case "oneOf":
+			full.OneOf, err = tupleConsExprToSlice(attr.Expr.GetTcexpr())
+			found = true
+		default:
+		}
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	// because patternProperties could be in attrs if we once called BodyToExpress
+	if full.PatternProperties == nil {
+		full.PatternProperties, err = blocksZeroToMapSchema(body.Blocks, "patternProperties")
+		if err != nil {
+			return nil, err
+		} else if full.PatternProperties != nil {
+			found = true
+		}
+	}
+
+	if full.Definitions == nil {
+		full.Definitions, err = blocksToMapSchema(body.Blocks, "definitions")
+		if err != nil {
+			return nil, err
+		} else if full.Definitions != nil {
+			found = true
+		}
+	}
+
+	if full.Dependencies == nil {
+		for _, block := range body.Blocks {
+			switch block.Type {
+			case "dependencies":
+				full.Dependencies, err = bodyToMapSchemaOrStringArray(block.Bdy)
+				found = true
 			default:
 			}
 		}
-	}
-
-	if body.Blocks != nil {
-		for _, block := range body.Blocks {
-			switch block.Type {
-			case "definitions":
-				full.Definitions, err = bodyToMapSchema(block.Bdy)
-			case "dependencies":
-				full.Dependencies, err = bodyToMapSchemaOrStringArray(block.Bdy)
-			}
+		if err != nil {
+			return nil, err
 		}
 	}
 
-	return full, err
+	if full.Not == nil {
+		for _, block := range body.Blocks {
+			switch block.Type {
+			case "not":
+				full.Not, err = schemaFromBody(block.Bdy)
+				found = true
+				break
+			default:
+			}
+		}
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	var combo int
+	if common != nil {
+		combo++
+	}
+	if number != nil {
+		combo++
+	}
+	if str != nil {
+		combo++
+	}
+	if array != nil {
+		combo++
+	}
+	if object != nil {
+		combo++
+	}
+	if mmap != nil {
+		combo++
+	}
+	// usuallg only object and mmap can co-existing. But we check general combo case anyway.
+	if found || combo > 1 || common == nil || common.Type == nil || common.Type.String == nil {
+		return full, nil
+	}
+	return nil, nil
 }

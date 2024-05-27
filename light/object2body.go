@@ -340,7 +340,7 @@ func TraversalToString(t *Expression) *string {
 	return &x
 }
 
-func reliableKeyFromString(s string, quote ...bool) *Expression {
+func StringToKeyExpr(s string, quote ...bool) *Expression {
 	if len(quote) > 0 && quote[0] {
 		return StringToTextValueExpr(s)
 	}
@@ -354,13 +354,13 @@ func (self *Body) ToObjectConsExpr(quote ...bool) *ObjectConsExpr {
 	ocExpr := &ObjectConsExpr{}
 	for name, attr := range self.Attributes {
 		ocExpr.Items = append(ocExpr.Items, &ObjectConsItem{
-			KeyExpr:   reliableKeyFromString(name, quote...),
+			KeyExpr:   StringToKeyExpr(name, quote...),
 			ValueExpr: attr.Expr,
 		})
 	}
 	for _, block := range self.Blocks {
 		ocExpr.Items = append(ocExpr.Items, &ObjectConsItem{
-			KeyExpr: reliableKeyFromString(block.Type, quote...),
+			KeyExpr: StringToKeyExpr(block.Type, quote...),
 			ValueExpr: &Expression{
 				ExpressionClause: &Expression_Ocexpr{
 					Ocexpr: block.Bdy.ToObjectConsExpr(),
