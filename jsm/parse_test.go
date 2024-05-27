@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-func TestParseSchemaJSON(t *testing.T) {
+func TestJSONSchema(t *testing.T) {
 	s, err := os.ReadFile("openapi-3.1_gnostic.json")
 	if err != nil {
 		t.Fatalf("Error parsing schema: %v", err)
@@ -25,7 +25,7 @@ func TestParseSchemaJSON(t *testing.T) {
 	}
 }
 
-func TestParseSchemaYAML(t *testing.T) {
+func TestHCLSchema(t *testing.T) {
 	s, err := os.ReadFile("schema_v30.yaml")
 	if err != nil {
 		t.Fatalf("Error parsing schema: %v", err)
@@ -45,7 +45,27 @@ func TestParseSchemaYAML(t *testing.T) {
 	}
 }
 
-func TestParseHCL(t *testing.T) {
+func TestJSONParse(t *testing.T) {
+	bs, err := os.ReadFile("openapi-3.1_gnostic.hcl")
+	if err != nil {
+		t.Fatalf("Error reading HCL: %v", err)
+	}
+
+	schema, err := ParseSchema(bs)
+	if err != nil {
+		t.Fatalf("error %v", err)
+	}
+	data, err := schema.MarshalHCL()
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+	err = os.WriteFile("openapi-3.1_2.hcl", data, 0644)
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+}
+
+func TestHCLParse(t *testing.T) {
 	bs, err := os.ReadFile("schema_v30.hcl")
 	if err != nil {
 		t.Fatalf("Error reading HCL: %v", err)
@@ -55,7 +75,6 @@ func TestParseHCL(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error %v", err)
 	}
-	t.Errorf("schema %#v", schema)
 	data, err := schema.MarshalHCL()
 	if err != nil {
 		t.Fatalf("%v", err)

@@ -6,6 +6,7 @@ import (
 
 	"github.com/genelet/hcllight/light"
 	"github.com/google/gnostic/jsonschema"
+
 	"gopkg.in/yaml.v3"
 )
 
@@ -80,7 +81,7 @@ func schemaFromBody(body *light.Body) (*Schema, error) {
 	if err != nil {
 		return nil, err
 	}
-	schemaMap, err := attributesToMap(body.Attributes)
+	schemaMap, err := attributesBlocksToMap(body.Attributes, body.Blocks)
 	if err != nil {
 		return nil, err
 	}
@@ -167,6 +168,7 @@ func sliceToTupleConsExpr(allof []*Schema) (*light.TupleConsExpr, error) {
 	if allof == nil {
 		return nil, nil
 	}
+
 	var exprs []*light.Expression
 	for _, v := range allof {
 		ex, err := schemaToExpression(v)
@@ -394,28 +396,14 @@ func blocksToMapSchema(blocks []*light.Block, name string) (map[string]*Schema, 
 	return m, nil
 }
 
-func blocksZeroToMapSchema(blocks []*light.Block, name string) (map[string]*Schema, error) {
-	if blocks == nil {
-		return nil, nil
-	}
-
-	m := make(map[string]*Schema)
+func getOcexprFromBlocks(blocks []*light.Block, name string) *light.ObjectConsExpr {
 	for _, block := range blocks {
 		if block.Type != name {
 			continue
 		}
-		for _, blk := range block.Bdy.Blocks {
-			s, err := schemaFromBody(blk.Bdy)
-			if err != nil {
-				return nil, err
-			}
-			m[blk.Type] = s
-		}
+		return block.Bdy.ToObjectConsExpr()
 	}
-	if len(m) == 0 {
-		return nil, nil
-	}
-	return m, nil
+	return nil
 }
 
 func mapSchemaOrStringArrayToBody(s map[string]*SchemaOrStringArray) (*light.Body, error) {
