@@ -487,24 +487,51 @@ func shortsToBody(
 	return body, nil
 }
 
-func bodyToShorts(body *light.Body) (*Schema, error) {
+func seven(err error) (*Reference, *Common, *SchemaNumber, *SchemaString, *SchemaArray, *SchemaObject, *SchemaMap, error) {
+	return nil, nil, nil, nil, nil, nil, nil, err
+}
+
+func bodyToShorts(body *light.Body) (*Reference, *Common, *SchemaNumber, *SchemaString, *SchemaArray, *SchemaObject, *SchemaMap, error) {
 	if body == nil {
-		return nil, nil
+		return seven(nil)
 	}
 
 	for name, attr := range body.Attributes {
 		if name == "ref" {
 			ref, err := expressionToReference(attr.Expr)
 			if err != nil {
-				return nil, err
+				return seven(err)
 			}
-			return &Schema{
-				Reference: &Reference{Ref: &ref},
-			}, nil
+			return &Reference{Ref: &ref}, nil, nil, nil, nil, nil, nil, nil
 		}
 	}
 
-	return nil, nil
+	common, err := attributesToCommon(body.Attributes)
+	if err != nil {
+		return seven(err)
+	}
+	schemaNumber, err := attributesToNumber(body.Attributes)
+	if err != nil {
+		return seven(err)
+	}
+	schemaString, err := attributesToString(body.Attributes)
+	if err != nil {
+		return seven(err)
+	}
+	schemaArray, err := attributesToArray(body.Attributes)
+	if err != nil {
+		return seven(err)
+	}
+	schemaObject, err := attributesBlocksToObject(body.Attributes, body.Blocks)
+	if err != nil {
+		return seven(err)
+	}
+	schemaMap, err := attributesBlocksToMap(body.Attributes, body.Blocks)
+	if err != nil {
+		return seven(err)
+	}
+
+	return nil, common, schemaNumber, schemaString, schemaArray, schemaObject, schemaMap, nil
 }
 
 func schemaFullToBody(self *SchemaFull) (*light.Body, error) {

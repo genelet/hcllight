@@ -53,37 +53,14 @@ func ParseSchema(data []byte, extension ...string) (*Schema, error) {
 }
 
 func schemaFromBody(body *light.Body) (*Schema, error) {
-	s, err := bodyToShorts(body)
+	ref, common, schemaNumber, schemaString, schemaArray, schemaObject, schemaMap, err := bodyToShorts(body)
 	if err != nil {
 		return nil, err
 	}
-	if s != nil {
-		return s, nil
-	}
-
-	common, err := attributesToCommon(body.Attributes)
-	if err != nil {
-		return nil, err
-	}
-	schemaNumber, err := attributesToNumber(body.Attributes)
-	if err != nil {
-		return nil, err
-	}
-	schemaString, err := attributesToString(body.Attributes)
-	if err != nil {
-		return nil, err
-	}
-	schemaArray, err := attributesToArray(body.Attributes)
-	if err != nil {
-		return nil, err
-	}
-	schemaObject, err := attributesBlocksToObject(body.Attributes, body.Blocks)
-	if err != nil {
-		return nil, err
-	}
-	schemaMap, err := attributesBlocksToMap(body.Attributes, body.Blocks)
-	if err != nil {
-		return nil, err
+	if ref != nil {
+		return &Schema{
+			Reference: ref,
+		}, nil
 	}
 
 	full, err := bodyToSchemaFull(body, common, schemaNumber, schemaString, schemaArray, schemaObject, schemaMap)
