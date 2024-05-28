@@ -1,3 +1,4 @@
 sample
 hcl/*.hcl
 jsm/*.hcl
+jsm/schema_v30_2.json

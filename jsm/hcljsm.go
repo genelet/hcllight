@@ -96,6 +96,11 @@ func (s *Schema) ToJSM() *jsonschema.Schema {
 	return schema
 }
 
+// JSONString returns a json representation of a schema.
+func (self *Schema) JSONString() string {
+	return self.ToJSM().JSONString()
+}
+
 func namedSchemaArrayToMap(s *[]*jsonschema.NamedSchema) map[string]*Schema {
 	if s == nil {
 		return nil
