@@ -63,34 +63,31 @@ func NewSchemaFromJSM(s *jsonschema.Schema) *Schema {
 }
 
 // ToJSM converts a Schema to a jsonschema Schema.
-func (s *Schema) ToJSM() *jsonschema.Schema {
-	if s == nil {
-		return nil
-	}
-	if s.isFull {
-		return schemaFullToJSM(s)
+func (self *Schema) ToJSM() *jsonschema.Schema {
+	if self.isFull {
+		return schemaFullToJSM(self)
 	}
 
-	if s.Reference != nil {
-		return referenceToJSM(s.Reference)
+	if self.Reference != nil {
+		return referenceToJSM(self.Reference)
 	}
 
-	schema := commonToJSM(s.Common)
+	schema := commonToJSM(self.Common)
 
-	if s.SchemaString != nil {
-		return stringToJSM(schema, s.SchemaString)
+	if self.SchemaString != nil {
+		return stringToJSM(schema, self.SchemaString)
 	}
-	if s.SchemaNumber != nil {
-		return numberToJSM(schema, s.SchemaNumber)
+	if self.SchemaNumber != nil {
+		return numberToJSM(schema, self.SchemaNumber)
 	}
-	if s.SchemaArray != nil {
-		return arrayToJSM(schema, s.SchemaArray)
+	if self.SchemaArray != nil {
+		return arrayToJSM(schema, self.SchemaArray)
 	}
-	if s.SchemaObject != nil {
-		return objectToJSM(schema, s.SchemaObject)
+	if self.SchemaObject != nil {
+		return objectToJSM(schema, self.SchemaObject)
 	}
-	if s.SchemaMap != nil {
-		return mapToJSM(schema, s.SchemaMap)
+	if self.SchemaMap != nil {
+		return mapToJSM(schema, self.SchemaMap)
 	}
 	// boolean
 	return schema
@@ -490,7 +487,9 @@ func schemaFullToJSM(s *Schema) *jsonschema.Schema {
 	jsm.AllOf = sliceToJSM(full.AllOf)
 	jsm.AnyOf = sliceToJSM(full.AnyOf)
 	jsm.OneOf = sliceToJSM(full.OneOf)
-	jsm.Not = s.Not.ToJSM()
+	if s.Not != nil {
+		jsm.Not = s.Not.ToJSM()
+	}
 	jsm.Definitions = mapToNamedSchemaArray(full.Definitions)
 
 	jsm.Title = full.Title

@@ -291,8 +291,8 @@ func textValueArrayToStringArray(args []*Expression) []string {
 	return items
 }
 
-func StringToTraversal(str string) *Expression {
-	parts := strings.SplitN(str, "/", -1)
+func StringToTraversal(s string) *Expression {
+	parts := strings.SplitN(s, "/", -1)
 	args := []*Traverser{
 		{TraverserClause: &Traverser_TRoot{
 			TRoot: &TraverseRoot{Name: parts[0]},
