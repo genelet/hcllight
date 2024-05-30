@@ -1,0 +1,98 @@
+provider:
+  name: petstore
+
+resources:
+  pet:
+    create:
+      path: /pet
+      method: POST
+    read:
+      path: /pet/{petId}
+      method: GET
+    update:
+      path: /pet
+      method: PUT
+    delete:
+      path: /pet/{petId}
+      method: DELETE
+    schema:
+      attributes:
+        overrides:
+          name:
+            description: The pet's full name
+          category:
+            description: Category containing classification info about the pet 
+          "category.name":
+            description: The category name, possible values - 'dog', 'cat', 'bird', or 'other'
+        aliases:
+          petId: id
+
+  order:
+    create:
+      path: /store/order
+      method: POST
+    read:
+      path: /store/order/{orderId}
+      method: GET
+    delete:
+      path: /store/order/{orderId}
+      method: DELETE
+    schema:
+      attributes:
+        overrides:
+          status:
+            description: Order status, possible values - 'placed', 'approved', or 'delivered'
+          shipDate:
+            description: A field representing the date and time an order will be shipped by
+        aliases:
+          orderId: id
+
+  user:
+    create:
+      path: /user
+      method: POST
+    read:
+      path: /user/{username}
+      method: GET
+    schema:
+      ignores:
+        - username
+
+data_sources:
+  pet:
+    read:
+      path: /pet/{petId}
+      method: GET
+    schema:
+      attributes:
+        overrides:
+          name:
+            description: The pet's full name
+          category:
+            description: Category containing classification info about the pet 
+          "category.name":
+            description: The category name, possible values - 'dog', 'cat', 'bird', or 'other'
+        aliases:
+          petId: id
+
+  pets:
+    read:
+      path: /pet/findByStatus
+      method: GET
+    schema:
+      ignores:
+        - status
+
+  order:
+    read:
+      path: /store/order/{orderId}
+      method: GET
+    schema:
+      attributes:
+        overrides:
+          status:
+            description: Order status, possible values - 'placed', 'approved', or 'delivered'
+          shipDate:
+            description: A field representing the date and time an order will be shipped by
+        aliases:
+          orderId: id
