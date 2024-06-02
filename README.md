@@ -13,6 +13,7 @@ Two applications are packed together:
 
 We obtain OpenAPI and JSON Schema files that are not only of 50% in size of the corresponding JSON files, but also intuitive, readable, and succinct.
 
+[Here](https://medium.com/@peterbi_91340/json-schema-in-the-hcl-data-format-e8a6613112bc) is a Medium article on JSON Schema.
 
 To install,
 
