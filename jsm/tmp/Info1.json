@@ -1,0 +1,33 @@
+{
+  "type": "object",
+  "required": [
+    "title",
+    "version"
+  ],
+  "additionalProperties": false,
+  "patternProperties": {
+    "^x-": {
+    }
+  },
+  "properties": {
+    "description": {
+      "type": "string"
+    },
+    "termsOfService": {
+      "type": "string",
+      "format": "uri-reference"
+    },
+    "contact": {
+      "$ref": "#/definitions/Contact"
+    },
+    "license": {
+      "$ref": "#/definitions/License"
+    },
+    "version": {
+      "type": "string"
+    },
+    "title": {
+      "type": "string"
+    }
+  }
+}

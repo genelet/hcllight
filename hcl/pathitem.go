@@ -5,37 +5,8 @@ import (
 	//pp "github.com/k0kubun/pp/v3"
 )
 
-/*
-	func expressionToPathItemOrReference(expr *light.Expression) (*PathItemOrReference, error) {
-		if expr == nil {
-			return nil, nil
-		}
-
-		switch expr.ExpressionClause.(type) {
-		case *light.Expression_Ocexpr:
-			body := expr.GetOcexpr().ToBody()
-			item, err := pathItemFromHCL(body)
-			if err != nil {
-				return nil, err
-			}
-			return &PathItemOrReference{
-				Oneof: &PathItemOrReference_Item{
-					Item: item,
-				},
-			}, nil
-		default:
-		}
-
-		reference, err := expressionToReference(expr)
-		return &PathItemOrReference{
-			Oneof: &PathItemOrReference_Reference{
-				Reference: reference,
-			},
-		}, err
-	}
-*/
 func (self *PathItem) toHCL() (*light.Body, error) {
-	hash := self.toOperationMap()
+	hash := self.ToOperationMap()
 	blocks := make([]*light.Block, 0)
 	for k, v := range hash {
 		bdy, err := v.toHCL()
@@ -75,7 +46,9 @@ func (self *PathItem) toHCL() (*light.Body, error) {
 		return nil, nil
 	}
 */
-func (self *PathItem) toOperationMap() map[string]*Operation {
+
+// ToOperationMap returns a map of operations with the key as the HTTP method.
+func (self *PathItem) ToOperationMap() map[string]*Operation {
 	p := make(map[string]*Operation)
 	if self.Get != nil {
 		p["get"] = self.Get
@@ -115,43 +88,43 @@ func (self *PathItem) toOperationMap() map[string]*Operation {
 	return p
 }
 
-/*
-	func pathItemFromOperationMap(hash map[string]*Operation) *PathItem {
-		if hash == nil {
-			return nil
-		}
-
-		p := &PathItem{}
-		for k, v := range hash {
-			switch k {
-			case "get":
-				p.Get = v
-			case "put":
-				p.Put = v
-			case "post":
-				p.Post = v
-			case "delete":
-				p.Delete = v
-			case "options":
-				p.Options = v
-			case "head":
-				p.Head = v
-			case "patch":
-				p.Patch = v
-			case "trace":
-				p.Trace = v
-			case "common":
-				p.Summary = v.Summary
-				p.Description = v.Description
-				p.Servers = v.Servers
-				p.Parameters = v.Parameters
-				p.SpecificationExtension = v.SpecificationExtension
-			}
-		}
-
-		return p
+// PathItemFromOperationMap returns a PathItem from a map of operations with the key as the HTTP method.
+func PathItemFromOperationMap(hash map[string]*Operation) *PathItem {
+	if hash == nil {
+		return nil
 	}
-*/
+
+	p := &PathItem{}
+	for k, v := range hash {
+		switch k {
+		case "get":
+			p.Get = v
+		case "put":
+			p.Put = v
+		case "post":
+			p.Post = v
+		case "delete":
+			p.Delete = v
+		case "options":
+			p.Options = v
+		case "head":
+			p.Head = v
+		case "patch":
+			p.Patch = v
+		case "trace":
+			p.Trace = v
+		case "common":
+			p.Summary = v.Summary
+			p.Description = v.Description
+			p.Servers = v.Servers
+			p.Parameters = v.Parameters
+			p.SpecificationExtension = v.SpecificationExtension
+		}
+	}
+
+	return p
+}
+
 func pathItemOrReferenceMapToBlocks(paths map[string]*PathItemOrReference) ([]*light.Block, error) {
 	if len(paths) == 0 {
 		return nil, nil
@@ -169,7 +142,7 @@ func pathItemOrReferenceMapToBlocks(paths map[string]*PathItemOrReference) ([]*l
 			})
 		default:
 			item := v.GetItem()
-			hash := item.toOperationMap()
+			hash := item.ToOperationMap()
 			for k2, v2 := range hash {
 				bdy, err := v2.toHCL()
 				if err != nil {
@@ -222,44 +195,9 @@ func blocksToPathItemOrReferenceMap(blocks []*light.Block) (map[string]*PathItem
 	}
 
 	for k, v := range hash2 {
-		item := new(PathItem)
-		if common, ok := v["common"]; ok {
-			item = &PathItem{
-				Summary:                common.Summary,
-				Description:            common.Description,
-				Servers:                common.Servers,
-				Parameters:             common.Parameters,
-				SpecificationExtension: common.SpecificationExtension,
-			}
-		}
-
-		if operation, ok := v["get"]; ok {
-			item.Get = operation
-		}
-		if operation, ok := v["put"]; ok {
-			item.Put = operation
-		}
-		if operation, ok := v["post"]; ok {
-			item.Post = operation
-		}
-		if operation, ok := v["delete"]; ok {
-			item.Delete = operation
-		}
-		if operation, ok := v["options"]; ok {
-			item.Options = operation
-		}
-		if operation, ok := v["head"]; ok {
-			item.Head = operation
-		}
-		if operation, ok := v["patch"]; ok {
-			item.Patch = operation
-		}
-		if operation, ok := v["trace"]; ok {
-			item.Trace = operation
-		}
 		hash1[k] = &PathItemOrReference{
 			Oneof: &PathItemOrReference_Item{
-				Item: item,
+				Item: PathItemFromOperationMap(v),
 			},
 		}
 	}

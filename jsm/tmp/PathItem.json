@@ -1,0 +1,42 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "patternProperties": {
+    "^(get|put|post|delete|options|head|patch|trace)$": {
+      "$ref": "#/definitions/Operation"
+    },
+    "^x-": {
+    }
+  },
+  "properties": {
+    "$ref": {
+      "type": "string"
+    },
+    "summary": {
+      "type": "string"
+    },
+    "description": {
+      "type": "string"
+    },
+    "servers": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/Server"
+      }
+    },
+    "parameters": {
+      "type": "array",
+      "items": {
+        "oneOf": [
+          {
+            "$ref": "#/definitions/Parameter"
+          },
+          {
+            "$ref": "#/definitions/Reference"
+          }
+        ]
+      },
+      "uniqueItems": true
+    }
+  }
+}

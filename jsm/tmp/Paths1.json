@@ -1,0 +1,11 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "patternProperties": {
+    "^/": {
+      "$ref": "#/definitions/PathItem"
+    },
+    "^x-": {
+    }
+  }
+}

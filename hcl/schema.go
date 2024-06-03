@@ -288,6 +288,10 @@ func schemaOrReferenceMapToBlocks(m map[string]*SchemaOrReference, names ...stri
 	return bodyToBlocks(body, names...), nil
 }
 
+func SchemaOrReferenceMapToBody(m map[string]*SchemaOrReference) (*light.Body, error) {
+	return schemaOrReferenceMapToBody(m)
+}
+
 func schemaOrReferenceMapToBody(m map[string]*SchemaOrReference, force ...bool) (*light.Body, error) {
 	if m == nil {
 		return nil, nil

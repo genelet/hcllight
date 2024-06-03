@@ -1,0 +1,35 @@
+{
+  "type": "object",
+  "required": [
+    "type",
+    "name",
+    "in"
+  ],
+  "additionalProperties": false,
+  "patternProperties": {
+    "^x-": {
+    }
+  },
+  "properties": {
+    "in": {
+      "type": "string",
+      "enum": [
+        "header",
+        "query",
+        "cookie"
+      ]
+    },
+    "description": {
+      "type": "string"
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "apiKey"
+      ]
+    },
+    "name": {
+      "type": "string"
+    }
+  }
+}

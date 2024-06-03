@@ -1,0 +1,26 @@
+{
+  "type": "object",
+  "required": [
+    "type",
+    "flows"
+  ],
+  "additionalProperties": false,
+  "patternProperties": {
+    "^x-": {
+    }
+  },
+  "properties": {
+    "type": {
+      "type": "string",
+      "enum": [
+        "oauth2"
+      ]
+    },
+    "flows": {
+      "$ref": "#/definitions/OAuthFlows"
+    },
+    "description": {
+      "type": "string"
+    }
+  }
+}

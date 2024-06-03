@@ -1,0 +1,28 @@
+{
+  "type": "object",
+  "required": [
+    "authorizationUrl",
+    "scopes"
+  ],
+  "additionalProperties": false,
+  "patternProperties": {
+    "^x-": {
+    }
+  },
+  "properties": {
+    "scopes": {
+      "type": "map",
+      "additionalProperties": {
+        "type": "string"
+      }
+    },
+    "authorizationUrl": {
+      "type": "string",
+      "format": "uri-reference"
+    },
+    "refreshUrl": {
+      "type": "string",
+      "format": "uri-reference"
+    }
+  }
+}

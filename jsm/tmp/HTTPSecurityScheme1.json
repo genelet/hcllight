@@ -1,0 +1,56 @@
+{
+  "type": "object",
+  "required": [
+    "scheme",
+    "type"
+  ],
+  "additionalProperties": false,
+  "patternProperties": {
+    "^x-": {
+    }
+  },
+  "properties": {
+    "bearerFormat": {
+      "type": "string"
+    },
+    "description": {
+      "type": "string"
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "http"
+      ]
+    },
+    "scheme": {
+      "type": "string"
+    }
+  },
+  "oneOf": [
+    {
+      "description": "Bearer",
+      "properties": {
+        "scheme": {
+          "type": "string",
+          "pattern": "^[Bb][Ee][Aa][Rr][Ee][Rr]$"
+        }
+      }
+    },
+    {
+      "description": "Non Bearer",
+      "properties": {
+        "scheme": {
+          "not": {
+            "type": "string",
+            "pattern": "^[Bb][Ee][Aa][Rr][Ee][Rr]$"
+          }
+        }
+      },
+      "not": {
+        "required": [
+          "bearerFormat"
+        ]
+      }
+    }
+  ]
+}

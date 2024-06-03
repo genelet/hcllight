@@ -10,12 +10,13 @@
 package beacon
 
 import (
-	"errors"
 	"fmt"
 	"regexp"
 	"strings"
 
 	"github.com/genelet/determined/dethcl"
+	"github.com/genelet/hcllight/hcl"
+	"github.com/genelet/hcllight/light"
 	"gopkg.in/yaml.v3"
 )
 
@@ -52,20 +53,6 @@ type Resource struct {
 
 // DataSource generator config section.
 type DataSource struct {
-	/* private start
-	    *
-	   The generator uses the read operation to map to the provider code specification. Multiple schemas will have the OAS types mapped to Provider Attributes and then be merged together; with the final result being the Data Source schema. The schemas that will be merged together (in priority order):
-
-	   1. read operation: parameters
-	    - The generator will merge all query and path parameters to the root of the schema.
-	    - The generator will consider as parameters the ones in the Path Item Object and the ones in the Operation Object, merged based on the rules in the specification
-	   2. read operation: response body in responses
-	    - The response body is the only schema required for data sources. If not found, the generator will skip the data source without mapping.
-	    - Will attempt to use 200 or 201 response body. If not found, will grab the first available 2xx response code with a schema (lexicographic order)
-	    - Will attempt to use application/json content-type first. If not found, will grab the first available content-type with a schema (alphabetical order)
-
-	    * private end
-	*/
 	Read           *OpenApiSpecLocation `yaml:"read" hcl:"read,block"`
 	*SchemaOptions `yaml:"schema" hcl:"schema,block"`
 }
@@ -80,6 +67,8 @@ type OpenApiSpecLocation struct {
 	//
 	// [OAS Path Item Object]: https://spec.openapis.org/oas/v3.1.0#pathItemObject
 	Method string `yaml:"method" hcl:"method"`
+	doc    *hcl.Document
+	how    string
 }
 
 // SchemaOptions generator config section. This section contains options for modifying the output of the generator.
@@ -106,200 +95,308 @@ type Override struct {
 // ParseConfig takes in a byte array, unmarshals into a Config struct, and validates the result
 // By default the byte array is assumed to be YAML, but if data_type is "hcl" or "tf", it will be unmarshaled as HCL
 func ParseConfig(bytes []byte, data_type ...string) (*Config, error) {
-	var result Config
+	var result *Config
 	var typ string
 	var err error
 	if data_type != nil {
 		typ = strings.ToLower(data_type[0])
 	}
-	if typ == "hcl" || typ == "tf" {
-		err = dethcl.Unmarshal(bytes, &result)
-	} else {
+	if typ == "yml" || typ == "yaml" {
 		err = yaml.Unmarshal(bytes, &result)
+	} else {
+		err = dethcl.Unmarshal(bytes, &result)
 	}
 	if err != nil {
-		return nil, fmt.Errorf("error unmarshaling config: %w", err)
+		return nil, err
 	}
-	if err = result.Validate(); err != nil {
-		return nil, fmt.Errorf("config validation error(s): %w", err)
+	if len(result.DataSources) == 0 && len(result.Resources) == 0 {
+		return nil, fmt.Errorf("at least one object is required in 'resources' or 'data_sources'")
 	}
-
-	return &result, nil
+	return result, nil
 }
 
-func (self *Config) Validate() error {
-	if self == nil {
-		return errors.New("config is nil")
+func (self *OpenApiSpecLocation) SetDocument(doc *hcl.Document) {
+	self.doc = doc
+}
+
+func (self *OpenApiSpecLocation) GetDocument() *hcl.Document {
+	return self.doc
+}
+
+func (self *OpenApiSpecLocation) SetHow(how string) {
+	self.how = how
+}
+
+func (self *OpenApiSpecLocation) GetHow() string {
+	return self.how
+}
+
+func (self *OpenApiSpecLocation) GetPath() *hcl.PathItem {
+	hash := self.doc.GetPaths()
+	if len(hash) == 0 {
+		return nil
+	}
+	pathOrReference, ok := hash[self.Path]
+	if !ok {
+		return nil
+	}
+	switch pathOrReference.Oneof.(type) {
+	case *hcl.PathItemOrReference_Item:
+		return pathOrReference.GetItem()
+	case *hcl.PathItemOrReference_Reference:
+	default:
+	}
+	return nil
+}
+
+func (self *OpenApiSpecLocation) GetOperation(common ...bool) *hcl.Operation {
+	path := self.GetPath()
+	if path == nil {
+		return nil
+	}
+	hash := path.ToOperationMap()
+
+	if len(common) > 0 && common[0] {
+		return hash["common"]
 	}
 
-	var result error
+	for k, v := range hash {
+		if k == self.Method {
+			return v
+		}
+	}
+	return nil
+}
 
-	if (self.DataSources == nil || len(self.DataSources) == 0) && (self.Resources == nil || len(self.Resources) == 0) {
-		result = errors.Join(result, fmt.Errorf("\t%s", "at least one object is required in either 'resources' or 'data_sources'"))
+func (self *OpenApiSpecLocation) getRequestBody() (*hcl.RequestBody, error) {
+	operation := self.GetOperation()
+	if operation == nil {
+		return nil, nil
 	}
 
-	// Validate Provider
-	err := self.Provider.Validate()
-	if err != nil {
-		result = errors.Join(result, fmt.Errorf("\tprovider %w", err))
-	}
-
-	// Validate all Resources
-	for name, resource := range self.Resources {
-		err := resource.Validate()
+	var rb *hcl.RequestBody
+	var err error
+	switch operation.RequestBody.Oneof.(type) {
+	case *hcl.RequestBodyOrReference_Reference:
+		reference := operation.RequestBody.GetReference()
+		rb, err = self.doc.ResolveRequestBodyOrReference(reference)
 		if err != nil {
-			result = errors.Join(result, fmt.Errorf("\tresource '%s' %w", name, err))
+			return nil, err
+		}
+	default:
+		rb = operation.RequestBody.GetRequestBody()
+	}
+	return rb, nil
+}
+
+func (self *OpenApiSpecLocation) getResponseBody() (*hcl.Response, error) {
+	operation := self.GetOperation()
+	if operation == nil {
+		return nil, nil
+	}
+
+	var rb, first *hcl.Response
+	var err error
+	for k, v := range operation.Responses {
+		switch v.Oneof.(type) {
+		case *hcl.ResponseOrReference_Reference:
+			reference := v.GetReference()
+			rb, err = self.doc.ResolveReponseOrReference(reference)
+			if err != nil {
+				return nil, err
+			}
+		default:
+			rb = v.GetResponse()
+		}
+		if first == nil {
+			first = rb
+		}
+		if k == "200" || k == "201" {
+			return rb, nil
 		}
 	}
 
-	// Validate all Data Sources
-	for name, dataSource := range self.DataSources {
-		err := dataSource.Validate()
+	return first, nil
+}
+
+func parametersFromOperation(doc *hcl.Document, operation *hcl.Operation) ([]*hcl.Parameter, error) {
+	var parameters []*hcl.Parameter
+	for _, v := range operation.Parameters {
+		var parameter *hcl.Parameter
+		var err error
+		switch v.Oneof.(type) {
+		case *hcl.ParameterOrReference_Reference:
+			reference := v.GetReference()
+			parameter, err = doc.ResolveParameterOrReference(reference)
+		default:
+			parameter = v.GetParameter()
+		}
 		if err != nil {
-			result = errors.Join(result, fmt.Errorf("\tdata_source '%s' %w", name, err))
+			return nil, err
+		}
+		if parameter.In == "query" || parameter.In == "path" {
+			parameters = append(parameters, parameter)
 		}
 	}
-
-	return result
+	return parameters, nil
 }
 
-func (p *Provider) Validate() error {
-	if p == nil {
-		return errors.New("provider is nil")
+func (self *OpenApiSpecLocation) getParameters() ([]*hcl.Parameter, error) {
+	operation := self.GetOperation()
+	if operation == nil {
+		return nil, nil
 	}
 
-	var result error
-
-	if p.Name == "" {
-		result = errors.Join(result, errors.New("must have a 'name' property"))
+	parameters, err := parametersFromOperation(self.doc, operation)
+	if err != nil {
+		return nil, err
 	}
 
-	for _, ignore := range p.Ignores {
-		if !attributeLocationRegex.MatchString(ignore) {
-			result = errors.Join(result, fmt.Errorf("invalid item for ignores: %q - must be dot-separated string", ignore))
-		}
+	operation = self.GetOperation(true)
+	if operation == nil {
+		return parameters, nil
 	}
-
-	return result
+	additionals, err := parametersFromOperation(self.doc, operation)
+	if err != nil {
+		return nil, err
+	}
+	parameters = append(parameters, additionals...)
+	return parameters, nil
 }
 
-func (r *Resource) Validate() error {
-	if r == nil {
-		return errors.New("resource is nil")
-	}
-
-	var result error
-
-	if r.Create == nil {
-		result = errors.Join(result, errors.New("must have a create object"))
-	}
-	if r.Read == nil {
-		result = errors.Join(result, errors.New("must have a read object"))
-	}
-
-	err := r.Create.Validate()
-	if err != nil {
-		result = errors.Join(result, fmt.Errorf("invalid create: %w", err))
-	}
-
-	err = r.Read.Validate()
-	if err != nil {
-		result = errors.Join(result, fmt.Errorf("invalid read: %w", err))
-	}
-
-	err = r.Update.Validate()
-	if err != nil {
-		result = errors.Join(result, fmt.Errorf("invalid update: %w", err))
-	}
-
-	err = r.Delete.Validate()
-	if err != nil {
-		result = errors.Join(result, fmt.Errorf("invalid delete: %w", err))
-	}
-
-	err = r.SchemaOptions.Validate()
-	if err != nil {
-		result = errors.Join(result, fmt.Errorf("invalid schema: %w", err))
-	}
-
-	return result
-}
-
-func (d *DataSource) Validate() error {
-	if d == nil {
-		return errors.New("data source is nil")
-	}
-
-	var result error
-
-	if d.Read == nil {
-		result = errors.Join(result, errors.New("must have a read object"))
-	}
-
-	err := d.Read.Validate()
-	if err != nil {
-		result = errors.Join(result, fmt.Errorf("invalid read: %w", err))
-	}
-
-	err = d.SchemaOptions.Validate()
-	if err != nil {
-		result = errors.Join(result, fmt.Errorf("invalid schema: %w", err))
-	}
-
-	return result
-}
-
-func (o *OpenApiSpecLocation) Validate() error {
-	if o == nil {
+func objectToMap(schema *hcl.SchemaOrReference) map[string]*hcl.SchemaOrReference {
+	if schema == nil {
 		return nil
 	}
-
-	var result error
-
-	if o.Path == "" {
-		result = errors.Join(result, errors.New("'path' property is required"))
+	var object *hcl.SchemaObject
+	switch schema.Oneof.(type) {
+	case *hcl.SchemaOrReference_Schema:
+		object = schema.GetSchema().Object
+	case *hcl.SchemaOrReference_Object:
+		object = schema.GetObject().Object
+	default:
 	}
-
-	if o.Method == "" {
-		result = errors.Join(result, errors.New("'method' property is required"))
-	}
-
-	return result
-}
-
-func (s *SchemaOptions) Validate() error {
-	if s == nil {
+	if object == nil {
 		return nil
 	}
+	return object.Properties
+}
 
-	var result error
+func schemaMapFromContent(doc *hcl.Document, content map[string]*hcl.MediaType) (map[string]*hcl.SchemaOrReference, error) {
+	var schema, first *hcl.SchemaOrReference
+	var err error
+	for k, v := range content {
+		s := v.Schema
+		switch s.Oneof.(type) {
+		case *hcl.SchemaOrReference_Reference:
+			reference := s.GetReference()
+			schema, err = doc.ResolveSchemaOrReference(reference)
+			if err != nil {
+				return nil, err
+			}
+		default:
+			schema = s
+		}
+		if first == nil {
+			first = schema
+		}
+		if k == "application/json" {
+			return objectToMap(schema), nil
+		}
+	}
+	return objectToMap(first), nil
+}
 
-	err := s.AttributeOptions.Validate()
+func (self *OpenApiSpecLocation) getCreateSchema() (map[string]*hcl.SchemaOrReference, error) {
+	var content map[string]*hcl.MediaType
+	rb, err := self.getRequestBody()
 	if err != nil {
-		result = errors.Join(result, fmt.Errorf("invalid attributes: %w", err))
+		return nil, err
 	}
-
-	for _, ignore := range s.Ignores {
-		if !attributeLocationRegex.MatchString(ignore) {
-			result = errors.Join(result, fmt.Errorf("invalid item for ignores: %q - must be dot-separated string", ignore))
+	if rb != nil {
+		content = rb.GetContent()
+	} else {
+		rp, err := self.getResponseBody()
+		if err != nil {
+			return nil, err
+		}
+		if rp != nil {
+			content = rp.GetContent()
 		}
 	}
-
-	return result
+	if len(content) == 0 {
+		return nil, nil
+	}
+	return schemaMapFromContent(self.doc, content)
 }
 
-func (s *AttributeOptions) Validate() error {
-	if s == nil {
-		return nil
+func (self *OpenApiSpecLocation) getReadSchema() (map[string]*hcl.SchemaOrReference, error) {
+	var content map[string]*hcl.MediaType
+	rp, err := self.getResponseBody()
+	if err != nil {
+		return nil, err
 	}
-
-	var result error
-
-	for path := range s.Overrides {
-		if !attributeLocationRegex.MatchString(path) {
-			result = errors.Join(result, fmt.Errorf("invalid key for override: %q - must be dot-separated string", path))
+	if rp != nil {
+		content = rp.GetContent()
+		if len(content) > 0 {
+			return schemaMapFromContent(self.doc, content)
 		}
 	}
 
-	return result
+	parameters, err := self.getParameters()
+	if err != nil {
+		return nil, err
+	}
+	if len(parameters) == 0 {
+		return nil, nil
+	}
+
+	properties := make(map[string]*hcl.SchemaOrReference)
+	for _, parameter := range parameters {
+		if parameter.Schema != nil {
+			properties[parameter.Name] = parameter.Schema
+		}
+	}
+	return properties, nil
+}
+
+func (self *OpenApiSpecLocation) MarshalHCL() ([]byte, error) {
+	var schema map[string]*hcl.SchemaOrReference
+	var err error
+	switch self.how {
+	case "create":
+		schema, err = self.getCreateSchema()
+	case "read":
+		schema, err = self.getReadSchema()
+	default:
+	}
+	if err != nil {
+		return nil, err
+	}
+	if schema == nil {
+		return nil, nil
+	}
+	body, err := hcl.SchemaOrReferenceMapToBody(schema)
+	if err != nil {
+		return nil, err
+	}
+	return body.Hcl()
+}
+
+func (self *Resource) MarshalHCL() ([]byte, error) {
+	var body *light.Body
+	var err error
+	if self.Create != nil {
+		self.Create.SetHow("create")
+		bs1, err = self.Create.MarshalHCL()
+	} else if self.Read != nil {
+		self.Read.SetHow("read")
+		bs2, err = self.Read.MarshalHCL()
+	} else {
+		return nil, fmt.Errorf("either 'create' or 'read' must be defined")
+	}
+	if err != nil {
+		return nil, err
+	}
+	return body.Hcl()
 }

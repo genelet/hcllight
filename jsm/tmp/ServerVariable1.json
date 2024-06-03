@@ -1,0 +1,25 @@
+{
+  "type": "object",
+  "required": [
+    "default"
+  ],
+  "additionalProperties": false,
+  "patternProperties": {
+    "^x-": {
+    }
+  },
+  "properties": {
+    "enum": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "default": {
+      "type": "string"
+    },
+    "description": {
+      "type": "string"
+    }
+  }
+}

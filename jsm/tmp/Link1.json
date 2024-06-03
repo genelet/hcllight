@@ -1,0 +1,37 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "patternProperties": {
+    "^x-": {
+    }
+  },
+  "properties": {
+    "parameters": {
+      "type": "map",
+      "additionalProperties": {
+      }
+    },
+    "requestBody": {
+    },
+    "description": {
+      "type": "string"
+    },
+    "server": {
+      "$ref": "#/definitions/Server"
+    },
+    "operationId": {
+      "type": "string"
+    },
+    "operationRef": {
+      "type": "string",
+      "format": "uri-reference"
+    }
+  },
+  "not": {
+    "description": "Operation Id and Operation Ref are mutually exclusive",
+    "required": [
+      "operationId",
+      "operationRef"
+    ]
+  }
+}
