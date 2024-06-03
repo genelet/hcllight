@@ -7,6 +7,14 @@ import (
 	"github.com/genelet/hcllight/light"
 )
 
+func (self *Reference) toAddressArray() ([]string, error) {
+	arr := strings.Split(self.XRef, "#/")
+	if len(arr) != 2 {
+		return nil, fmt.Errorf("invalid reference: %s", self.XRef)
+	}
+	return strings.Split(arr[1], "/"), nil
+}
+
 // reference
 func (self *Reference) toHCL() (*light.Body, error) {
 	body := &light.Body{

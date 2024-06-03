@@ -1,0 +1,21 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "patternProperties": {
+    "^x-": {
+    }
+  },
+  "properties": {
+    "name": {
+      "type": "string"
+    },
+    "url": {
+      "type": "string",
+      "format": "uri-reference"
+    },
+    "email": {
+      "type": "string",
+      "format": "email"
+    }
+  }
+}

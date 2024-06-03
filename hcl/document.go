@@ -1,11 +1,165 @@
 package hcl
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/genelet/hcllight/light"
 	openapiv3 "github.com/google/gnostic-models/openapiv3"
 )
+
+func (self *Document) ResolveSchemaOrReference(reference *Reference) (*SchemaOrReference, error) {
+	if reference == nil {
+		return nil, fmt.Errorf("reference is nil")
+	}
+	addresses, err := reference.toAddressArray()
+	if err != nil {
+		return nil, err
+	}
+	if len(addresses) <= 3 {
+		return nil, fmt.Errorf("invalid reference: %s", reference.XRef)
+	}
+	if strings.ToLower(addresses[0]) != "components" {
+		return nil, fmt.Errorf("invalid reference: %s", reference.XRef)
+	}
+	if strings.ToLower(addresses[1]) != "schemas" {
+		return nil, fmt.Errorf("invalid reference: %s", reference.XRef)
+	}
+	r2 := self.Components.Schemas[addresses[2]]
+	if r2 == nil {
+		return nil, fmt.Errorf("reference not found: %s", reference.XRef)
+	}
+	switch r2.Oneof.(type) {
+	case *SchemaOrReference_Reference:
+		return self.ResolveSchemaOrReference(r2.GetReference())
+	default:
+	}
+	return r2, nil
+}
+
+func (self *Document) ResolveRequestBodyOrReference(reference *Reference) (*RequestBody, error) {
+	if reference == nil {
+		return nil, fmt.Errorf("reference is nil")
+	}
+	addresses, err := reference.toAddressArray()
+	if err != nil {
+		return nil, err
+	}
+	if len(addresses) <= 3 {
+		return nil, fmt.Errorf("invalid reference: %s", reference.XRef)
+	}
+	if strings.ToLower(addresses[0]) != "components" {
+		return nil, fmt.Errorf("invalid reference: %s", reference.XRef)
+	}
+	if strings.ToLower(addresses[1]) != "requestbodies" {
+		return nil, fmt.Errorf("invalid reference: %s", reference.XRef)
+	}
+	r2 := self.Components.RequestBodies[addresses[2]]
+	if r2 == nil {
+		return nil, fmt.Errorf("reference not found: %s", reference.XRef)
+	}
+	switch r2.Oneof.(type) {
+	case *RequestBodyOrReference_RequestBody:
+		return r2.GetRequestBody(), nil
+	case *RequestBodyOrReference_Reference:
+		return self.ResolveRequestBodyOrReference(r2.GetReference())
+	default:
+	}
+	return nil, fmt.Errorf("invalid reference: %s", reference.XRef)
+}
+
+func (self *Document) ResolveReponseOrReference(reference *Reference) (*Response, error) {
+	if reference == nil {
+		return nil, fmt.Errorf("reference is nil")
+	}
+	addresses, err := reference.toAddressArray()
+	if err != nil {
+		return nil, err
+	}
+	if len(addresses) <= 3 {
+		return nil, fmt.Errorf("invalid reference: %s", reference.XRef)
+	}
+	if strings.ToLower(addresses[0]) != "components" {
+		return nil, fmt.Errorf("invalid reference: %s", reference.XRef)
+	}
+	if strings.ToLower(addresses[1]) != "responses" {
+		return nil, fmt.Errorf("invalid reference: %s", reference.XRef)
+	}
+	r2 := self.Components.Responses[addresses[2]]
+	if r2 == nil {
+		return nil, fmt.Errorf("reference not found: %s", reference.XRef)
+	}
+	switch r2.Oneof.(type) {
+	case *ResponseOrReference_Response:
+		return r2.GetResponse(), nil
+	case *ResponseOrReference_Reference:
+		return self.ResolveReponseOrReference(r2.GetReference())
+	default:
+	}
+	return nil, fmt.Errorf("invalid reference: %s", reference.XRef)
+}
+
+func (self *Document) ResolveParameterOrReference(reference *Reference) (*Parameter, error) {
+	if reference == nil {
+		return nil, fmt.Errorf("reference is nil")
+	}
+	addresses, err := reference.toAddressArray()
+	if err != nil {
+		return nil, err
+	}
+	if len(addresses) <= 3 {
+		return nil, fmt.Errorf("invalid reference: %s", reference.XRef)
+	}
+	if strings.ToLower(addresses[0]) != "components" {
+		return nil, fmt.Errorf("invalid reference: %s", reference.XRef)
+	}
+	if strings.ToLower(addresses[1]) != "parameters" {
+		return nil, fmt.Errorf("invalid reference: %s", reference.XRef)
+	}
+	r2 := self.Components.Parameters[addresses[2]]
+	if r2 == nil {
+		return nil, fmt.Errorf("reference not found: %s", reference.XRef)
+	}
+	switch r2.Oneof.(type) {
+	case *ParameterOrReference_Parameter:
+		return r2.GetParameter(), nil
+	case *ParameterOrReference_Reference:
+		return self.ResolveParameterOrReference(r2.GetReference())
+	default:
+	}
+	return nil, fmt.Errorf("invalid reference: %s", reference.XRef)
+}
+
+func (self *Document) ResolveExampleOrReference(reference *Reference) (*Example, error) {
+	if reference == nil {
+		return nil, fmt.Errorf("reference is nil")
+	}
+	addresses, err := reference.toAddressArray()
+	if err != nil {
+		return nil, err
+	}
+	if len(addresses) <= 3 {
+		return nil, fmt.Errorf("invalid reference: %s", reference.XRef)
+	}
+	if strings.ToLower(addresses[0]) != "components" {
+		return nil, fmt.Errorf("invalid reference: %s", reference.XRef)
+	}
+	if strings.ToLower(addresses[1]) != "examples" {
+		return nil, fmt.Errorf("invalid reference: %s", reference.XRef)
+	}
+	r2 := self.Components.Examples[addresses[2]]
+	if r2 == nil {
+		return nil, fmt.Errorf("reference not found: %s", reference.XRef)
+	}
+	switch r2.Oneof.(type) {
+	case *ExampleOrReference_Example:
+		return r2.GetExample(), nil
+	case *ExampleOrReference_Reference:
+		return self.ResolveExampleOrReference(r2.GetReference())
+	default:
+	}
+	return nil, fmt.Errorf("invalid reference: %s", reference.XRef)
+}
 
 // MarshalHCL converts a Document to HCL representation.
 func (self *Document) MarshalHCL() ([]byte, error) {
