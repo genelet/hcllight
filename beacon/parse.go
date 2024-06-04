@@ -89,7 +89,7 @@ type Override struct {
 // ParseConfig takes in a byte array, unmarshals into a Config struct, and validates the result
 // By default the byte array is assumed to be YAML, but if data_type is "hcl" or "tf", it will be unmarshaled as HCL
 func ParseConfig(bytes []byte, data_type ...string) (*Config, error) {
-	var result *Config
+	var result Config
 	var typ string
 	var err error
 	if data_type != nil {
@@ -106,7 +106,7 @@ func ParseConfig(bytes []byte, data_type ...string) (*Config, error) {
 	if len(result.DataSources) == 0 && len(result.Resources) == 0 {
 		return nil, fmt.Errorf("at least one object is required in 'resources' or 'data_sources'")
 	}
-	return result, nil
+	return &result, nil
 }
 
 func (self *SchemaOptions) ToBody() (*light.Body, error) {

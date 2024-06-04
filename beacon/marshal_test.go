@@ -33,5 +33,8 @@ func TestConfigGenerator(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	t.Errorf("%s", bs)
+	err = os.WriteFile("tf_config.hcl", bs, 0644)
+	if err != nil {
+		t.Fatal(err)
+	}
 }
