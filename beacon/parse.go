@@ -4,13 +4,12 @@
 // Generator parser based on the original work of HashiCorp, Inc. on April 6, 2024
 // file locaion: https://github.com/hashicorp/terraform-plugin-codegen-openapi/tree/main/internal/config
 //
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
 
 package beacon
 
 import (
 	"fmt"
+	"log"
 	"regexp"
 	"strings"
 
@@ -30,16 +29,17 @@ var attributeLocationRegex = regexp.MustCompile(`^[\w]+(?:\.[\w]+)*$`)
 
 // Config represents a YAML generator config.
 type Config struct {
-	Provider    `yaml:"provider" hcl:"provider,block"`
+	*Provider   `yaml:"provider" hcl:"provider,block"`
 	Resources   map[string]*Resource   `yaml:"resources" hcl:"resources,block"`
 	DataSources map[string]*DataSource `yaml:"data_sources" hcl:"data_sources,block"`
+	doc         *hcl.Document
 }
 
 // Provider generator config section.
 type Provider struct {
-	Name          string `yaml:"name" hcl:"name"`
-	SchemaRef     string `yaml:"schema_ref" hcl:"schema_ref,optional"`
-	SchemaOptions `yaml:"schema" hcl:"schema,block"`
+	Name           string `yaml:"name" hcl:"name"`
+	SchemaRef      string `yaml:"schema_ref" hcl:"schema_ref,optional"`
+	*SchemaOptions `yaml:"schema" hcl:"schema,block"`
 }
 
 // Resource generator config section.
@@ -49,26 +49,21 @@ type Resource struct {
 	Update         *OpenApiSpecLocation `yaml:"update" hcl:"update,block"`
 	Delete         *OpenApiSpecLocation `yaml:"delete" hcl:"delete,block"`
 	*SchemaOptions `yaml:"schema" hcl:"schema,block"`
+	doc            *hcl.Document
 }
 
 // DataSource generator config section.
 type DataSource struct {
 	Read           *OpenApiSpecLocation `yaml:"read" hcl:"read,block"`
 	*SchemaOptions `yaml:"schema" hcl:"schema,block"`
+	doc            *hcl.Document
 }
 
 // OpenApiSpecLocation defines a location in an OpenAPI spec for an API operation.
 type OpenApiSpecLocation struct {
-	// Matches the path key for a path item (refer to [OAS Paths Object]).
-	//
-	// [OAS Paths Object]: https://spec.openapis.org/oas/v3.1.0#paths-object
-	Path string `yaml:"path" hcl:"path"`
-	// Matches the operation method in a path item: GET, POST, etc (refer to [OAS Path Item Object]).
-	//
-	// [OAS Path Item Object]: https://spec.openapis.org/oas/v3.1.0#pathItemObject
+	Path   string `yaml:"path" hcl:"path"`
 	Method string `yaml:"method" hcl:"method"`
 	doc    *hcl.Document
-	how    string
 }
 
 // SchemaOptions generator config section. This section contains options for modifying the output of the generator.
@@ -115,20 +110,50 @@ func ParseConfig(bytes []byte, data_type ...string) (*Config, error) {
 	return result, nil
 }
 
+func (self *SchemaOptions) ToBody() (*light.Body, error) {
+	bs, err := dethcl.Marshal(self)
+	if err != nil {
+		return nil, err
+	}
+	return light.Parse(bs)
+}
+
+func (self *Config) SetDocument(doc *hcl.Document) {
+	self.doc = doc
+	for _, resource := range self.Resources {
+		resource.SetDocument(doc)
+	}
+	for _, dataSource := range self.DataSources {
+		dataSource.SetDocument(doc)
+	}
+}
+
+func (self *Config) GetDocument() *hcl.Document {
+	return self.doc
+}
+
+func (self *Resource) SetDocument(doc *hcl.Document) {
+	self.doc = doc
+}
+
+func (self *Resource) GetDocument() *hcl.Document {
+	return self.doc
+}
+
+func (self *DataSource) SetDocument(doc *hcl.Document) {
+	self.doc = doc
+}
+
+func (self *DataSource) GetDocument() *hcl.Document {
+	return self.doc
+}
+
 func (self *OpenApiSpecLocation) SetDocument(doc *hcl.Document) {
 	self.doc = doc
 }
 
 func (self *OpenApiSpecLocation) GetDocument() *hcl.Document {
 	return self.doc
-}
-
-func (self *OpenApiSpecLocation) SetHow(how string) {
-	self.how = how
-}
-
-func (self *OpenApiSpecLocation) GetHow() string {
-	return self.how
 }
 
 func (self *OpenApiSpecLocation) GetPath() *hcl.PathItem {
@@ -154,18 +179,13 @@ func (self *OpenApiSpecLocation) GetOperation(common ...bool) *hcl.Operation {
 	if path == nil {
 		return nil
 	}
-	hash := path.ToOperationMap()
 
+	hash := path.ToOperationMap()
 	if len(common) > 0 && common[0] {
 		return hash["common"]
 	}
 
-	for k, v := range hash {
-		if k == self.Method {
-			return v
-		}
-	}
-	return nil
+	return hash[strings.ToLower(self.Method)]
 }
 
 func (self *OpenApiSpecLocation) getRequestBody() (*hcl.RequestBody, error) {
@@ -279,29 +299,22 @@ func objectToMap(schema *hcl.SchemaOrReference) map[string]*hcl.SchemaOrReferenc
 	if object == nil {
 		return nil
 	}
+
 	return object.Properties
 }
 
 func schemaMapFromContent(doc *hcl.Document, content map[string]*hcl.MediaType) (map[string]*hcl.SchemaOrReference, error) {
-	var schema, first *hcl.SchemaOrReference
-	var err error
+	var first *hcl.SchemaOrReference
 	for k, v := range content {
-		s := v.Schema
-		switch s.Oneof.(type) {
-		case *hcl.SchemaOrReference_Reference:
-			reference := s.GetReference()
-			schema, err = doc.ResolveSchemaOrReference(reference)
-			if err != nil {
-				return nil, err
-			}
-		default:
-			schema = s
+		s, err := doc.ResolveSchemaOrReference(v.Schema)
+		if err != nil {
+			return nil, err
 		}
 		if first == nil {
-			first = schema
+			first = s
 		}
 		if k == "application/json" {
-			return objectToMap(schema), nil
+			return objectToMap(s), nil
 		}
 	}
 	return objectToMap(first), nil
@@ -360,43 +373,167 @@ func (self *OpenApiSpecLocation) getReadSchema() (map[string]*hcl.SchemaOrRefere
 	return properties, nil
 }
 
-func (self *OpenApiSpecLocation) MarshalHCL() ([]byte, error) {
-	var schema map[string]*hcl.SchemaOrReference
-	var err error
-	switch self.how {
-	case "create":
-		schema, err = self.getCreateSchema()
-	case "read":
-		schema, err = self.getReadSchema()
-	default:
+func (self *Resource) toBody() (*light.Body, error) {
+	log.Printf("111111")
+	var blocks []*light.Block
+	if self.Create != nil {
+		self.Create.SetDocument(self.doc)
+		schemaMap, err := self.Create.getCreateSchema()
+		if err != nil {
+			return nil, err
+		}
+		bdy, err := hcl.SchemaOrReferenceMapToBody(schemaMap)
+		if err != nil {
+			return nil, err
+		}
+		log.Printf("%v", schemaMap)
+		blocks = append(blocks, &light.Block{
+			Type: "create",
+			Bdy:  bdy,
+		})
 	}
-	if err != nil {
-		return nil, err
+	log.Printf("222222")
+	if self.Read != nil {
+		self.Read.SetDocument(self.doc)
+		schemaMap, err := self.Read.getReadSchema()
+		if err != nil {
+			return nil, err
+		}
+		bdy, err := hcl.SchemaOrReferenceMapToBody(schemaMap)
+		if err != nil {
+			return nil, err
+		}
+		blocks = append(blocks, &light.Block{
+			Type: "read",
+			Bdy:  bdy,
+		})
 	}
-	if schema == nil {
+	log.Printf("333333")
+	if self.SchemaOptions != nil {
+		bdy, err := self.SchemaOptions.ToBody()
+		if err != nil {
+			return nil, err
+		}
+		blocks = append(blocks, &light.Block{
+			Type: "schema",
+			Bdy:  bdy,
+		})
+	}
+
+	if len(blocks) == 0 {
 		return nil, nil
 	}
-	body, err := hcl.SchemaOrReferenceMapToBody(schema)
-	if err != nil {
-		return nil, err
-	}
-	return body.Hcl()
+
+	return &light.Body{
+		Blocks: blocks,
+	}, nil
 }
 
-func (self *Resource) MarshalHCL() ([]byte, error) {
-	var body *light.Body
-	var err error
-	if self.Create != nil {
-		self.Create.SetHow("create")
-		bs1, err = self.Create.MarshalHCL()
-	} else if self.Read != nil {
-		self.Read.SetHow("read")
-		bs2, err = self.Read.MarshalHCL()
-	} else {
-		return nil, fmt.Errorf("either 'create' or 'read' must be defined")
+func (self *DataSource) toBody() (*light.Body, error) {
+	var blocks []*light.Block
+	if self.Read != nil {
+		self.Read.SetDocument(self.doc)
+		schemaMap, err := self.Read.getReadSchema()
+		if err != nil {
+			return nil, err
+		}
+		bdy, err := hcl.SchemaOrReferenceMapToBody(schemaMap)
+		if err != nil {
+			return nil, err
+		}
+		blocks = append(blocks, &light.Block{
+			Type: "read",
+			Bdy:  bdy,
+		})
 	}
+	if self.SchemaOptions != nil {
+		bdy, err := self.SchemaOptions.ToBody()
+		if err != nil {
+			return nil, err
+		}
+		blocks = append(blocks, &light.Block{
+			Type: "schema",
+			Bdy:  bdy,
+		})
+	}
+
+	if len(blocks) == 0 {
+		return nil, nil
+	}
+
+	return &light.Body{
+		Blocks: blocks,
+	}, nil
+}
+
+func (self *Provider) toBody() (*light.Body, error) {
+	var blocks []*light.Block
+	if self.SchemaOptions != nil {
+		bdy, err := self.SchemaOptions.ToBody()
+		if err != nil {
+			return nil, err
+		}
+		blocks = append(blocks, &light.Block{
+			Type: "schema",
+			Bdy:  bdy,
+		})
+	}
+
+	return &light.Body{
+		Attributes: map[string]*light.Attribute{
+			"name": {
+				Name: "name",
+				Expr: light.StringToTextValueExpr(self.Name),
+			},
+		},
+		Blocks: blocks,
+	}, nil
+}
+
+func (self *Config) toBody() (*light.Body, error) {
+	var blocks []*light.Block
+	if self.Provider != nil {
+		bdy, err := self.Provider.toBody()
+		if err != nil {
+			return nil, err
+		}
+		blocks = append(blocks, &light.Block{
+			Type: "provider",
+			Bdy:  bdy,
+		})
+	}
+	for k, v := range self.Resources {
+		bdy, err := v.toBody()
+		if err != nil {
+			return nil, err
+		}
+		blocks = append(blocks, &light.Block{
+			Type:   "resource",
+			Labels: []string{k},
+			Bdy:    bdy,
+		})
+	}
+	for k, v := range self.DataSources {
+		bdy, err := v.toBody()
+		if err != nil {
+			return nil, err
+		}
+		blocks = append(blocks, &light.Block{
+			Type:   "data",
+			Labels: []string{k},
+			Bdy:    bdy,
+		})
+	}
+
+	return &light.Body{
+		Blocks: blocks,
+	}, nil
+}
+
+func (self *Config) MarshalHCL() ([]byte, error) {
+	bdy, err := self.toBody()
 	if err != nil {
 		return nil, err
 	}
-	return body.Hcl()
+	return bdy.Hcl()
 }

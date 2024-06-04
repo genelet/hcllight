@@ -8,7 +8,19 @@ import (
 	openapiv3 "github.com/google/gnostic-models/openapiv3"
 )
 
-func (self *Document) ResolveSchemaOrReference(reference *Reference) (*SchemaOrReference, error) {
+func (self *Document) resolveItems(items []*SchemaOrReference) ([]*SchemaOrReference, error) {
+	var arr []*SchemaOrReference
+	for _, item := range items {
+		sor, err := self.ResolveSchemaOrReference(item)
+		if err != nil {
+			return nil, err
+		}
+		arr = append(arr, sor)
+	}
+	return arr, nil
+}
+
+func (self *Document) resolveReference(reference *Reference) (*SchemaOrReference, error) {
 	if reference == nil {
 		return nil, fmt.Errorf("reference is nil")
 	}
@@ -16,7 +28,8 @@ func (self *Document) ResolveSchemaOrReference(reference *Reference) (*SchemaOrR
 	if err != nil {
 		return nil, err
 	}
-	if len(addresses) <= 3 {
+
+	if len(addresses) < 3 {
 		return nil, fmt.Errorf("invalid reference: %s", reference.XRef)
 	}
 	if strings.ToLower(addresses[0]) != "components" {
@@ -31,10 +44,172 @@ func (self *Document) ResolveSchemaOrReference(reference *Reference) (*SchemaOrR
 	}
 	switch r2.Oneof.(type) {
 	case *SchemaOrReference_Reference:
-		return self.ResolveSchemaOrReference(r2.GetReference())
+		return self.resolveReference(r2.GetReference())
 	default:
 	}
 	return r2, nil
+}
+
+func (self *Document) ResolveSchemaOrReference(sor *SchemaOrReference) (*SchemaOrReference, error) {
+	if sor == nil {
+		return nil, nil
+	}
+
+	switch sor.Oneof.(type) {
+	case *SchemaOrReference_Reference:
+		reference := sor.GetReference()
+		sor1, err := self.resolveReference(reference)
+		if err != nil {
+			return nil, err
+		}
+		return self.ResolveSchemaOrReference(sor1)
+	case *SchemaOrReference_AllOf:
+		arr, err := self.resolveItems(sor.GetAllOf().GetItems())
+		if err != nil {
+			return nil, err
+		}
+		return &SchemaOrReference{
+			Oneof: &SchemaOrReference_AllOf{
+				AllOf: &SchemaAllOf{
+					Items: arr,
+				},
+			},
+		}, nil
+	case *SchemaOrReference_AnyOf:
+		arr, err := self.resolveItems(sor.GetAnyOf().GetItems())
+		if err != nil {
+			return nil, err
+		}
+		return &SchemaOrReference{
+			Oneof: &SchemaOrReference_AnyOf{
+				AnyOf: &SchemaAnyOf{
+					Items: arr,
+				},
+			},
+		}, nil
+	case *SchemaOrReference_OneOf:
+		arr, err := self.resolveItems(sor.GetOneOf().GetItems())
+		if err != nil {
+			return nil, err
+		}
+		return &SchemaOrReference{
+			Oneof: &SchemaOrReference_OneOf{
+				OneOf: &SchemaOneOf{
+					Items: arr,
+				},
+			},
+		}, nil
+	case *SchemaOrReference_Array:
+		sa := sor.GetArray()
+		arr, err := self.resolveItems(sa.GetArray().Items)
+		if err != nil {
+			return nil, err
+		}
+		return &SchemaOrReference{
+			Oneof: &SchemaOrReference_Array{
+				Array: &OASArray{
+					Array: &SchemaArray{
+						Items:    arr,
+						MaxItems: sa.GetArray().MaxItems,
+						MinItems: sa.GetArray().MinItems,
+					},
+					Common: sa.Common,
+				},
+			},
+		}, nil
+	case *SchemaOrReference_Object:
+		so := sor.GetObject()
+		properties := make(map[string]*SchemaOrReference)
+		for key, value := range so.GetObject().Properties {
+			sor1, err := self.ResolveSchemaOrReference(value)
+			if err != nil {
+				return nil, err
+			}
+			properties[key] = sor1
+		}
+		return &SchemaOrReference{
+			Oneof: &SchemaOrReference_Object{
+				Object: &OASObject{
+					Object: &SchemaObject{
+						Properties:    properties,
+						MaxProperties: so.GetObject().MaxProperties,
+						MinProperties: so.GetObject().MinProperties,
+					},
+					Common: so.Common,
+				},
+			},
+		}, nil
+	case *SchemaOrReference_Schema:
+		s := sor.GetSchema()
+		if allof := s.GetAllOf(); allof != nil {
+			arr, err := self.resolveItems(allof.GetItems())
+			if err != nil {
+				return nil, err
+			}
+			s.AllOf = &SchemaAllOf{
+				Items: arr,
+			}
+		}
+		if anyof := s.GetAnyOf(); anyof != nil {
+			arr, err := self.resolveItems(anyof.GetItems())
+			if err != nil {
+				return nil, err
+			}
+			s.AnyOf = &SchemaAnyOf{
+				Items: arr,
+			}
+		}
+		if oneof := s.GetOneOf(); oneof != nil {
+			arr, err := self.resolveItems(oneof.GetItems())
+			if err != nil {
+				return nil, err
+			}
+			s.OneOf = &SchemaOneOf{
+				Items: arr,
+			}
+		}
+		if array := s.GetArray(); array != nil {
+			arr, err := self.resolveItems(array.Items)
+			if err != nil {
+				return nil, err
+			}
+			s.Array = &SchemaArray{
+				Items:    arr,
+				MaxItems: array.MaxItems,
+				MinItems: array.MinItems,
+			}
+		}
+		if object := s.GetObject(); object != nil {
+			properties := make(map[string]*SchemaOrReference)
+			for key, value := range object.Properties {
+				sor1, err := self.ResolveSchemaOrReference(value)
+				if err != nil {
+					return nil, err
+				}
+				properties[key] = sor1
+			}
+			s.Object = &SchemaObject{
+				Properties:    properties,
+				MaxProperties: object.MaxProperties,
+				MinProperties: object.MinProperties,
+			}
+		}
+		if not := s.GetNot(); not != nil {
+			x, err := self.ResolveSchemaOrReference(not)
+			if err != nil {
+				return nil, err
+			}
+			s.Not = x
+		}
+		if xml := s.GetXml(); xml != nil {
+			s.Xml = nil
+		}
+
+		api := schemaOrReferenceToApi(&SchemaOrReference{Oneof: &SchemaOrReference_Schema{s}})
+		return schemaOrReferenceFromApi(api), nil
+	default:
+	}
+	return sor, nil
 }
 
 func (self *Document) ResolveRequestBodyOrReference(reference *Reference) (*RequestBody, error) {

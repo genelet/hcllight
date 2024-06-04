@@ -92,7 +92,7 @@ func componentsFromApi(components *openapiv3.Components) *Components {
 	if components.SecuritySchemes != nil {
 		c.SecuritySchemes = make(map[string]*SecuritySchemeOrReference)
 		for _, v := range components.SecuritySchemes.AdditionalProperties {
-			c.SecuritySchemes[v.Name] = securityshemaOrReferenceFromApi(v.Value)
+			c.SecuritySchemes[v.Name] = securityschemaOrReferenceFromApi(v.Value)
 		}
 	}
 	if components.Examples != nil {
@@ -110,7 +110,7 @@ func componentsFromApi(components *openapiv3.Components) *Components {
 	if components.Schemas != nil {
 		c.Schemas = make(map[string]*SchemaOrReference)
 		for _, v := range components.Schemas.AdditionalProperties {
-			c.Schemas[v.Name] = shemaOrReferenceFromApi(v.Value, true)
+			c.Schemas[v.Name] = schemaOrReferenceFromApi(v.Value, true)
 		}
 	}
 	if components.Parameters != nil {
@@ -568,7 +568,7 @@ func securityRequirementToApi(securityRequirement *SecurityRequirement) *openapi
 	return s
 }
 
-func securityshemaOrReferenceFromApi(security *openapiv3.SecuritySchemeOrReference) *SecuritySchemeOrReference {
+func securityschemaOrReferenceFromApi(security *openapiv3.SecuritySchemeOrReference) *SecuritySchemeOrReference {
 	if security == nil {
 		return nil
 	}
@@ -820,7 +820,7 @@ func parameterFromApi(parameter *openapiv3.Parameter) *Parameter {
 		Style:                  parameter.Style,
 		Explode:                parameter.Explode,
 		AllowReserved:          parameter.AllowReserved,
-		Schema:                 shemaOrReferenceFromApi(parameter.Schema),
+		Schema:                 schemaOrReferenceFromApi(parameter.Schema),
 		Example:                anyFromApi(parameter.Example),
 		SpecificationExtension: extensionFromApi(parameter.SpecificationExtension),
 	}
@@ -1268,7 +1268,7 @@ func headerFromApi(header *openapiv3.Header) *Header {
 		Explode:                header.Explode,
 		AllowReserved:          header.AllowReserved,
 		Example:                anyFromApi(header.Example),
-		Schema:                 shemaOrReferenceFromApi(header.Schema),
+		Schema:                 schemaOrReferenceFromApi(header.Schema),
 		SpecificationExtension: extensionFromApi(header.SpecificationExtension),
 	}
 	if header.Examples != nil {
@@ -1368,7 +1368,7 @@ func mediaTypeFromApi(mt *openapiv3.MediaType) *MediaType {
 	}
 
 	m := &MediaType{
-		Schema:                 shemaOrReferenceFromApi(mt.Schema),
+		Schema:                 schemaOrReferenceFromApi(mt.Schema),
 		Example:                anyFromApi(mt.Example),
 		SpecificationExtension: extensionFromApi(mt.SpecificationExtension),
 	}

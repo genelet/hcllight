@@ -5,7 +5,7 @@ import (
 	//"github.com/k0kubun/pp/v3"
 )
 
-func shemaOrReferenceFromApi(schema *openapiv3.SchemaOrReference, force ...bool) *SchemaOrReference {
+func schemaOrReferenceFromApi(schema *openapiv3.SchemaOrReference, force ...bool) *SchemaOrReference {
 	if schema == nil {
 		return nil
 	}
@@ -332,7 +332,7 @@ func additionalPropertiesItemFromApi(item *openapiv3.AdditionalPropertiesItem) *
 	} else if x := item.GetSchemaOrReference(); x != nil {
 		return &AdditionalPropertiesItem{
 			Oneof: &AdditionalPropertiesItem_SchemaOrReference{
-				SchemaOrReference: shemaOrReferenceFromApi(x),
+				SchemaOrReference: schemaOrReferenceFromApi(x),
 			},
 		}
 	}
@@ -577,7 +577,7 @@ func arrayFromApi(s *openapiv3.Schema) *SchemaArray {
 	}
 	var items []*SchemaOrReference
 	for _, v := range s.Items.SchemaOrReference {
-		items = append(items, shemaOrReferenceFromApi(v))
+		items = append(items, schemaOrReferenceFromApi(v))
 	}
 	return &SchemaArray{
 		Items:       items,
@@ -597,6 +597,9 @@ func arrayToApi(s *SchemaArray) *openapiv3.Schema {
 		UniqueItems: s.UniqueItems,
 	}
 	for _, v := range s.Items {
+		if schema.Items == nil {
+			schema.Items = &openapiv3.ItemsItem{}
+		}
 		schema.Items.SchemaOrReference = append(schema.Items.SchemaOrReference, schemaOrReferenceToApi(v))
 	}
 	return schema
@@ -628,7 +631,7 @@ func objectFromApi(s *openapiv3.Schema) *SchemaObject {
 	if s.Properties != nil {
 		properties = make(map[string]*SchemaOrReference)
 		for _, v := range s.Properties.AdditionalProperties {
-			properties[v.Name] = shemaOrReferenceFromApi(v.Value)
+			properties[v.Name] = schemaOrReferenceFromApi(v.Value)
 		}
 	}
 	return &SchemaObject{
@@ -719,7 +722,7 @@ func allOfFromApi(s *openapiv3.Schema) *SchemaAllOf {
 	}
 	var items []*SchemaOrReference
 	for _, v := range s.AllOf {
-		items = append(items, shemaOrReferenceFromApi(v))
+		items = append(items, schemaOrReferenceFromApi(v))
 	}
 	return &SchemaAllOf{
 		Items: items,
@@ -743,7 +746,7 @@ func oneOfFromApi(s *openapiv3.Schema) *SchemaOneOf {
 	}
 	var items []*SchemaOrReference
 	for _, v := range s.OneOf {
-		items = append(items, shemaOrReferenceFromApi(v))
+		items = append(items, schemaOrReferenceFromApi(v))
 	}
 	return &SchemaOneOf{
 		Items: items,
@@ -767,7 +770,7 @@ func anyOfFromApi(s *openapiv3.Schema) *SchemaAnyOf {
 	}
 	var items []*SchemaOrReference
 	for _, v := range s.AnyOf {
-		items = append(items, shemaOrReferenceFromApi(v))
+		items = append(items, schemaOrReferenceFromApi(v))
 	}
 	return &SchemaAnyOf{
 		Items: items,
@@ -798,7 +801,7 @@ func schemaFromApi(schema *openapiv3.Schema) *Schema {
 		ExternalDocs: externalDocsFromApi(schema.ExternalDocs),
 		Deprecated:   schema.Deprecated,
 		Title:        schema.Title,
-		Not: shemaOrReferenceFromApi(&openapiv3.SchemaOrReference{
+		Not: schemaOrReferenceFromApi(&openapiv3.SchemaOrReference{
 			Oneof: &openapiv3.SchemaOrReference_Schema{Schema: schema.Not}}),
 		Discriminator:          discriminatorFromApi(schema.Discriminator),
 		SpecificationExtension: extensionFromApi(schema.SpecificationExtension),
