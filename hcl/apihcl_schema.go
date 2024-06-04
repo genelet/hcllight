@@ -508,8 +508,11 @@ func oasNumberFromApi(s *openapiv3.Schema) *OASNumber {
 }
 
 func plusCommon(s *openapiv3.Schema, c *SchemaCommon) *openapiv3.Schema {
-	if s == nil || c == nil {
-		return s
+	if s == nil && c == nil {
+		return nil
+	}
+	if s == nil {
+		s = &openapiv3.Schema{}
 	}
 	s.Type = c.Type
 	s.Format = c.Format
@@ -517,7 +520,7 @@ func plusCommon(s *openapiv3.Schema, c *SchemaCommon) *openapiv3.Schema {
 	s.Default = defaultTypeToApi(c.Default)
 	s.Example = anyToApi(c.Example)
 	for _, v := range c.Enum {
-		s.Enum = append(s.Enum, &openapiv3.Any{Value: v.Value})
+		s.Enum = append(s.Enum, anyToApi(v))
 	}
 	return s
 }

@@ -2,6 +2,7 @@ package hcl
 
 import (
 	"github.com/genelet/hcllight/light"
+	openapiv3 "github.com/google/gnostic-models/openapiv3"
 )
 
 func (self *Schema) toHCL() (*light.Body, error) {
@@ -204,4 +205,15 @@ func schemaFullFromHCL(body *light.Body) (*Schema, error) {
 	}
 
 	return s, nil
+}
+
+// refreshFullSchema converts a full Schema to a SchemaOrReference.
+// This helps in cases where the full schema may have shortened version.
+func refreshFullSchema(s *Schema) *SchemaOrReference {
+	api := schemaToApi(s)
+	return schemaOrReferenceFromApi(&openapiv3.SchemaOrReference{
+		Oneof: &openapiv3.SchemaOrReference_Schema{
+			Schema: api,
+		},
+	})
 }

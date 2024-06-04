@@ -204,9 +204,7 @@ func (self *Document) ResolveSchemaOrReference(sor *SchemaOrReference) (*SchemaO
 		if xml := s.GetXml(); xml != nil {
 			s.Xml = nil
 		}
-
-		api := schemaOrReferenceToApi(&SchemaOrReference{Oneof: &SchemaOrReference_Schema{s}})
-		return schemaOrReferenceFromApi(api), nil
+		return refreshFullSchema(s), nil
 	default:
 	}
 	return sor, nil
