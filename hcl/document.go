@@ -334,6 +334,11 @@ func (self *Document) ResolveExampleOrReference(reference *Reference) (*Example,
 	return nil, fmt.Errorf("invalid reference: %s", reference.XRef)
 }
 
+// ToBody converts a Document to a HCL Body.
+func (self *Document) ToBody() (*light.Body, error) {
+	return self.toHCL()
+}
+
 // MarshalHCL converts a Document to HCL representation.
 func (self *Document) MarshalHCL() ([]byte, error) {
 	body, err := self.toHCL()

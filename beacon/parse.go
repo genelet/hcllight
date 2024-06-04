@@ -9,7 +9,6 @@ package beacon
 
 import (
 	"fmt"
-	"regexp"
 	"strings"
 
 	"github.com/genelet/determined/dethcl"
@@ -18,15 +17,7 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-// This regex matches attribute locations, dot-separated, as represented as {attribute_name}.{nested_attribute_name}
-//   - category = MATCH
-//   - category.id = MATCH
-//   - category.tags.name = MATCH
-//   - category. = NO MATCH
-//   - .category = NO MATCH
-var attributeLocationRegex = regexp.MustCompile(`^[\w]+(?:\.[\w]+)*$`)
-
-// Config represents a YAML generator config.
+// Config represents a generator config.
 type Config struct {
 	*Provider   `yaml:"provider" hcl:"provider,block"`
 	Resources   map[string]*Resource   `yaml:"resources" hcl:"resources,block"`
@@ -34,14 +25,13 @@ type Config struct {
 	doc         *hcl.Document
 }
 
-// Provider generator config section.
 type Provider struct {
 	Name           string `yaml:"name" hcl:"name"`
 	SchemaRef      string `yaml:"schema_ref" hcl:"schema_ref,optional"`
 	*SchemaOptions `yaml:"schema" hcl:"schema,block"`
+	doc            *hcl.Document
 }
 
-// Resource generator config section.
 type Resource struct {
 	Create         *OpenApiSpecLocation `yaml:"create" hcl:"create,block"`
 	Read           *OpenApiSpecLocation `yaml:"read" hcl:"read,block"`
@@ -51,7 +41,6 @@ type Resource struct {
 	doc            *hcl.Document
 }
 
-// DataSource generator config section.
 type DataSource struct {
 	Read           *OpenApiSpecLocation `yaml:"read" hcl:"read,block"`
 	*SchemaOptions `yaml:"schema" hcl:"schema,block"`
@@ -65,14 +54,14 @@ type OpenApiSpecLocation struct {
 	doc    *hcl.Document
 }
 
-// SchemaOptions generator config section. This section contains options for modifying the output of the generator.
+// SchemaOptions contains options for modifying the output of the generator.
 type SchemaOptions struct {
 	// Ignores are a slice of strings, representing an attribute location to ignore during mapping (dot-separated for nested attributes).
 	Ignores          []string `yaml:"ignores" hcl:"ignores,optional"`
 	AttributeOptions `yaml:"attributes" hcl:"attributes,block"`
 }
 
-// AttributeOptions generator config section. This section is used to modify the output of specific attributes.
+// AttributeOptions is used to modify the output of specific attributes.
 type AttributeOptions struct {
 	// Aliases are a map, with the key being a parameter name in an OpenAPI operation and the value being the new name (alias).
 	Aliases map[string]string `yaml:"aliases" hcl:"aliases,optional"`
@@ -80,14 +69,13 @@ type AttributeOptions struct {
 	Overrides map[string]*Override `yaml:"overrides" hcl:"overrides,block"`
 }
 
-// Override generator config section.
 type Override struct {
 	// Description overrides the description that was mapped/merged from the OpenAPI specification.
 	Description string `yaml:"description" hcl:"description,optional"`
 }
 
-// ParseConfig takes in a byte array, unmarshals into a Config struct, and validates the result
-// By default the byte array is assumed to be YAML, but if data_type is "hcl" or "tf", it will be unmarshaled as HCL
+// ParseConfig takes in a byte array, unmarshals into a Config struct.
+// By default the byte array is assumed to be HCL, but if data_type is "yml" or "yaml", it will be unmarshaled as YAML.
 func ParseConfig(bytes []byte, data_type ...string) (*Config, error) {
 	var result Config
 	var typ string
@@ -125,6 +113,9 @@ func (self *Config) SetDocument(doc *hcl.Document) {
 	for _, dataSource := range self.DataSources {
 		dataSource.SetDocument(doc)
 	}
+	if self.Provider != nil {
+		self.Provider.SetDocument(doc)
+	}
 }
 
 func (self *Config) GetDocument() *hcl.Document {
@@ -144,6 +135,14 @@ func (self *DataSource) SetDocument(doc *hcl.Document) {
 }
 
 func (self *DataSource) GetDocument() *hcl.Document {
+	return self.doc
+}
+
+func (self *Provider) SetDocument(doc *hcl.Document) {
+	self.doc = doc
+}
+
+func (self *Provider) GetDocument() *hcl.Document {
 	return self.doc
 }
 
@@ -380,6 +379,7 @@ func (self *Resource) toBody() (*light.Body, error) {
 		if err != nil {
 			return nil, err
 		}
+		schemaMap = ignoreSchemaOrReferenceMap(schemaMap, self.SchemaOptions)
 		bdy, err := hcl.SchemaOrReferenceMapToBody(schemaMap)
 		if err != nil {
 			return nil, err
@@ -396,6 +396,7 @@ func (self *Resource) toBody() (*light.Body, error) {
 		if err != nil {
 			return nil, err
 		}
+		schemaMap = ignoreSchemaOrReferenceMap(schemaMap, self.SchemaOptions)
 		bdy, err := hcl.SchemaOrReferenceMapToBody(schemaMap)
 		if err != nil {
 			return nil, err
@@ -434,6 +435,7 @@ func (self *DataSource) toBody() (*light.Body, error) {
 		if err != nil {
 			return nil, err
 		}
+		schemaMap = ignoreSchemaOrReferenceMap(schemaMap, self.SchemaOptions)
 		bdy, err := hcl.SchemaOrReferenceMapToBody(schemaMap)
 		if err != nil {
 			return nil, err
@@ -463,6 +465,105 @@ func (self *DataSource) toBody() (*light.Body, error) {
 	}, nil
 }
 
+func ignoreBody(body *light.Body, so *SchemaOptions) *light.Body {
+	if body == nil || so == nil {
+		return body
+	}
+
+	ignores := so.Ignores
+	aliases := so.Aliases
+	//overrides := so.Overrides
+
+	var blocks []*light.Block
+	for _, block := range body.Blocks {
+		if grep(ignores, block.Type) {
+			continue
+		}
+		if aliases != nil {
+			if u, ok := aliases[block.Type]; ok {
+				block.Type = u
+			}
+		}
+		blocks = append(blocks, block)
+	}
+	var attributes map[string]*light.Attribute
+	if body.Attributes != nil {
+		attributes = make(map[string]*light.Attribute)
+		for k, v := range body.Attributes {
+			if grep(ignores, k) {
+				continue
+			}
+			if aliases != nil {
+				if u, ok := aliases[k]; ok {
+					k = u
+				}
+			}
+			attributes[k] = v
+		}
+	}
+
+	bdy := &light.Body{
+		Blocks: blocks,
+	}
+	if len(attributes) > 0 {
+		bdy.Attributes = attributes
+	}
+	return bdy
+}
+
+func ignoreSchemaOrReferenceMap(schemaMap map[string]*hcl.SchemaOrReference, so *SchemaOptions) map[string]*hcl.SchemaOrReference {
+	if schemaMap == nil || so == nil {
+		return schemaMap
+	}
+
+	ignores := so.Ignores
+	aliases := so.Aliases
+	//overrides := so.Overrides
+
+	hash := make(map[string]*hcl.SchemaOrReference)
+	for k, v := range schemaMap {
+		if grep(ignores, k) {
+			continue
+		}
+		if aliases != nil {
+			if u, ok := aliases[k]; ok {
+				k = u
+			}
+		}
+		hash[k] = v
+	}
+	if len(hash) == 0 {
+		return nil
+	}
+	return hash
+}
+
+func grep(names []string, name string) bool {
+	for _, n := range names {
+		if n == name {
+			return true
+		}
+	}
+	return false
+}
+
+func findGeneralReference(body *light.Body, names []string) *light.Body {
+	if body == nil || len(names) == 0 {
+		return body
+	}
+
+	name := names[0]
+	names = names[1:]
+
+	for _, block := range body.Blocks {
+		if block.Type == name {
+			return findGeneralReference(block.Bdy, names)
+		}
+	}
+
+	return nil
+}
+
 func (self *Provider) toBody() (*light.Body, error) {
 	var blocks []*light.Block
 	if self.SchemaOptions != nil {
@@ -476,15 +577,27 @@ func (self *Provider) toBody() (*light.Body, error) {
 		})
 	}
 
-	return &light.Body{
-		Attributes: map[string]*light.Attribute{
-			"name": {
-				Name: "name",
-				Expr: light.StringToTextValueExpr(self.Name),
+	var body *light.Body
+	if self.SchemaRef != "" {
+		arr := strings.Split(self.SchemaRef, "#/")
+		names := strings.Split(arr[1], "/")
+		body, err := self.doc.ToBody()
+		if err != nil {
+			return nil, err
+		}
+		body = findGeneralReference(body, names)
+	} else {
+		body = &light.Body{
+			Attributes: map[string]*light.Attribute{
+				"name": {
+					Name: "name",
+					Expr: light.StringToTextValueExpr(self.Name),
+				},
 			},
-		},
-		Blocks: blocks,
-	}, nil
+			Blocks: blocks,
+		}
+	}
+	return ignoreBody(body, self.SchemaOptions), nil
 }
 
 func (self *Config) toBody() (*light.Body, error) {
