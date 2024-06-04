@@ -9,7 +9,6 @@ package beacon
 
 import (
 	"fmt"
-	"log"
 	"regexp"
 	"strings"
 
@@ -374,7 +373,6 @@ func (self *OpenApiSpecLocation) getReadSchema() (map[string]*hcl.SchemaOrRefere
 }
 
 func (self *Resource) toBody() (*light.Body, error) {
-	log.Printf("111111")
 	var blocks []*light.Block
 	if self.Create != nil {
 		self.Create.SetDocument(self.doc)
@@ -386,13 +384,12 @@ func (self *Resource) toBody() (*light.Body, error) {
 		if err != nil {
 			return nil, err
 		}
-		log.Printf("%v", schemaMap)
 		blocks = append(blocks, &light.Block{
 			Type: "create",
 			Bdy:  bdy,
 		})
 	}
-	log.Printf("222222")
+
 	if self.Read != nil {
 		self.Read.SetDocument(self.doc)
 		schemaMap, err := self.Read.getReadSchema()
@@ -408,7 +405,7 @@ func (self *Resource) toBody() (*light.Body, error) {
 			Bdy:  bdy,
 		})
 	}
-	log.Printf("333333")
+
 	if self.SchemaOptions != nil {
 		bdy, err := self.SchemaOptions.ToBody()
 		if err != nil {
