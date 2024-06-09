@@ -1,0 +1,22 @@
+{
+  "type": "object",
+  "required": [
+    "name"
+  ],
+  "additionalProperties": false,
+  "patternProperties": {
+    "^x-": {
+    }
+  },
+  "properties": {
+    "name": {
+      "type": "string"
+    },
+    "description": {
+      "type": "string"
+    },
+    "externalDocs": {
+      "$ref": "#/definitions/ExternalDocumentation"
+    }
+  }
+}

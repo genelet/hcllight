@@ -1,11 +1,343 @@
 package hcl
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/genelet/hcllight/light"
 	openapiv3 "github.com/google/gnostic-models/openapiv3"
 )
+
+func (self *Document) resolveItems(items []*SchemaOrReference) ([]*SchemaOrReference, error) {
+	var arr []*SchemaOrReference
+	for _, item := range items {
+		sor, err := self.ResolveSchemaOrReference(item)
+		if err != nil {
+			return nil, err
+		}
+		arr = append(arr, sor)
+	}
+	return arr, nil
+}
+
+func (self *Document) resolveReference(reference *Reference) (*SchemaOrReference, error) {
+	if reference == nil {
+		return nil, fmt.Errorf("reference is nil")
+	}
+	addresses, err := reference.toAddressArray()
+	if err != nil {
+		return nil, err
+	}
+
+	if len(addresses) < 3 {
+		return nil, fmt.Errorf("invalid reference: %s", reference.XRef)
+	}
+	if strings.ToLower(addresses[0]) != "components" {
+		return nil, fmt.Errorf("invalid reference: %s", reference.XRef)
+	}
+	if strings.ToLower(addresses[1]) != "schemas" {
+		return nil, fmt.Errorf("invalid reference: %s", reference.XRef)
+	}
+	r2 := self.Components.Schemas[addresses[2]]
+	if r2 == nil {
+		return nil, fmt.Errorf("reference not found: %s", reference.XRef)
+	}
+	switch r2.Oneof.(type) {
+	case *SchemaOrReference_Reference:
+		return self.resolveReference(r2.GetReference())
+	default:
+	}
+	return r2, nil
+}
+
+func (self *Document) ResolveSchemaOrReference(sor *SchemaOrReference) (*SchemaOrReference, error) {
+	if sor == nil {
+		return nil, nil
+	}
+
+	switch sor.Oneof.(type) {
+	case *SchemaOrReference_Reference:
+		reference := sor.GetReference()
+		sor1, err := self.resolveReference(reference)
+		if err != nil {
+			return nil, err
+		}
+		return self.ResolveSchemaOrReference(sor1)
+	case *SchemaOrReference_AllOf:
+		arr, err := self.resolveItems(sor.GetAllOf().GetItems())
+		if err != nil {
+			return nil, err
+		}
+		return &SchemaOrReference{
+			Oneof: &SchemaOrReference_AllOf{
+				AllOf: &SchemaAllOf{
+					Items: arr,
+				},
+			},
+		}, nil
+	case *SchemaOrReference_AnyOf:
+		arr, err := self.resolveItems(sor.GetAnyOf().GetItems())
+		if err != nil {
+			return nil, err
+		}
+		return &SchemaOrReference{
+			Oneof: &SchemaOrReference_AnyOf{
+				AnyOf: &SchemaAnyOf{
+					Items: arr,
+				},
+			},
+		}, nil
+	case *SchemaOrReference_OneOf:
+		arr, err := self.resolveItems(sor.GetOneOf().GetItems())
+		if err != nil {
+			return nil, err
+		}
+		return &SchemaOrReference{
+			Oneof: &SchemaOrReference_OneOf{
+				OneOf: &SchemaOneOf{
+					Items: arr,
+				},
+			},
+		}, nil
+	case *SchemaOrReference_Array:
+		sa := sor.GetArray()
+		arr, err := self.resolveItems(sa.GetArray().Items)
+		if err != nil {
+			return nil, err
+		}
+		return &SchemaOrReference{
+			Oneof: &SchemaOrReference_Array{
+				Array: &OASArray{
+					Array: &SchemaArray{
+						Items:    arr,
+						MaxItems: sa.GetArray().MaxItems,
+						MinItems: sa.GetArray().MinItems,
+					},
+					Common: sa.Common,
+				},
+			},
+		}, nil
+	case *SchemaOrReference_Object:
+		so := sor.GetObject()
+		properties := make(map[string]*SchemaOrReference)
+		for key, value := range so.GetObject().Properties {
+			sor1, err := self.ResolveSchemaOrReference(value)
+			if err != nil {
+				return nil, err
+			}
+			properties[key] = sor1
+		}
+		return &SchemaOrReference{
+			Oneof: &SchemaOrReference_Object{
+				Object: &OASObject{
+					Object: &SchemaObject{
+						Properties:    properties,
+						MaxProperties: so.GetObject().MaxProperties,
+						MinProperties: so.GetObject().MinProperties,
+					},
+					Common: so.Common,
+				},
+			},
+		}, nil
+	case *SchemaOrReference_Schema:
+		s := sor.GetSchema()
+		if allof := s.GetAllOf(); allof != nil {
+			arr, err := self.resolveItems(allof.GetItems())
+			if err != nil {
+				return nil, err
+			}
+			s.AllOf = &SchemaAllOf{
+				Items: arr,
+			}
+		}
+		if anyof := s.GetAnyOf(); anyof != nil {
+			arr, err := self.resolveItems(anyof.GetItems())
+			if err != nil {
+				return nil, err
+			}
+			s.AnyOf = &SchemaAnyOf{
+				Items: arr,
+			}
+		}
+		if oneof := s.GetOneOf(); oneof != nil {
+			arr, err := self.resolveItems(oneof.GetItems())
+			if err != nil {
+				return nil, err
+			}
+			s.OneOf = &SchemaOneOf{
+				Items: arr,
+			}
+		}
+		if array := s.GetArray(); array != nil {
+			arr, err := self.resolveItems(array.Items)
+			if err != nil {
+				return nil, err
+			}
+			s.Array = &SchemaArray{
+				Items:    arr,
+				MaxItems: array.MaxItems,
+				MinItems: array.MinItems,
+			}
+		}
+		if object := s.GetObject(); object != nil {
+			properties := make(map[string]*SchemaOrReference)
+			for key, value := range object.Properties {
+				sor1, err := self.ResolveSchemaOrReference(value)
+				if err != nil {
+					return nil, err
+				}
+				properties[key] = sor1
+			}
+			s.Object = &SchemaObject{
+				Properties:    properties,
+				MaxProperties: object.MaxProperties,
+				MinProperties: object.MinProperties,
+			}
+		}
+		if not := s.GetNot(); not != nil {
+			x, err := self.ResolveSchemaOrReference(not)
+			if err != nil {
+				return nil, err
+			}
+			s.Not = x
+		}
+		if xml := s.GetXml(); xml != nil {
+			s.Xml = nil
+		}
+		return refreshFullSchema(s), nil
+	default:
+	}
+	return sor, nil
+}
+
+func (self *Document) ResolveRequestBodyOrReference(reference *Reference) (*RequestBody, error) {
+	if reference == nil {
+		return nil, fmt.Errorf("reference is nil")
+	}
+	addresses, err := reference.toAddressArray()
+	if err != nil {
+		return nil, err
+	}
+	if len(addresses) <= 3 {
+		return nil, fmt.Errorf("invalid reference: %s", reference.XRef)
+	}
+	if strings.ToLower(addresses[0]) != "components" {
+		return nil, fmt.Errorf("invalid reference: %s", reference.XRef)
+	}
+	if strings.ToLower(addresses[1]) != "requestbodies" {
+		return nil, fmt.Errorf("invalid reference: %s", reference.XRef)
+	}
+	r2 := self.Components.RequestBodies[addresses[2]]
+	if r2 == nil {
+		return nil, fmt.Errorf("reference not found: %s", reference.XRef)
+	}
+	switch r2.Oneof.(type) {
+	case *RequestBodyOrReference_RequestBody:
+		return r2.GetRequestBody(), nil
+	case *RequestBodyOrReference_Reference:
+		return self.ResolveRequestBodyOrReference(r2.GetReference())
+	default:
+	}
+	return nil, fmt.Errorf("invalid reference: %s", reference.XRef)
+}
+
+func (self *Document) ResolveReponseOrReference(reference *Reference) (*Response, error) {
+	if reference == nil {
+		return nil, fmt.Errorf("reference is nil")
+	}
+	addresses, err := reference.toAddressArray()
+	if err != nil {
+		return nil, err
+	}
+	if len(addresses) <= 3 {
+		return nil, fmt.Errorf("invalid reference: %s", reference.XRef)
+	}
+	if strings.ToLower(addresses[0]) != "components" {
+		return nil, fmt.Errorf("invalid reference: %s", reference.XRef)
+	}
+	if strings.ToLower(addresses[1]) != "responses" {
+		return nil, fmt.Errorf("invalid reference: %s", reference.XRef)
+	}
+	r2 := self.Components.Responses[addresses[2]]
+	if r2 == nil {
+		return nil, fmt.Errorf("reference not found: %s", reference.XRef)
+	}
+	switch r2.Oneof.(type) {
+	case *ResponseOrReference_Response:
+		return r2.GetResponse(), nil
+	case *ResponseOrReference_Reference:
+		return self.ResolveReponseOrReference(r2.GetReference())
+	default:
+	}
+	return nil, fmt.Errorf("invalid reference: %s", reference.XRef)
+}
+
+func (self *Document) ResolveParameterOrReference(reference *Reference) (*Parameter, error) {
+	if reference == nil {
+		return nil, fmt.Errorf("reference is nil")
+	}
+	addresses, err := reference.toAddressArray()
+	if err != nil {
+		return nil, err
+	}
+	if len(addresses) <= 3 {
+		return nil, fmt.Errorf("invalid reference: %s", reference.XRef)
+	}
+	if strings.ToLower(addresses[0]) != "components" {
+		return nil, fmt.Errorf("invalid reference: %s", reference.XRef)
+	}
+	if strings.ToLower(addresses[1]) != "parameters" {
+		return nil, fmt.Errorf("invalid reference: %s", reference.XRef)
+	}
+	r2 := self.Components.Parameters[addresses[2]]
+	if r2 == nil {
+		return nil, fmt.Errorf("reference not found: %s", reference.XRef)
+	}
+	switch r2.Oneof.(type) {
+	case *ParameterOrReference_Parameter:
+		return r2.GetParameter(), nil
+	case *ParameterOrReference_Reference:
+		return self.ResolveParameterOrReference(r2.GetReference())
+	default:
+	}
+	return nil, fmt.Errorf("invalid reference: %s", reference.XRef)
+}
+
+func (self *Document) ResolveExampleOrReference(reference *Reference) (*Example, error) {
+	if reference == nil {
+		return nil, fmt.Errorf("reference is nil")
+	}
+	addresses, err := reference.toAddressArray()
+	if err != nil {
+		return nil, err
+	}
+	if len(addresses) <= 3 {
+		return nil, fmt.Errorf("invalid reference: %s", reference.XRef)
+	}
+	if strings.ToLower(addresses[0]) != "components" {
+		return nil, fmt.Errorf("invalid reference: %s", reference.XRef)
+	}
+	if strings.ToLower(addresses[1]) != "examples" {
+		return nil, fmt.Errorf("invalid reference: %s", reference.XRef)
+	}
+	r2 := self.Components.Examples[addresses[2]]
+	if r2 == nil {
+		return nil, fmt.Errorf("reference not found: %s", reference.XRef)
+	}
+	switch r2.Oneof.(type) {
+	case *ExampleOrReference_Example:
+		return r2.GetExample(), nil
+	case *ExampleOrReference_Reference:
+		return self.ResolveExampleOrReference(r2.GetReference())
+	default:
+	}
+	return nil, fmt.Errorf("invalid reference: %s", reference.XRef)
+}
+
+// ToBody converts a Document to a HCL Body.
+func (self *Document) ToBody() (*light.Body, error) {
+	return self.toHCL()
+}
 
 // MarshalHCL converts a Document to HCL representation.
 func (self *Document) MarshalHCL() ([]byte, error) {

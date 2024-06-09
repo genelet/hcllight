@@ -1,0 +1,27 @@
+{
+  "type": "object",
+  "required": [
+    "type",
+    "openIdConnectUrl"
+  ],
+  "additionalProperties": false,
+  "patternProperties": {
+    "^x-": {
+    }
+  },
+  "properties": {
+    "type": {
+      "type": "string",
+      "enum": [
+        "openIdConnect"
+      ]
+    },
+    "openIdConnectUrl": {
+      "type": "string",
+      "format": "uri-reference"
+    },
+    "description": {
+      "type": "string"
+    }
+  }
+}

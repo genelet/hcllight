@@ -1,0 +1,9 @@
+{
+  "type": "map",
+  "additionalProperties": {
+    "type": "array",
+    "items": {
+      "type": "string"
+    }
+  }
+}

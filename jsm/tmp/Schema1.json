@@ -1,0 +1,203 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "patternProperties": {
+    "^x-": {
+    }
+  },
+  "properties": {
+    "items": {
+      "oneOf": [
+        {
+          "$ref": "#/definitions/Schema"
+        },
+        {
+          "$ref": "#/definitions/Reference"
+        }
+      ]
+    },
+    "writeOnly": {
+      "type": "boolean"
+    },
+    "exclusiveMaximum": {
+      "type": "boolean"
+    },
+    "description": {
+      "type": "string"
+    },
+    "readOnly": {
+      "type": "boolean"
+    },
+    "format": {
+      "type": "string"
+    },
+    "minLength": {
+      "type": "integer",
+      "minimum": "0.000000"
+    },
+    "required": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "minItems": "1",
+      "uniqueItems": true
+    },
+    "enum": {
+      "type": "array",
+      "items": {
+      },
+      "minItems": "1",
+      "uniqueItems": false
+    },
+    "anyOf": {
+      "type": "array",
+      "items": {
+        "oneOf": [
+          {
+            "$ref": "#/definitions/Schema"
+          },
+          {
+            "$ref": "#/definitions/Reference"
+          }
+        ]
+      }
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "array",
+        "boolean",
+        "integer",
+        "number",
+        "object",
+        "string"
+      ]
+    },
+    "example": {
+    },
+    "minProperties": {
+      "type": "integer",
+      "minimum": "0.000000"
+    },
+    "pattern": {
+      "type": "string",
+      "format": "regex"
+    },
+    "allOf": {
+      "type": "array",
+      "items": {
+        "oneOf": [
+          {
+            "$ref": "#/definitions/Schema"
+          },
+          {
+            "$ref": "#/definitions/Reference"
+          }
+        ]
+      }
+    },
+    "title": {
+      "type": "string"
+    },
+    "additionalProperties": {
+      "oneOf": [
+        {
+          "$ref": "#/definitions/Schema"
+        },
+        {
+          "$ref": "#/definitions/Reference"
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "multipleOf": {
+      "type": "number",
+      "minimum": "0.000000",
+      "exclusiveMinimum": true
+    },
+    "uniqueItems": {
+      "type": "boolean"
+    },
+    "oneOf": {
+      "type": "array",
+      "items": {
+        "oneOf": [
+          {
+            "$ref": "#/definitions/Schema"
+          },
+          {
+            "$ref": "#/definitions/Reference"
+          }
+        ]
+      }
+    },
+    "externalDocs": {
+      "$ref": "#/definitions/ExternalDocumentation"
+    },
+    "maxItems": {
+      "type": "integer",
+      "minimum": "0.000000"
+    },
+    "minItems": {
+      "type": "integer",
+      "minimum": "0.000000"
+    },
+    "maxProperties": {
+      "type": "integer",
+      "minimum": "0.000000"
+    },
+    "minimum": {
+      "type": "number"
+    },
+    "maxLength": {
+      "type": "integer",
+      "minimum": "0.000000"
+    },
+    "xml": {
+      "$ref": "#/definitions/XML"
+    },
+    "not": {
+      "oneOf": [
+        {
+          "$ref": "#/definitions/Schema"
+        },
+        {
+          "$ref": "#/definitions/Reference"
+        }
+      ]
+    },
+    "nullable": {
+      "type": "boolean"
+    },
+    "default": {
+    },
+    "properties": {
+      "type": "map",
+      "additionalProperties": {
+        "oneOf": [
+          {
+            "$ref": "#/definitions/Schema"
+          },
+          {
+            "$ref": "#/definitions/Reference"
+          }
+        ]
+      }
+    },
+    "maximum": {
+      "type": "number"
+    },
+    "exclusiveMinimum": {
+      "type": "boolean"
+    },
+    "discriminator": {
+      "$ref": "#/definitions/Discriminator"
+    },
+    "deprecated": {
+      "type": "boolean"
+    }
+  }
+}

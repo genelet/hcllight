@@ -1,0 +1,78 @@
+{
+  "description": "Parameter location",
+  "oneOf": [
+    {
+      "description": "Parameter in path",
+      "required": [
+        "required"
+      ],
+      "properties": {
+        "required": {
+          "enum": [
+            ""
+          ]
+        },
+        "in": {
+          "enum": [
+            "path"
+          ]
+        },
+        "style": {
+          "enum": [
+            "matrix",
+            "label",
+            "simple"
+          ]
+        }
+      }
+    },
+    {
+      "description": "Parameter in query",
+      "properties": {
+        "in": {
+          "enum": [
+            "query"
+          ]
+        },
+        "style": {
+          "enum": [
+            "form",
+            "spaceDelimited",
+            "pipeDelimited",
+            "deepObject"
+          ]
+        }
+      }
+    },
+    {
+      "description": "Parameter in header",
+      "properties": {
+        "in": {
+          "enum": [
+            "header"
+          ]
+        },
+        "style": {
+          "enum": [
+            "simple"
+          ]
+        }
+      }
+    },
+    {
+      "description": "Parameter in cookie",
+      "properties": {
+        "in": {
+          "enum": [
+            "cookie"
+          ]
+        },
+        "style": {
+          "enum": [
+            "form"
+          ]
+        }
+      }
+    }
+  ]
+}

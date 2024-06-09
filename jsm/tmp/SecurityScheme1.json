@@ -1,0 +1,16 @@
+{
+  "oneOf": [
+    {
+      "$ref": "#/definitions/APIKeySecurityScheme"
+    },
+    {
+      "$ref": "#/definitions/HTTPSecurityScheme"
+    },
+    {
+      "$ref": "#/definitions/OAuth2SecurityScheme"
+    },
+    {
+      "$ref": "#/definitions/OpenIdConnectSecurityScheme"
+    }
+  ]
+}

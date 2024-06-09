@@ -1,0 +1,25 @@
+{
+  "type": "object",
+  "required": [
+    "url"
+  ],
+  "additionalProperties": false,
+  "patternProperties": {
+    "^x-": {
+    }
+  },
+  "properties": {
+    "url": {
+      "type": "string"
+    },
+    "description": {
+      "type": "string"
+    },
+    "variables": {
+      "type": "map",
+      "additionalProperties": {
+        "$ref": "#/definitions/ServerVariable"
+      }
+    }
+  }
+}

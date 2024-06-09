@@ -1,0 +1,24 @@
+provider:
+  name: petstore
+resources:
+  pet:
+    create:
+      path: /pet
+      method: POST
+    read:
+      path: /pet/{petId}
+      method: GET
+    schema:
+      attributes:
+        aliases:
+          petId: id
+# New section!
+data_sources:
+  order:
+    read:
+      path: /store/order/{orderId}
+      method: GET
+    schema:
+      attributes:
+        aliases:
+          orderId: id

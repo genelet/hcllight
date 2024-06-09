@@ -71,6 +71,10 @@ func (self *Body) hclBodyNode(level int) (string, error) {
 		for _, label := range block.Labels {
 			name += fmt.Sprintf(` "%s"`, label)
 		}
+		if block.Bdy == nil {
+			arr = append(arr, fmt.Sprintf(`%s {}`, name))
+			continue
+		}
 		bs, err := block.Bdy.hclBodyNode(level + 1)
 		if err != nil {
 			return "", err
