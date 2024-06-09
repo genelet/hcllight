@@ -12,15 +12,15 @@
     })
     photoUrls = array([string()])
     tags = array([object({
-      name = string(),
-      id = integer(format("int64"))
+      id = integer(format("int64")),
+      name = string()
     })])
   }
   data "order" {
+    quantity = integer(format("int32"), example(7))
     shipDate = string(format("date-time"))
-    id = integer(format("int64"), example(10))
     status = string(description("Order Status"), example("approved"), enum("placed", "approved", "delivered"))
     complete = boolean()
     petId = integer(format("int64"), example(198772))
-    quantity = integer(format("int32"), example(7))
+    id = integer(format("int64"), example(10))
   }
