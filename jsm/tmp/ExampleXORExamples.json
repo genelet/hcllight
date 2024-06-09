@@ -1,9 +1,0 @@
-{
-  "description": "Example and examples are mutually exclusive",
-  "not": {
-    "required": [
-      "example",
-      "examples"
-    ]
-  }
-}
