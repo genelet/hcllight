@@ -3,6 +3,10 @@ hcl/*.hcl
 <<<<<<< HEAD
 jsm/*.hcl
 jsm/schema_v30_2.json
+<<<<<<< HEAD
 =======
 jsm/tmp
 >>>>>>> dev
+=======
+jsm/tmp
+>>>>>>> f11de07ec060b4e569bacbfbd940ee33c59b36ab

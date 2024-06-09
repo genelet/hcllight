@@ -180,19 +180,26 @@ func tupleConsExprToSlice(t *light.TupleConsExpr) ([]*Schema, error) {
 }
 
 func schemaOrSchemaArrayToExpression(items *SchemaOrSchemaArray) (*light.Expression, error) {
-	if items.Schema != nil {
-		return schemaToExpression(items.Schema)
-	} else {
-		expr, err := sliceToTupleConsExpr(items.SchemaArray)
-		if err != nil {
-			return nil, err
-		}
-		return &light.Expression{
-			ExpressionClause: &light.Expression_Tcexpr{
-				Tcexpr: expr,
-			},
-		}, nil
+	if items == nil {
+		return nil, nil
 	}
+
+	var arr []*Schema
+	if items.Schema != nil {
+		arr = append(arr, items.Schema)
+	} else {
+		arr = append(arr, items.SchemaArray...)
+	}
+
+	expr, err := sliceToTupleConsExpr(arr)
+	if err != nil {
+		return nil, err
+	}
+	return &light.Expression{
+		ExpressionClause: &light.Expression_Tcexpr{
+			Tcexpr: expr,
+		},
+	}, nil
 }
 
 func expressionToSchemaOrSchemaArray(expr *light.Expression) (*SchemaOrSchemaArray, error) {
@@ -200,6 +207,11 @@ func expressionToSchemaOrSchemaArray(expr *light.Expression) (*SchemaOrSchemaArr
 		items, err := tupleConsExprToSlice(expr.GetTcexpr())
 		if err != nil {
 			return nil, err
+		}
+		if len(items) == 1 {
+			return &SchemaOrSchemaArray{
+				Schema: items[0],
+			}, nil
 		}
 		return &SchemaOrSchemaArray{
 			SchemaArray: items,
@@ -703,13 +715,6 @@ func schemaArrayToFcexpr(self *SchemaArray, expr *light.FunctionCallExpr) error 
 	if self == nil {
 		return nil
 	}
-	if self.Items != nil && (self.Items.Schema != nil || len(self.Items.SchemaArray) > 0) {
-		ex, err := schemaOrSchemaArrayToExpression(self.Items)
-		if err != nil {
-			return err
-		}
-		expr.Args = append([]*light.Expression{ex}, expr.Args...)
-	}
 
 	if self.MaxItems != nil {
 		expr.Args = append(expr.Args, int64ToLiteralExpr("maxItems", *self.MaxItems))
@@ -720,6 +725,15 @@ func schemaArrayToFcexpr(self *SchemaArray, expr *light.FunctionCallExpr) error 
 	if self.UniqueItems != nil {
 		expr.Args = append(expr.Args, booleanToLiteralExpr("uniqueItems", *self.UniqueItems))
 	}
+
+	if self.Items != nil && (self.Items.Schema != nil || len(self.Items.SchemaArray) > 0) {
+		ex, err := schemaOrSchemaArrayToExpression(self.Items)
+		if err != nil {
+			return err
+		}
+		expr.Args = append(expr.Args, ex)
+	}
+
 	return nil
 }
 
@@ -755,13 +769,14 @@ func fcexprToSchemaArray(fcexpr *light.FunctionCallExpr) (*SchemaArray, error) {
 				found = true
 			default:
 			}
-		default:
+		case *light.Expression_Tcexpr:
 			items, err := expressionToSchemaOrSchemaArray(arg)
 			if err != nil {
 				return nil, err
 			}
 			s.Items = items
 			found = true
+		default:
 		}
 	}
 	if found {
