@@ -145,14 +145,14 @@ func (self *OpenApiSpecLocation) getParameters() ([]*hcl.Parameter, error) {
 	}
 
 	operation = self.GetOperation(true)
-	if operation == nil {
-		return parameters, nil
+	if operation != nil {
+		additionals, err := parametersFromOperation(self.doc, operation)
+		if err != nil {
+			return nil, err
+		}
+		parameters = append(parameters, additionals...)
 	}
-	additionals, err := parametersFromOperation(self.doc, operation)
-	if err != nil {
-		return nil, err
-	}
-	parameters = append(parameters, additionals...)
+
 	return parameters, nil
 }
 
@@ -192,23 +192,41 @@ func schemaMapFromContent(doc *hcl.Document, content map[string]*hcl.MediaType) 
 	return objectToMap(first), nil
 }
 
+/*
 func (self *OpenApiSpecLocation) getCreateSchema() (map[string]*hcl.SchemaOrReference, error) {
+	outputs := make(map[string]*hcl.SchemaOrReference)
+
 	var content map[string]*hcl.MediaType
 	rb, err := self.getRequestBody()
 	if err != nil {
 		return nil, err
 	}
 	if rb != nil {
-		content = rb.GetContent()
-	} else {
-		rp, err := self.getResponseBody()
+		hash, err := schemaMapFromContent(self.doc, rb.GetContent())
 		if err != nil {
 			return nil, err
 		}
-		if rp != nil {
-			content = rp.GetContent()
+		for k, v := range hash {
+			outputs[k] = v
 		}
 	}
+
+	rp, err := self.getResponseBody()
+	if err != nil {
+		return nil, err
+	}
+	if rp != nil {
+		hash, err := schemaMapFromContent(self.doc, rp.GetContent())
+		if err != nil {
+			return nil, err
+		}
+		for k, v := range hash {
+			if _, ok := outputs[k]; !ok {
+				outputs[k] = v
+			}
+		}
+	}
+
 	if len(content) == 0 {
 		return nil, nil
 	}
@@ -244,3 +262,4 @@ func (self *OpenApiSpecLocation) getReadSchema() (map[string]*hcl.SchemaOrRefere
 	}
 	return properties, nil
 }
+*/

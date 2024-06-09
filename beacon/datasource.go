@@ -26,40 +26,54 @@ func (self *DataSource) GetDocument() *hcl.Document {
 	return self.doc
 }
 
-func (self *DataSource) toBody() (*light.Body, error) {
-	var blocks []*light.Block
-	if self.Read != nil {
-		self.Read.SetDocument(self.doc)
-		schemaMap, err := self.Read.getReadSchema()
-		if err != nil {
-			return nil, err
-		}
-		schemaMap = ignoreSchemaOrReferenceMap(schemaMap, self.SchemaOptions)
-		bdy, err := hcl.SchemaOrReferenceMapToBody(schemaMap)
-		if err != nil {
-			return nil, err
-		}
-		blocks = append(blocks, &light.Block{
-			Type: "read",
-			Bdy:  bdy,
-		})
-	}
-	if self.SchemaOptions != nil {
-		bdy, err := self.SchemaOptions.ToBody()
-		if err != nil {
-			return nil, err
-		}
-		blocks = append(blocks, &light.Block{
-			Type: "schema",
-			Bdy:  bdy,
-		})
-	}
+func (self *DataSource) getSchema() (map[string]*hcl.SchemaOrReference, error) {
+	outputs := make(map[string]*hcl.SchemaOrReference)
 
-	if len(blocks) == 0 {
+	if self.Read == nil {
+		return nil, nil
+	}
+	self.Read.SetDocument(self.doc)
+	rpm, err := self.Read.getParameters()
+	if err != nil {
+		return nil, err
+	}
+	rrp, err := self.Read.getResponseBody()
+	if err != nil {
+		return nil, err
+	}
+	if rpm != nil {
+		for _, parameter := range rpm {
+			if parameter.Schema != nil {
+				outputs[parameter.Name] = parameter.Schema
+			}
+		}
+	}
+	if rrp != nil {
+		hash, err := schemaMapFromContent(self.doc, rrp.GetContent())
+		if err != nil {
+			return nil, err
+		}
+		for k, v := range hash {
+			if _, ok := outputs[k]; !ok {
+				outputs[k] = v
+			}
+		}
+	}
+	if len(outputs) == 0 {
+		return nil, nil
+	}
+	return outputs, nil
+}
+
+func (self *DataSource) toBody() (*light.Body, error) {
+	if self.Read == nil {
 		return nil, nil
 	}
 
-	return &light.Body{
-		Blocks: blocks,
-	}, nil
+	schemaMap, err := self.getSchema()
+	if err != nil {
+		return nil, err
+	}
+	schemaMap = ignoreSchemaOrReferenceMap(schemaMap, self.SchemaOptions)
+	return hcl.SchemaOrReferenceMapToBody(schemaMap)
 }

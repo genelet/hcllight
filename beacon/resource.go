@@ -30,57 +30,76 @@ func (self *Resource) GetDocument() *hcl.Document {
 }
 
 func (self *Resource) toBody() (*light.Body, error) {
-	var blocks []*light.Block
-	if self.Create != nil {
-		self.Create.SetDocument(self.doc)
-		schemaMap, err := self.Create.getCreateSchema()
-		if err != nil {
-			return nil, err
-		}
-		schemaMap = ignoreSchemaOrReferenceMap(schemaMap, self.SchemaOptions)
-		bdy, err := hcl.SchemaOrReferenceMapToBody(schemaMap)
-		if err != nil {
-			return nil, err
-		}
-		blocks = append(blocks, &light.Block{
-			Type: "create",
-			Bdy:  bdy,
-		})
+	schemaMap, err := self.getSchema()
+	if err != nil {
+		return nil, err
+	}
+	schemaMap = ignoreSchemaOrReferenceMap(schemaMap, self.SchemaOptions)
+	return hcl.SchemaOrReferenceMapToBody(schemaMap)
+}
+
+func (self *Resource) getSchema() (map[string]*hcl.SchemaOrReference, error) {
+	outputs := make(map[string]*hcl.SchemaOrReference)
+
+	self.Create.SetDocument(self.doc)
+	crb, err := self.Create.getRequestBody()
+	if err != nil {
+		return nil, err
+	}
+	crp, err := self.Create.getResponseBody()
+	if err != nil {
+		return nil, err
+	}
+	self.Read.SetDocument(self.doc)
+	rrp, err := self.Read.getResponseBody()
+	if err != nil {
+		return nil, err
+	}
+	rpm, err := self.Read.getParameters()
+	if err != nil {
+		return nil, err
 	}
 
-	if self.Read != nil {
-		self.Read.SetDocument(self.doc)
-		schemaMap, err := self.Read.getReadSchema()
+	if crb != nil {
+		hash, err := schemaMapFromContent(self.doc, crb.GetContent())
 		if err != nil {
 			return nil, err
 		}
-		schemaMap = ignoreSchemaOrReferenceMap(schemaMap, self.SchemaOptions)
-		bdy, err := hcl.SchemaOrReferenceMapToBody(schemaMap)
+		for k, v := range hash {
+			outputs[k] = v
+		}
+	}
+	if crp != nil {
+		hash, err := schemaMapFromContent(self.doc, crp.GetContent())
 		if err != nil {
 			return nil, err
 		}
-		blocks = append(blocks, &light.Block{
-			Type: "read",
-			Bdy:  bdy,
-		})
+		for k, v := range hash {
+			if _, ok := outputs[k]; !ok {
+				outputs[k] = v
+			}
+		}
 	}
-
-	if self.SchemaOptions != nil {
-		bdy, err := self.SchemaOptions.ToBody()
+	if rrp != nil {
+		hash, err := schemaMapFromContent(self.doc, rrp.GetContent())
 		if err != nil {
 			return nil, err
 		}
-		blocks = append(blocks, &light.Block{
-			Type: "schema",
-			Bdy:  bdy,
-		})
+		for k, v := range hash {
+			if _, ok := outputs[k]; !ok {
+				outputs[k] = v
+			}
+		}
+	}
+	if rpm != nil {
+		for _, parameter := range rpm {
+			if parameter.Schema != nil {
+				if _, ok := outputs[parameter.Name]; !ok {
+					outputs[parameter.Name] = parameter.Schema
+				}
+			}
+		}
 	}
 
-	if len(blocks) == 0 {
-		return nil, nil
-	}
-
-	return &light.Body{
-		Blocks: blocks,
-	}, nil
+	return outputs, nil
 }
