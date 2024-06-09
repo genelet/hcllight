@@ -29,7 +29,25 @@ func (self *Resource) GetDocument() *hcl.Document {
 	return self.doc
 }
 
-func (self *Resource) toBody() (*light.Body, error) {
+/*
+ToBody will return a light.Body object that represents the schema of the resource.
+
+In these OAS operations, the generator will search the create and read for schemas to map to the provider code specification. Multiple schemas will have the OAS types mapped to Provider Attributes and then be merged together; with the final result being the Resource schema. The schemas that will be merged together (in priority order):
+
+1. create operation: requestBody
+requestBody is the only schema required for resources. If not found, the generator will skip the resource without mapping.
+Will attempt to use application/json content-type first. If not found, will grab the first available content-type with a schema (alphabetical order)
+2. create operation: response body in responses
+Will attempt to use 200 or 201 response body. If not found, will grab the first available 2xx response code with a schema (lexicographic order)
+Will attempt to use application/json content-type first. If not found, will grab the first available content-type with a schema (alphabetical order)
+3. read operation: response body in responses
+Will attempt to use 200 or 201 response body. If not found, will grab the first available 2xx response code with a schema (lexicographic order)
+Will attempt to use application/json content-type first. If not found, will grab the first available content-type with a schema (alphabetical order)
+4. read operation: parameters
+The generator will merge all query and path parameters to the root of the schema.
+The generator will consider as parameters the ones in the OAS Path Item and the ones in the OAS Operation, merged based on the rules in the specification
+*/
+func (self *Resource) ToBody() (*light.Body, error) {
 	schemaMap, err := self.getSchema()
 	if err != nil {
 		return nil, err

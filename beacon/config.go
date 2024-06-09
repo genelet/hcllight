@@ -78,7 +78,7 @@ func (self *Config) toBody() (*light.Body, error) {
 		})
 	}
 	for k, v := range self.Resources {
-		bdy, err := v.toBody()
+		bdy, err := v.ToBody()
 		if err != nil {
 			return nil, err
 		}
@@ -89,7 +89,7 @@ func (self *Config) toBody() (*light.Body, error) {
 		})
 	}
 	for k, v := range self.DataSources {
-		bdy, err := v.toBody()
+		bdy, err := v.ToBody()
 		if err != nil {
 			return nil, err
 		}
