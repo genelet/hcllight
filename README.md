@@ -11,7 +11,7 @@ Two applications are packed together:
  - [jsm](./jsm), to parse JSON Schema document, draft-04, in HCL
  - [hcl](./hcl), to parse OpenAPI description, version 3.0 and 3.1, in HCL
 
-We obtain OpenAPI and JSON Schema files that are not only of 50% in size of the corresponding JSON files, but also intuitive, readable, and succinct.
+We obtain OpenAPI and JSON Schema files that are of 50% in size of the corresponding JSON files.
 
 [Here](https://medium.com/@peterbi_91340/json-schema-in-the-hcl-data-format-e8a6613112bc) is a Medium article on JSON Schema.
 
