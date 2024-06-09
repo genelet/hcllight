@@ -5,8 +5,8 @@ import (
 )
 
 // Document is the root document object of the OpenAPI document.
-// NewDocumentFromApi converts an openapiv3.Document object to a Document object.
-func NewDocumentFromApi(doc *openapiv3.Document) *Document {
+// DocumentFromApi converts an openapiv3.Document object to a Document object.
+func DocumentFromApi(doc *openapiv3.Document) *Document {
 	d := &Document{
 		Openapi:                doc.Openapi,
 		Info:                   infoFromApi(doc.Info),

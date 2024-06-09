@@ -291,8 +291,8 @@ func textValueArrayToStringArray(args []*Expression) []string {
 	return items
 }
 
-func StringToTraversal(s string) *Expression {
-	parts := strings.SplitN(s, "/", -1)
+func StringToTraversal(str string) *Expression {
+	parts := strings.SplitN(str, "/", -1)
 	args := []*Traverser{
 		{TraverserClause: &Traverser_TRoot{
 			TRoot: &TraverseRoot{Name: parts[0]},
@@ -340,7 +340,7 @@ func TraversalToString(t *Expression) *string {
 	return &x
 }
 
-func StringToKeyExpr(s string, quote ...bool) *Expression {
+func reliableKeyFromString(s string, quote ...bool) *Expression {
 	if len(quote) > 0 && quote[0] {
 		return StringToTextValueExpr(s)
 	}
@@ -354,13 +354,13 @@ func (self *Body) ToObjectConsExpr(quote ...bool) *ObjectConsExpr {
 	ocExpr := &ObjectConsExpr{}
 	for name, attr := range self.Attributes {
 		ocExpr.Items = append(ocExpr.Items, &ObjectConsItem{
-			KeyExpr:   StringToKeyExpr(name, quote...),
+			KeyExpr:   reliableKeyFromString(name, quote...),
 			ValueExpr: attr.Expr,
 		})
 	}
 	for _, block := range self.Blocks {
 		ocExpr.Items = append(ocExpr.Items, &ObjectConsItem{
-			KeyExpr: StringToKeyExpr(block.Type, quote...),
+			KeyExpr: reliableKeyFromString(block.Type, quote...),
 			ValueExpr: &Expression{
 				ExpressionClause: &Expression_Ocexpr{
 					Ocexpr: block.Bdy.ToObjectConsExpr(),

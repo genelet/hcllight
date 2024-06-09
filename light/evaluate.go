@@ -11,7 +11,7 @@ import (
 )
 
 // Evaluate converts Body proto to HCL with expressions evaluated.
-func (self *Body) Evaluate(ref ...map[string]interface{}) ([]byte, error) {
+func (body *Body) Evaluate(ref ...map[string]interface{}) ([]byte, error) {
 	var r map[string]interface{}
 	if ref != nil {
 		r = ref[0]
@@ -19,7 +19,7 @@ func (self *Body) Evaluate(ref ...map[string]interface{}) ([]byte, error) {
 		r = make(map[string]interface{})
 	}
 	node, r := utils.DefaultTreeFunctions(r)
-	str, err := self.evaluateBodyNode(r, node, 0)
+	str, err := body.evaluateBodyNode(r, node, 0)
 	if err != nil {
 		return nil, err
 	}

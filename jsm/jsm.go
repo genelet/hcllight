@@ -5,12 +5,10 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-// Reference is a reference to another schema.
 type Reference struct {
 	Ref *string
 }
 
-// Common is a common schema.
 type Common struct {
 	Type        *jsonschema.StringOrStringArray
 	Format      *string
@@ -18,7 +16,6 @@ type Common struct {
 	Enumeration []jsonschema.SchemaEnumValue
 }
 
-// SchemaNumber describes extra properties of a common schema of number type
 type SchemaNumber struct {
 	MultipleOf       *jsonschema.SchemaNumber
 	Maximum          *jsonschema.SchemaNumber
@@ -27,14 +24,12 @@ type SchemaNumber struct {
 	ExclusiveMinimum *bool
 }
 
-// SchemaString describes extra properties of a common schema of string type
 type SchemaString struct {
 	MaxLength *int64
 	MinLength *int64
 	Pattern   *string
 }
 
-// SchemaArray describes extra properties of a common schema of array type
 type SchemaArray struct {
 	Items       *SchemaOrSchemaArray
 	MaxItems    *int64
@@ -52,7 +47,6 @@ type SchemaOrSchemaArray struct {
 	SchemaArray []*Schema
 }
 
-// SchemaMap describes extra properties of a common schema of map type
 type SchemaMap struct {
 	AdditionalProperties *SchemaOrBoolean
 }
@@ -62,7 +56,6 @@ type SchemaOrBoolean struct {
 	Boolean *bool
 }
 
-// SchemaObject describes extra properties of a common schema of object type
 type SchemaObject struct {
 	MaxProperties *int64
 	MinProperties *int64
@@ -70,7 +63,6 @@ type SchemaObject struct {
 	Properties    map[string]*Schema
 }
 
-// SchemaFull describes a full schema
 type SchemaFull struct {
 	Schema *string
 	ID     *string
@@ -98,7 +90,6 @@ type SchemaFull struct {
 	Description *string
 }
 
-// Schema is a schema, which could be a reference, common schema, or a full schema.
 type Schema struct {
 	*Common
 	*Reference

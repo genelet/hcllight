@@ -2,103 +2,35 @@ package jsm
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/genelet/hcllight/light"
 	"github.com/google/gnostic/jsonschema"
-
 	"gopkg.in/yaml.v3"
 )
 
-// MarshalHCL converts a Schema to HCL representation.
-func (self *Schema) MarshalHCL() ([]byte, error) {
-	body, err := self.toBody()
-	if err != nil {
-		return nil, err
+func NewSchemaFromBody(body *light.Body) (*Schema, error) {
+	if body == nil {
+		return nil, nil
 	}
-	return body.Hcl()
-}
+	if (body.Blocks != nil && len(body.Blocks) > 0) ||
+		body.Attributes == nil ||
+		(body.Attributes != nil && len(body.Attributes) != 1) {
+		full, err := bodyToSchemaFull(body)
+		return &Schema{SchemaFull: full, isFull: true}, err
+	}
 
-// UnmarshalHCL converts HCL representation to a Schema.
-func (self *Schema) UnmarshalHCL(data []byte) error {
+	s := &Schema{}
 	var err error
-	self, err = ParseSchema(data)
-	return err
+	s.Reference, s.Common, s.SchemaNumber, s.SchemaString, s.SchemaArray, s.SchemaObject, s.SchemaMap, err = bodyToShorts(body)
+	return s, err
 }
 
-// ParseSchema parses a Schema from HCL, JSON, or YAML.
-// The data parameter is the input data.
-// The extension parameter is the file extension, which can be "json", "jsn", "yaml", or "yml".
-// If the extension parameter is not provided, it is default to "hcl".
-func ParseSchema(data []byte, extension ...string) (*Schema, error) {
-	var typ string
-	if extension != nil {
-		typ = strings.ToLower(extension[0])
-	}
-	if typ == "json" || typ == "jsn" || typ == "yaml" || typ == "yml" {
-		var doc yaml.Node
-		err := yaml.Unmarshal(data, &doc)
-		if err != nil {
-			return nil, err
-		}
-		return NewSchemaFromJSM(jsonschema.NewSchemaFromObject(&doc)), nil
-	}
-
-	body, err := light.Parse(data)
-	if err != nil {
-		return nil, err
-	}
-
-	return schemaFromBody(body)
-}
-
-func schemaFromBody(body *light.Body) (*Schema, error) {
-	ref, common, schemaNumber, schemaString, schemaArray, schemaObject, schemaMap, err := bodyToShorts(body)
-	if err != nil {
-		return nil, err
-	}
-	if ref != nil {
-		return &Schema{
-			Reference: ref,
-		}, nil
-	}
-
-	full, err := bodyToSchemaFull(body, common, schemaNumber, schemaString, schemaArray, schemaObject, schemaMap)
-	if err != nil {
-		return nil, err
-	}
-	if full != nil {
-		return &Schema{
-			SchemaFull: full,
-			isFull:     true,
-		}, nil
-	}
-
-	if common != nil || schemaNumber != nil || schemaString != nil || schemaArray != nil || schemaObject != nil || schemaMap != nil {
-		return &Schema{
-			Common:       common,
-			SchemaNumber: schemaNumber,
-			SchemaString: schemaString,
-			SchemaArray:  schemaArray,
-			SchemaObject: schemaObject,
-			SchemaMap:    schemaMap,
-		}, nil
-	}
-	return nil, nil
-}
-
-func (self *Schema) toBody() (*light.Body, error) {
-	var b *light.Body
-	var err error
+func (self *Schema) ToBody() (*light.Body, error) {
 	if self.isFull {
-		b, err = schemaFullToBody(self.SchemaFull)
-		if err != nil {
-			panic(err)
-		}
-		return b, nil
+		return schemaFullToBody(self.SchemaFull)
 	}
 
-	b, err = shortsToBody(
+	return shortsToBody(
 		self.Reference,
 		self.Common,
 		self.SchemaNumber,
@@ -107,10 +39,6 @@ func (self *Schema) toBody() (*light.Body, error) {
 		self.SchemaObject,
 		self.SchemaMap,
 	)
-	if err != nil {
-		panic(err)
-	}
-	return b, nil
 }
 
 func stringOrStringArrayToExpression(t *jsonschema.StringOrStringArray) *light.Expression {
@@ -127,25 +55,62 @@ func expressionToStringOrStringArray(expr *light.Expression) *jsonschema.StringO
 	if expr == nil {
 		return nil
 	}
-	switch expr.ExpressionClause.(type) {
-	case *light.Expression_Texpr:
+	if expr.GetLvexpr() != nil {
+		x := expr.GetLvexpr().Val.GetStringValue()
 		return &jsonschema.StringOrStringArray{
-			String: light.TextValueExprToString(expr),
-		}
-	case *light.Expression_Tcexpr:
-		arr := light.TupleConsExprToStringArray(expr)
-		return &jsonschema.StringOrStringArray{
-			StringArray: &arr,
+			String: &x,
 		}
 	}
-	return nil
+	x := light.TupleConsExprToStringArray(expr)
+	return &jsonschema.StringOrStringArray{
+		StringArray: &x,
+	}
+}
+
+// try to use mapToBody first
+func mapSchemaToObjectConsExpr(s map[string]*Schema) (*light.ObjectConsExpr, error) {
+	if s == nil {
+		return nil, nil
+	}
+	var items []*light.ObjectConsItem
+	for k, v := range s {
+		ex, err := schemaToExpression(v)
+		if err != nil {
+			return nil, err
+		}
+		items = append(items, &light.ObjectConsItem{
+			KeyExpr:   light.StringToLiteralValueExpr(k),
+			ValueExpr: ex,
+		})
+	}
+	return &light.ObjectConsExpr{
+		Items: items,
+	}, nil
+}
+
+func objectConsExprToMapSchema(o *light.ObjectConsExpr) (map[string]*Schema, error) {
+	if o == nil {
+		return nil, nil
+	}
+	m := make(map[string]*Schema)
+	for _, item := range o.Items {
+		k := light.LiteralValueExprToString(item.KeyExpr)
+		if k == nil {
+			return nil, nil
+		}
+		v, err := expressionToSchema(item.ValueExpr)
+		if err != nil {
+			return nil, err
+		}
+		m[*k] = v
+	}
+	return m, nil
 }
 
 func sliceToTupleConsExpr(allof []*Schema) (*light.TupleConsExpr, error) {
 	if allof == nil {
 		return nil, nil
 	}
-
 	var exprs []*light.Expression
 	for _, v := range allof {
 		ex, err := schemaToExpression(v)
@@ -175,31 +140,23 @@ func tupleConsExprToSlice(t *light.TupleConsExpr) ([]*Schema, error) {
 		}
 		items = append(items, s)
 	}
-
 	return items, nil
 }
 
 func schemaOrSchemaArrayToExpression(items *SchemaOrSchemaArray) (*light.Expression, error) {
-	if items == nil {
-		return nil, nil
-	}
-
-	var arr []*Schema
 	if items.Schema != nil {
-		arr = append(arr, items.Schema)
+		return schemaToExpression(items.Schema)
 	} else {
-		arr = append(arr, items.SchemaArray...)
+		expr, err := sliceToTupleConsExpr(items.SchemaArray)
+		if err != nil {
+			return nil, err
+		}
+		return &light.Expression{
+			ExpressionClause: &light.Expression_Tcexpr{
+				Tcexpr: expr,
+			},
+		}, nil
 	}
-
-	expr, err := sliceToTupleConsExpr(arr)
-	if err != nil {
-		return nil, err
-	}
-	return &light.Expression{
-		ExpressionClause: &light.Expression_Tcexpr{
-			Tcexpr: expr,
-		},
-	}, nil
 }
 
 func expressionToSchemaOrSchemaArray(expr *light.Expression) (*SchemaOrSchemaArray, error) {
@@ -207,11 +164,6 @@ func expressionToSchemaOrSchemaArray(expr *light.Expression) (*SchemaOrSchemaArr
 		items, err := tupleConsExprToSlice(expr.GetTcexpr())
 		if err != nil {
 			return nil, err
-		}
-		if len(items) == 1 {
-			return &SchemaOrSchemaArray{
-				Schema: items[0],
-			}, nil
 		}
 		return &SchemaOrSchemaArray{
 			SchemaArray: items,
@@ -284,115 +236,84 @@ func tupleConsExprToEnum(t *light.TupleConsExpr) ([]jsonschema.SchemaEnumValue, 
 	}
 	var enums []jsonschema.SchemaEnumValue
 	for _, expr := range exprs {
-		switch expr.ExpressionClause.(type) {
-		case *light.Expression_Lvexpr:
-			ptr := light.LiteralValueExprToString(expr)
-			if ptr != nil {
-				enums = append(enums, jsonschema.SchemaEnumValue{String: ptr})
+		if expr.GetLvexpr() != nil {
+			if expr.GetLvexpr().GetVal().GetStringValue() != "" {
+				enums = append(enums, jsonschema.SchemaEnumValue{String: light.LiteralValueExprToString(expr)})
 			} else {
 				enums = append(enums, jsonschema.SchemaEnumValue{Bool: light.LiteralValueExprToBoolean(expr)})
 			}
-		case *light.Expression_Texpr:
-			ptr := light.TextValueExprToString(expr)
-			if ptr != nil {
-				enums = append(enums, jsonschema.SchemaEnumValue{String: ptr})
-			} else {
-				return nil, fmt.Errorf("invalid enum value: %#v", expr)
-			}
-		default:
-			return nil, fmt.Errorf("invalid enum value not l nor t: %#v", expr)
 		}
 	}
 	return enums, nil
 }
 
-func mapSchemaToOcexpr(s map[string]*Schema) (*light.ObjectConsExpr, error) {
+func mapSchemaToBody(s map[string]*Schema) (*light.Body, error) {
 	if s == nil {
 		return nil, nil
 	}
 
-	var items []*light.ObjectConsItem
+	var body *light.Body
+	attrs := make(map[string]*light.Attribute)
+	blocks := make([]*light.Block, 0)
 	for k, v := range s {
-		expr, err := schemaToExpression(v)
-		if err != nil {
-			return nil, err
+		if v.isFull {
+			bdy, err := schemaFullToBody(v.SchemaFull)
+			if err != nil {
+				return nil, err
+			}
+			blocks = append(blocks, &light.Block{
+				Type: k,
+				Bdy:  bdy,
+			})
+		} else {
+			expr, err := schemaToExpression(v)
+			if err != nil {
+				return nil, err
+			}
+			attrs[k] = &light.Attribute{
+				Name: k,
+				Expr: expr,
+			}
 		}
-		items = append(items, &light.ObjectConsItem{
-			KeyExpr:   light.StringToKeyExpr(k),
-			ValueExpr: expr,
-		})
 	}
-	return &light.ObjectConsExpr{
-		Items: items,
-	}, nil
+
+	if len(attrs) > 0 {
+		body = &light.Body{
+			Attributes: attrs,
+		}
+	}
+	if len(blocks) > 0 {
+		if body == nil {
+			body = &light.Body{}
+		}
+		body.Blocks = blocks
+	}
+	return body, nil
 }
 
-func ocexprToMapSchema(b *light.ObjectConsExpr) (map[string]*Schema, error) {
+func bodyToMapSchema(b *light.Body) (map[string]*Schema, error) {
 	if b == nil {
 		return nil, nil
 	}
-
 	m := make(map[string]*Schema)
-	for _, item := range b.Items {
-		k := *light.KeyValueExprToString(item.KeyExpr)
-		s, err := expressionToSchema(item.ValueExpr)
+	for k, v := range b.Attributes {
+		s, err := expressionToSchema(v.Expr)
 		if err != nil {
 			return nil, err
 		}
 		m[k] = s
 	}
-	return m, nil
-}
-
-func mapSchemaToBlocks(s map[string]*Schema) ([]*light.Block, error) {
-	if s == nil {
-		return nil, nil
-	}
-
-	var blocks []*light.Block
-	for k, v := range s {
-		bdy, err := v.toBody()
+	for _, block := range b.Blocks {
+		s, err := bodyToSchemaFull(block.Bdy)
 		if err != nil {
 			return nil, err
 		}
-		blocks = append(blocks, &light.Block{
-			Type: k,
-			Bdy:  bdy,
-		})
-	}
-	return blocks, nil
-}
-
-func blocksToMapSchema(blocks []*light.Block, name string) (map[string]*Schema, error) {
-	if blocks == nil {
-		return nil, nil
-	}
-
-	m := make(map[string]*Schema)
-	for _, block := range blocks {
-		if block.Type != name {
-			continue
+		m[block.Type] = &Schema{
+			isFull:     true,
+			SchemaFull: s,
 		}
-		s, err := schemaFromBody(block.Bdy)
-		if err != nil {
-			return nil, err
-		}
-		m[block.Labels[0]] = s
-	}
-	if len(m) == 0 {
-		return nil, nil
 	}
 	return m, nil
-}
-
-func getOcexprFromBlocks(blocks []*light.Block, name string) *light.ObjectConsExpr {
-	for _, block := range blocks {
-		if block.Type != name {
-			continue
-		}
-		return block.Bdy.ToObjectConsExpr()
-	}
-	return nil
 }
 
 func mapSchemaOrStringArrayToBody(s map[string]*SchemaOrStringArray) (*light.Body, error) {
@@ -461,22 +382,24 @@ func bodyToMapSchemaOrStringArray(b *light.Body) (map[string]*SchemaOrStringArra
 		}
 	}
 	for _, block := range b.Blocks {
-		s, err := schemaFromBody(block.Bdy)
+		s, err := bodyToSchemaFull(block.Bdy)
 		if err != nil {
 			return nil, err
 		}
 		m[block.Type] = &SchemaOrStringArray{
-			Schema: s,
+			Schema: &Schema{
+				isFull:     true,
+				SchemaFull: s,
+			},
 		}
 	}
 	return m, nil
 }
 
 func commonToFcexpr(self *Common) (*light.FunctionCallExpr, error) {
-	if self == nil {
-		return nil, nil
+	if self.Type == nil || self.Type.String == nil {
+		return nil, fmt.Errorf("invalid type for common: %#v", self)
 	}
-
 	typ := *self.Type.String
 	fnc := &light.FunctionCallExpr{
 		Name: typ,
@@ -521,6 +444,8 @@ func fcexprToCommon(fcexpr *light.FunctionCallExpr) (*Common, error) {
 		},
 	}
 
+	found := false
+
 	for _, arg := range fcexpr.Args {
 		switch arg.ExpressionClause.(type) {
 		case *light.Expression_Fcexpr:
@@ -532,6 +457,7 @@ func fcexprToCommon(fcexpr *light.FunctionCallExpr) (*Common, error) {
 					return nil, err
 				}
 				common.Format = &format
+				found = true
 			case "default":
 				def, err := exprToTextString(expr.Args[0])
 				if err != nil {
@@ -541,6 +467,7 @@ func fcexprToCommon(fcexpr *light.FunctionCallExpr) (*Common, error) {
 					Kind:  yaml.ScalarNode,
 					Value: def,
 				}
+				found = true
 			case "enum":
 				enum, err := tupleConsExprToEnum(&light.TupleConsExpr{
 					Exprs: expr.Args,
@@ -549,13 +476,17 @@ func fcexprToCommon(fcexpr *light.FunctionCallExpr) (*Common, error) {
 					return nil, err
 				}
 				common.Enumeration = enum
+				found = true
 			default:
 			}
 		default:
 		}
 	}
 
-	return common, nil
+	if found {
+		return common, nil
+	}
+	return nil, nil
 }
 
 // because of order in function, we can't loop attribute map
@@ -715,6 +646,13 @@ func schemaArrayToFcexpr(self *SchemaArray, expr *light.FunctionCallExpr) error 
 	if self == nil {
 		return nil
 	}
+	if self.Items != nil && (self.Items.Schema != nil || len(self.Items.SchemaArray) > 0) {
+		ex, err := schemaOrSchemaArrayToExpression(self.Items)
+		if err != nil {
+			return err
+		}
+		expr.Args = append([]*light.Expression{ex}, expr.Args...)
+	}
 
 	if self.MaxItems != nil {
 		expr.Args = append(expr.Args, int64ToLiteralExpr("maxItems", *self.MaxItems))
@@ -725,15 +663,6 @@ func schemaArrayToFcexpr(self *SchemaArray, expr *light.FunctionCallExpr) error 
 	if self.UniqueItems != nil {
 		expr.Args = append(expr.Args, booleanToLiteralExpr("uniqueItems", *self.UniqueItems))
 	}
-
-	if self.Items != nil && (self.Items.Schema != nil || len(self.Items.SchemaArray) > 0) {
-		ex, err := schemaOrSchemaArrayToExpression(self.Items)
-		if err != nil {
-			return err
-		}
-		expr.Args = append(expr.Args, ex)
-	}
-
 	return nil
 }
 
@@ -769,14 +698,13 @@ func fcexprToSchemaArray(fcexpr *light.FunctionCallExpr) (*SchemaArray, error) {
 				found = true
 			default:
 			}
-		case *light.Expression_Tcexpr:
+		default:
 			items, err := expressionToSchemaOrSchemaArray(arg)
 			if err != nil {
 				return nil, err
 			}
 			s.Items = items
 			found = true
-		default:
 		}
 	}
 	if found {
@@ -791,7 +719,7 @@ func schemaObjectToFcexpr(self *SchemaObject, expr *light.FunctionCallExpr) erro
 	}
 
 	if self.Properties != nil {
-		ex, err := mapSchemaToOcexpr(self.Properties)
+		ex, err := mapSchemaToObjectConsExpr(self.Properties)
 		if err != nil {
 			return err
 		}
@@ -822,13 +750,13 @@ func schemaObjectToFcexpr(self *SchemaObject, expr *light.FunctionCallExpr) erro
 
 func fcexprToSchemaObject(fcexpr *light.FunctionCallExpr) (*SchemaObject, error) {
 	s := &SchemaObject{}
+	found := false
 
-	var found bool
 	for _, arg := range fcexpr.Args {
 		switch arg.ExpressionClause.(type) {
 		case *light.Expression_Ocexpr:
 			expr := arg.GetOcexpr()
-			properties, err := ocexprToMapSchema(expr)
+			properties, err := objectConsExprToMapSchema(expr)
 			if err != nil {
 				return nil, err
 			}
@@ -852,24 +780,17 @@ func fcexprToSchemaObject(fcexpr *light.FunctionCallExpr) (*SchemaObject, error)
 				s.MinProperties = &min
 				found = true
 			case "required":
-				s.Required = light.TupleConsExprToStringArray(&light.Expression{
-					ExpressionClause: &light.Expression_Tcexpr{
-						Tcexpr: &light.TupleConsExpr{
-							Exprs: expr.Args,
-						},
-					},
-				})
+				s.Required = light.TupleConsExprToStringArray(expr.Args[0])
 				found = true
 			default:
 			}
 		default:
 		}
 	}
-	if !found {
-		return nil, nil
+	if found {
+		return s, nil
 	}
-
-	return s, nil
+	return nil, nil
 }
 
 func schemaMapToFcexpr(self *SchemaMap, expr *light.FunctionCallExpr) error {
@@ -924,12 +845,7 @@ func fcexprToSchemaMap(fcexpr *light.FunctionCallExpr) (*SchemaMap, error) {
 }
 
 func schemaToFcexpr(self *Schema) (*light.FunctionCallExpr, error) {
-	cobj := self.Common
-	if cobj == nil || cobj.Type == nil || cobj.Type.String == nil {
-		return nil, fmt.Errorf("invalid type for common: %#v", cobj)
-	}
-
-	expr, err := commonToFcexpr(cobj)
+	expr, err := commonToFcexpr(self.Common)
 	if err != nil {
 		return nil, err
 	}
@@ -964,7 +880,6 @@ func fcexprToSchema(fcexpr *light.FunctionCallExpr) (*Schema, error) {
 	if err != nil {
 		return nil, err
 	}
-
 	var schemaNumber *SchemaNumber
 	var schemaString *SchemaString
 	var schemaArray *SchemaArray
@@ -996,10 +911,6 @@ func fcexprToSchema(fcexpr *light.FunctionCallExpr) (*Schema, error) {
 }
 
 func schemaToExpression(self *Schema) (*light.Expression, error) {
-	if self == nil {
-		return nil, nil
-	}
-
 	if self.isFull {
 		body, err := schemaFullToBody(self.SchemaFull)
 		if err != nil {
@@ -1046,8 +957,17 @@ func expressionToSchema(expr *light.Expression) (*Schema, error) {
 	case *light.Expression_Fcexpr:
 		return fcexprToSchema(expr.GetFcexpr())
 	case *light.Expression_Ocexpr:
-		return schemaFromBody(expr.GetOcexpr().ToBody())
+		body := expr.GetOcexpr().ToBody()
+		s, err := bodyToSchemaFull(body)
+		if err != nil {
+			return nil, err
+		}
+		return &Schema{
+			isFull:     true,
+			SchemaFull: s,
+		}, nil
 	default:
 	}
-	return nil, fmt.Errorf("invalid expression in expressionToSchema: %#v", expr)
+
+	return nil, nil
 }

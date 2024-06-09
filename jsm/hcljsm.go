@@ -4,7 +4,6 @@ import (
 	"github.com/google/gnostic/jsonschema"
 )
 
-// NewSchemaFromJSM converts a jsonschema Schema to a Schema.
 func NewSchemaFromJSM(s *jsonschema.Schema) *Schema {
 	if s == nil {
 		return nil
@@ -62,40 +61,37 @@ func NewSchemaFromJSM(s *jsonschema.Schema) *Schema {
 	return schemaFullToHcl(s)
 }
 
-// ToJSM converts a Schema to a jsonschema Schema.
-func (self *Schema) ToJSM() *jsonschema.Schema {
-	if self.isFull {
-		return schemaFullToJSM(self)
+func (s *Schema) ToJSM() *jsonschema.Schema {
+	if s == nil {
+		return nil
+	}
+	if s.isFull {
+		return schemaFullToJSM(s)
 	}
 
-	if self.Reference != nil {
-		return referenceToJSM(self.Reference)
+	if s.Reference != nil {
+		return referenceToJSM(s.Reference)
 	}
 
-	schema := commonToJSM(self.Common)
+	schema := commonToJSM(s.Common)
 
-	if self.SchemaString != nil {
-		return stringToJSM(schema, self.SchemaString)
+	if s.SchemaString != nil {
+		return stringToJSM(schema, s.SchemaString)
 	}
-	if self.SchemaNumber != nil {
-		return numberToJSM(schema, self.SchemaNumber)
+	if s.SchemaNumber != nil {
+		return numberToJSM(schema, s.SchemaNumber)
 	}
-	if self.SchemaArray != nil {
-		return arrayToJSM(schema, self.SchemaArray)
+	if s.SchemaArray != nil {
+		return arrayToJSM(schema, s.SchemaArray)
 	}
-	if self.SchemaObject != nil {
-		return objectToJSM(schema, self.SchemaObject)
+	if s.SchemaObject != nil {
+		return objectToJSM(schema, s.SchemaObject)
 	}
-	if self.SchemaMap != nil {
-		return mapToJSM(schema, self.SchemaMap)
+	if s.SchemaMap != nil {
+		return mapToJSM(schema, s.SchemaMap)
 	}
 	// boolean
 	return schema
-}
-
-// JSONString returns a json representation of a schema.
-func (self *Schema) JSONString() string {
-	return self.ToJSM().JSONString()
 }
 
 func namedSchemaArrayToMap(s *[]*jsonschema.NamedSchema) map[string]*Schema {
@@ -487,9 +483,7 @@ func schemaFullToJSM(s *Schema) *jsonschema.Schema {
 	jsm.AllOf = sliceToJSM(full.AllOf)
 	jsm.AnyOf = sliceToJSM(full.AnyOf)
 	jsm.OneOf = sliceToJSM(full.OneOf)
-	if s.Not != nil {
-		jsm.Not = s.Not.ToJSM()
-	}
+	jsm.Not = s.Not.ToJSM()
 	jsm.Definitions = mapToNamedSchemaArray(full.Definitions)
 
 	jsm.Title = full.Title
