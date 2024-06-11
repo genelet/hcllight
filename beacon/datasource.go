@@ -26,37 +26,54 @@ func (self *DataSource) GetDocument() *hcl.Document {
 	return self.doc
 }
 
-func (self *DataSource) getSchema() (map[string]*hcl.SchemaOrReference, error) {
-	outputs := make(map[string]*hcl.SchemaOrReference)
-
-	if self.Read == nil {
-		return nil, nil
-	}
+func (self *DataSource) GetRequestSchemaMap() (map[string]*hcl.SchemaOrReference, error) {
 	self.Read.SetDocument(self.doc)
 	rpm, err := self.Read.getParameters()
 	if err != nil {
 		return nil, err
 	}
+	if rpm == nil {
+		return nil, nil
+	}
+	outputs := make(map[string]*hcl.SchemaOrReference)
+	for _, parameter := range rpm {
+		if parameter.Schema != nil {
+			outputs[parameter.Name] = parameter.Schema
+		}
+	}
+	if len(outputs) == 0 {
+		return nil, nil
+	}
+	return outputs, nil
+}
+
+func (self *DataSource) GetResponseSchemaMap() (map[string]*hcl.SchemaOrReference, error) {
+	self.Read.SetDocument(self.doc)
 	rrp, err := self.Read.getResponseBody()
 	if err != nil {
 		return nil, err
 	}
-	if rpm != nil {
-		for _, parameter := range rpm {
-			if parameter.Schema != nil {
-				outputs[parameter.Name] = parameter.Schema
-			}
-		}
+	if rrp == nil {
+		return nil, nil
 	}
-	if rrp != nil {
-		hash, err := schemaMapFromContent(self.doc, rrp.GetContent())
-		if err != nil {
-			return nil, err
-		}
-		for k, v := range hash {
-			if _, ok := outputs[k]; !ok {
-				outputs[k] = v
-			}
+	return schemaMapFromContent(self.doc, rrp.GetContent())
+}
+
+func (self *DataSource) getSchema() (map[string]*hcl.SchemaOrReference, error) {
+	outputs, err := self.GetRequestSchemaMap()
+	if err != nil {
+		return nil, err
+	}
+	hash, err := self.GetResponseSchemaMap()
+	if err != nil {
+		return nil, err
+	}
+	if outputs == nil {
+		outputs = make(map[string]*hcl.SchemaOrReference)
+	}
+	for k, v := range hash {
+		if _, ok := outputs[k]; !ok {
+			outputs[k] = v
 		}
 	}
 	if len(outputs) == 0 {

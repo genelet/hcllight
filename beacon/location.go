@@ -87,7 +87,7 @@ func (self *OpenApiSpecLocation) getResponseBody() (*hcl.Response, error) {
 		return nil, nil
 	}
 
-	var rb, first *hcl.Response
+	var rb, first, first2xx *hcl.Response
 	var err error
 	for k, v := range operation.Responses {
 		switch v.Oneof.(type) {
@@ -105,9 +105,14 @@ func (self *OpenApiSpecLocation) getResponseBody() (*hcl.Response, error) {
 		}
 		if k == "200" || k == "201" {
 			return rb, nil
+		} else if len(k) >= 3 && k[0:1] == "2" {
+			first2xx = rb
 		}
 	}
 
+	if first2xx != nil {
+		return first2xx, nil
+	}
 	return first, nil
 }
 

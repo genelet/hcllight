@@ -56,18 +56,48 @@ func (self *Resource) ToBody() (*light.Body, error) {
 	return hcl.SchemaOrReferenceMapToBody(schemaMap)
 }
 
-func (self *Resource) getSchema() (map[string]*hcl.SchemaOrReference, error) {
-	outputs := make(map[string]*hcl.SchemaOrReference)
-
+func (self *Resource) GetRequestSchemaMap() (map[string]*hcl.SchemaOrReference, error) {
 	self.Create.SetDocument(self.doc)
 	crb, err := self.Create.getRequestBody()
 	if err != nil {
 		return nil, err
 	}
+	if crb == nil {
+		return nil, nil
+	}
+	return schemaMapFromContent(self.doc, crb.GetContent())
+}
+
+func (self *Resource) GetResponseSchemaMap() (map[string]*hcl.SchemaOrReference, error) {
+	self.Create.SetDocument(self.doc)
 	crp, err := self.Create.getResponseBody()
 	if err != nil {
 		return nil, err
 	}
+	if crp == nil {
+		return nil, nil
+	}
+	return schemaMapFromContent(self.doc, crp.GetContent())
+}
+
+func (self *Resource) getSchema() (map[string]*hcl.SchemaOrReference, error) {
+	outputs, err := self.GetRequestSchemaMap()
+	if err != nil {
+		return nil, err
+	}
+	hash, err := self.GetResponseSchemaMap()
+	if err != nil {
+		return nil, err
+	}
+	if outputs == nil {
+		outputs = make(map[string]*hcl.SchemaOrReference)
+	}
+	for k, v := range hash {
+		if _, ok := outputs[k]; !ok {
+			outputs[k] = v
+		}
+	}
+
 	self.Read.SetDocument(self.doc)
 	rrp, err := self.Read.getResponseBody()
 	if err != nil {
@@ -76,27 +106,6 @@ func (self *Resource) getSchema() (map[string]*hcl.SchemaOrReference, error) {
 	rpm, err := self.Read.getParameters()
 	if err != nil {
 		return nil, err
-	}
-
-	if crb != nil {
-		hash, err := schemaMapFromContent(self.doc, crb.GetContent())
-		if err != nil {
-			return nil, err
-		}
-		for k, v := range hash {
-			outputs[k] = v
-		}
-	}
-	if crp != nil {
-		hash, err := schemaMapFromContent(self.doc, crp.GetContent())
-		if err != nil {
-			return nil, err
-		}
-		for k, v := range hash {
-			if _, ok := outputs[k]; !ok {
-				outputs[k] = v
-			}
-		}
 	}
 	if rrp != nil {
 		hash, err := schemaMapFromContent(self.doc, rrp.GetContent())
