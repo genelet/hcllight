@@ -63,7 +63,7 @@ func attributesBlocksToObject(attrs map[string]*light.Attribute, blocks []*light
 
 	for _, block := range blocks {
 		if block.Type == "properties" {
-			object.Properties, err = bodyToSchemaOrReferenceMap(block.Bdy)
+			object.Properties, err = BodyToSchemaOrReferenceMap(block.Bdy)
 			if err != nil {
 				return nil, err
 			}

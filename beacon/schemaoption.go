@@ -87,31 +87,43 @@ func ignoreBody(body *light.Body, so *SchemaOptions) *light.Body {
 	return bdy
 }
 
-func ignoreSchemaOrReferenceMap(schemaMap map[string]*hcl.SchemaOrReference, so *SchemaOptions) map[string]*hcl.SchemaOrReference {
-	if schemaMap == nil || so == nil {
-		return schemaMap
+func ignoreSchemaOrReferenceMap(schemaMap *hcl.SchemaObject, so *SchemaOptions) (map[string]*hcl.SchemaOrReference, map[string]*hcl.SchemaOrReference) {
+	if schemaMap == nil {
+		return nil, nil
 	}
 
-	ignores := so.Ignores
-	aliases := so.Aliases
-	//overrides := so.Overrides
+	var ignores []string
+	//var aliases map[string]string
+	if so != nil {
+		ignores = so.Ignores
+		//aliases = so.Aliases
+		//overrides := so.Overrides
+	}
 
 	hash := make(map[string]*hcl.SchemaOrReference)
-	for k, v := range schemaMap {
+	required := make(map[string]*hcl.SchemaOrReference)
+	for k, v := range schemaMap.Properties {
 		if grep(ignores, k) {
 			continue
 		}
-		if aliases != nil {
-			if u, ok := aliases[k]; ok {
-				k = u
-			}
+		//if aliases != nil {
+		//	if u, ok := aliases[k]; ok {
+		//		k = u
+		//	}
+		//}
+		if grep(schemaMap.Required, k) {
+			required[k] = v
+		} else {
+			hash[k] = v
 		}
-		hash[k] = v
 	}
 	if len(hash) == 0 {
-		return nil
+		hash = nil
 	}
-	return hash
+	if len(required) == 0 {
+		required = nil
+	}
+	return required, hash
 }
 
 func grep(names []string, name string) bool {

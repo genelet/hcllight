@@ -161,26 +161,67 @@ func (self *OpenApiSpecLocation) getParameters() ([]*hcl.Parameter, error) {
 	return parameters, nil
 }
 
-func objectToMap(schema *hcl.SchemaOrReference) map[string]*hcl.SchemaOrReference {
+func (self *OpenApiSpecLocation) getParametersMap() (*hcl.SchemaObject, error) {
+	rpm, err := self.getParameters()
+	if err != nil {
+		return nil, err
+	}
+	if rpm == nil {
+		return nil, nil
+	}
+	outputs := make(map[string]*hcl.SchemaOrReference)
+	var required []string
+	for _, parameter := range rpm {
+		if parameter.Schema != nil {
+			outputs[parameter.Name] = parameter.Schema
+			if parameter.Required {
+				required = append(required, parameter.Name)
+			}
+		}
+	}
+	if len(outputs) == 0 {
+		return nil, nil
+	}
+	return &hcl.SchemaObject{
+		Properties: outputs,
+		Required:   required,
+	}, nil
+}
+
+func addSchemaMap(m1, m2 *hcl.SchemaObject) *hcl.SchemaObject {
+	if m1 == nil {
+		return m2
+	}
+	if m2 == nil {
+		return m1
+	}
+	for k, v := range m2.Properties {
+		if _, ok := m1.Properties[k]; !ok {
+			m1.Properties[k] = v
+			if grep(m2.Required, k) {
+				m1.Required = append(m1.Required, k)
+			}
+		}
+	}
+	return m1
+}
+
+func objectToMap(schema *hcl.SchemaOrReference) *hcl.SchemaObject {
 	if schema == nil {
 		return nil
 	}
-	var object *hcl.SchemaObject
+
 	switch schema.Oneof.(type) {
 	case *hcl.SchemaOrReference_Schema:
-		object = schema.GetSchema().Object
+		return schema.GetSchema().Object
 	case *hcl.SchemaOrReference_Object:
-		object = schema.GetObject().Object
+		return schema.GetObject().Object
 	default:
 	}
-	if object == nil {
-		return nil
-	}
-
-	return object.Properties
+	return nil
 }
 
-func schemaMapFromContent(doc *hcl.Document, content map[string]*hcl.MediaType) (map[string]*hcl.SchemaOrReference, error) {
+func schemaMapFromContent(doc *hcl.Document, content map[string]*hcl.MediaType) (*hcl.SchemaObject, error) {
 	var first *hcl.SchemaOrReference
 	for k, v := range content {
 		s, err := doc.ResolveSchemaOrReference(v.Schema)
@@ -196,75 +237,3 @@ func schemaMapFromContent(doc *hcl.Document, content map[string]*hcl.MediaType) 
 	}
 	return objectToMap(first), nil
 }
-
-/*
-func (self *OpenApiSpecLocation) getCreateSchema() (map[string]*hcl.SchemaOrReference, error) {
-	outputs := make(map[string]*hcl.SchemaOrReference)
-
-	var content map[string]*hcl.MediaType
-	rb, err := self.getRequestBody()
-	if err != nil {
-		return nil, err
-	}
-	if rb != nil {
-		hash, err := schemaMapFromContent(self.doc, rb.GetContent())
-		if err != nil {
-			return nil, err
-		}
-		for k, v := range hash {
-			outputs[k] = v
-		}
-	}
-
-	rp, err := self.getResponseBody()
-	if err != nil {
-		return nil, err
-	}
-	if rp != nil {
-		hash, err := schemaMapFromContent(self.doc, rp.GetContent())
-		if err != nil {
-			return nil, err
-		}
-		for k, v := range hash {
-			if _, ok := outputs[k]; !ok {
-				outputs[k] = v
-			}
-		}
-	}
-
-	if len(content) == 0 {
-		return nil, nil
-	}
-	return schemaMapFromContent(self.doc, content)
-}
-
-func (self *OpenApiSpecLocation) getReadSchema() (map[string]*hcl.SchemaOrReference, error) {
-	var content map[string]*hcl.MediaType
-	rp, err := self.getResponseBody()
-	if err != nil {
-		return nil, err
-	}
-	if rp != nil {
-		content = rp.GetContent()
-		if len(content) > 0 {
-			return schemaMapFromContent(self.doc, content)
-		}
-	}
-
-	parameters, err := self.getParameters()
-	if err != nil {
-		return nil, err
-	}
-	if len(parameters) == 0 {
-		return nil, nil
-	}
-
-	properties := make(map[string]*hcl.SchemaOrReference)
-	for _, parameter := range parameters {
-		if parameter.Schema != nil {
-			properties[parameter.Name] = parameter.Schema
-		}
-	}
-	return properties, nil
-}
-*/

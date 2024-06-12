@@ -29,6 +29,60 @@ func (self *Resource) GetDocument() *hcl.Document {
 	return self.doc
 }
 
+func (self *Resource) GetRequestSchemaMap() (*hcl.SchemaObject, error) {
+	self.Create.SetDocument(self.doc)
+	crb, err := self.Create.getRequestBody()
+	if err != nil {
+		return nil, err
+	}
+	if crb == nil {
+		return nil, nil
+	}
+	return schemaMapFromContent(self.doc, crb.GetContent())
+}
+
+func (self *Resource) GetResponseSchemaMap() (*hcl.SchemaObject, error) {
+	self.Create.SetDocument(self.doc)
+	crp, err := self.Create.getResponseBody()
+	if err != nil {
+		return nil, err
+	}
+	if crp == nil {
+		return nil, nil
+	}
+	return schemaMapFromContent(self.doc, crp.GetContent())
+}
+
+func (self *Resource) getSchema() (*hcl.SchemaObject, error) {
+	outputs, err := self.GetRequestSchemaMap()
+	if err != nil {
+		return nil, err
+	}
+	hash, err := self.GetResponseSchemaMap()
+	if err != nil {
+		return nil, err
+	}
+
+	self.Read.SetDocument(self.doc)
+	var rrp *hcl.SchemaObject
+	body, err := self.Read.getResponseBody()
+	if err != nil {
+		return nil, err
+	}
+	if body != nil {
+		rrp, err = schemaMapFromContent(self.doc, body.GetContent())
+		if err != nil {
+			return nil, err
+		}
+	}
+	rpm, err := self.Read.getParametersMap()
+	if err != nil {
+		return nil, err
+	}
+
+	return addSchemaMap(addSchemaMap(outputs, hash), addSchemaMap(rrp, rpm)), nil
+}
+
 /*
 ToBody will return a light.Body object that represents the schema of the resource.
 
@@ -47,86 +101,16 @@ Will attempt to use application/json content-type first. If not found, will grab
 The generator will merge all query and path parameters to the root of the schema.
 The generator will consider as parameters the ones in the OAS Path Item and the ones in the OAS Operation, merged based on the rules in the specification
 */
-func (self *Resource) ToBody() (*light.Body, error) {
+func (self *Resource) toBody() (*light.Body, *light.Body, error) {
 	schemaMap, err := self.getSchema()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-	schemaMap = ignoreSchemaOrReferenceMap(schemaMap, self.SchemaOptions)
-	return hcl.SchemaOrReferenceMapToBody(schemaMap)
-}
-
-func (self *Resource) GetRequestSchemaMap() (map[string]*hcl.SchemaOrReference, error) {
-	self.Create.SetDocument(self.doc)
-	crb, err := self.Create.getRequestBody()
+	required, optional := ignoreSchemaOrReferenceMap(schemaMap, self.SchemaOptions)
+	body1, err := hcl.SchemaOrReferenceMapToBody(required)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-	if crb == nil {
-		return nil, nil
-	}
-	return schemaMapFromContent(self.doc, crb.GetContent())
-}
-
-func (self *Resource) GetResponseSchemaMap() (map[string]*hcl.SchemaOrReference, error) {
-	self.Create.SetDocument(self.doc)
-	crp, err := self.Create.getResponseBody()
-	if err != nil {
-		return nil, err
-	}
-	if crp == nil {
-		return nil, nil
-	}
-	return schemaMapFromContent(self.doc, crp.GetContent())
-}
-
-func (self *Resource) getSchema() (map[string]*hcl.SchemaOrReference, error) {
-	outputs, err := self.GetRequestSchemaMap()
-	if err != nil {
-		return nil, err
-	}
-	hash, err := self.GetResponseSchemaMap()
-	if err != nil {
-		return nil, err
-	}
-	if outputs == nil {
-		outputs = make(map[string]*hcl.SchemaOrReference)
-	}
-	for k, v := range hash {
-		if _, ok := outputs[k]; !ok {
-			outputs[k] = v
-		}
-	}
-
-	self.Read.SetDocument(self.doc)
-	rrp, err := self.Read.getResponseBody()
-	if err != nil {
-		return nil, err
-	}
-	rpm, err := self.Read.getParameters()
-	if err != nil {
-		return nil, err
-	}
-	if rrp != nil {
-		hash, err := schemaMapFromContent(self.doc, rrp.GetContent())
-		if err != nil {
-			return nil, err
-		}
-		for k, v := range hash {
-			if _, ok := outputs[k]; !ok {
-				outputs[k] = v
-			}
-		}
-	}
-	if rpm != nil {
-		for _, parameter := range rpm {
-			if parameter.Schema != nil {
-				if _, ok := outputs[parameter.Name]; !ok {
-					outputs[parameter.Name] = parameter.Schema
-				}
-			}
-		}
-	}
-
-	return outputs, nil
+	body2, err := hcl.SchemaOrReferenceMapToBody(optional)
+	return body1, body2, err
 }

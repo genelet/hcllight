@@ -26,28 +26,12 @@ func (self *DataSource) GetDocument() *hcl.Document {
 	return self.doc
 }
 
-func (self *DataSource) GetRequestSchemaMap() (map[string]*hcl.SchemaOrReference, error) {
+func (self *DataSource) GetRequestSchemaMap() (*hcl.SchemaObject, error) {
 	self.Read.SetDocument(self.doc)
-	rpm, err := self.Read.getParameters()
-	if err != nil {
-		return nil, err
-	}
-	if rpm == nil {
-		return nil, nil
-	}
-	outputs := make(map[string]*hcl.SchemaOrReference)
-	for _, parameter := range rpm {
-		if parameter.Schema != nil {
-			outputs[parameter.Name] = parameter.Schema
-		}
-	}
-	if len(outputs) == 0 {
-		return nil, nil
-	}
-	return outputs, nil
+	return self.Read.getParametersMap()
 }
 
-func (self *DataSource) GetResponseSchemaMap() (map[string]*hcl.SchemaOrReference, error) {
+func (self *DataSource) GetResponseSchemaMap() (*hcl.SchemaObject, error) {
 	self.Read.SetDocument(self.doc)
 	rrp, err := self.Read.getResponseBody()
 	if err != nil {
@@ -59,7 +43,7 @@ func (self *DataSource) GetResponseSchemaMap() (map[string]*hcl.SchemaOrReferenc
 	return schemaMapFromContent(self.doc, rrp.GetContent())
 }
 
-func (self *DataSource) getSchema() (map[string]*hcl.SchemaOrReference, error) {
+func (self *DataSource) getSchema() (*hcl.SchemaObject, error) {
 	outputs, err := self.GetRequestSchemaMap()
 	if err != nil {
 		return nil, err
@@ -68,18 +52,7 @@ func (self *DataSource) getSchema() (map[string]*hcl.SchemaOrReference, error) {
 	if err != nil {
 		return nil, err
 	}
-	if outputs == nil {
-		outputs = make(map[string]*hcl.SchemaOrReference)
-	}
-	for k, v := range hash {
-		if _, ok := outputs[k]; !ok {
-			outputs[k] = v
-		}
-	}
-	if len(outputs) == 0 {
-		return nil, nil
-	}
-	return outputs, nil
+	return addSchemaMap(outputs, hash), nil
 }
 
 /*
@@ -95,15 +68,20 @@ The response body is the only schema required for data sources. If not found, th
 Will attempt to use 200 or 201 response body. If not found, will grab the first available 2xx response code with a schema (lexicographic order)
 Will attempt to use application/json content-type first. If not found, will grab the first available content-type with a schema (alphabetical order)
 */
-func (self *DataSource) ToBody() (*light.Body, error) {
+func (self *DataSource) toBody() (*light.Body, *light.Body, error) {
 	if self.Read == nil {
-		return nil, nil
+		return nil, nil, nil
 	}
 
 	schemaMap, err := self.getSchema()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-	schemaMap = ignoreSchemaOrReferenceMap(schemaMap, self.SchemaOptions)
-	return hcl.SchemaOrReferenceMapToBody(schemaMap)
+	required, optional := ignoreSchemaOrReferenceMap(schemaMap, self.SchemaOptions)
+	body1, err := hcl.SchemaOrReferenceMapToBody(required)
+	if err != nil {
+		return nil, nil, err
+	}
+	body2, err := hcl.SchemaOrReferenceMapToBody(optional)
+	return body1, body2, err
 }

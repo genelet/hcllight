@@ -22,6 +22,7 @@ type Config struct {
 	*Provider   `yaml:"provider" hcl:"provider,block"`
 	Resources   map[string]*Resource   `yaml:"resources" hcl:"resources,block"`
 	DataSources map[string]*DataSource `yaml:"data_sources" hcl:"data_sources,block"`
+	Cleanups    map[string]*DataSource `yaml:"cleanups" hcl:"cleanups,block"`
 	doc         *hcl.Document
 }
 
@@ -56,6 +57,9 @@ func (self *Config) SetDocument(doc *hcl.Document) {
 	for _, dataSource := range self.DataSources {
 		dataSource.SetDocument(doc)
 	}
+	for _, cleanup := range self.Cleanups {
+		cleanup.SetDocument(doc)
+	}
 	if self.Provider != nil {
 		self.Provider.SetDocument(doc)
 	}
@@ -77,27 +81,71 @@ func (self *Config) toBody() (*light.Body, error) {
 			Bdy:  bdy,
 		})
 	}
-	for k, v := range self.Resources {
-		bdy, err := v.ToBody()
-		if err != nil {
-			return nil, err
+	if self.Resources != nil {
+		for k, v := range self.Resources {
+			required, bdy, err := v.toBody()
+			if err != nil {
+				return nil, err
+			}
+			if required != nil {
+				blocks = append(blocks, &light.Block{
+					Type:   "resource",
+					Labels: []string{k, "required"},
+					Bdy:    required,
+				})
+			}
+			if bdy != nil {
+				blocks = append(blocks, &light.Block{
+					Type:   "resource",
+					Labels: []string{k},
+					Bdy:    bdy,
+				})
+			}
 		}
-		blocks = append(blocks, &light.Block{
-			Type:   "resource",
-			Labels: []string{k},
-			Bdy:    bdy,
-		})
 	}
-	for k, v := range self.DataSources {
-		bdy, err := v.ToBody()
-		if err != nil {
-			return nil, err
+	if self.DataSources != nil {
+		for k, v := range self.DataSources {
+			required, bdy, err := v.toBody()
+			if err != nil {
+				return nil, err
+			}
+			if required != nil {
+				blocks = append(blocks, &light.Block{
+					Type:   "data",
+					Labels: []string{k, "required"},
+					Bdy:    required,
+				})
+			}
+			if bdy != nil {
+				blocks = append(blocks, &light.Block{
+					Type:   "data",
+					Labels: []string{k},
+					Bdy:    bdy,
+				})
+			}
 		}
-		blocks = append(blocks, &light.Block{
-			Type:   "data",
-			Labels: []string{k},
-			Bdy:    bdy,
-		})
+	}
+	if self.Cleanups != nil {
+		for k, v := range self.Cleanups {
+			required, bdy, err := v.toBody()
+			if err != nil {
+				return nil, err
+			}
+			if required != nil {
+				blocks = append(blocks, &light.Block{
+					Type:   "cleanup",
+					Labels: []string{k, "required"},
+					Bdy:    required,
+				})
+			}
+			if bdy != nil {
+				blocks = append(blocks, &light.Block{
+					Type:   "cleanup",
+					Labels: []string{k},
+					Bdy:    bdy,
+				})
+			}
+		}
 	}
 
 	return &light.Body{
