@@ -21,7 +21,7 @@ type Oas struct {
 	doc         *hcl.Document
 }
 
-func NewOas(bc *Config, bs []byte) (*Oas, error) {
+func ParseOas(bc *Config, bs []byte) (*Oas, error) {
 	oas, err := bc.newOasFromBeacon()
 	if err != nil {
 		return nil, err
@@ -146,7 +146,7 @@ func (bc *Config) newOasFromBeacon() (*Oas, error) {
 	return Oas, nil
 }
 
-func checkBody(schemaMap *hcl.SchemaObject, body *light.Body) (*light.Body, error) {
+func checkBody(schemaMap *hcl.SchemaObject, body *light.Body) ([]byte, error) {
 	if body == nil {
 		return nil, nil
 	}
@@ -185,5 +185,5 @@ func checkBody(schemaMap *hcl.SchemaObject, body *light.Body) (*light.Body, erro
 		body.Attributes = attributes
 	}
 
-	return body, nil
+	return body.Hcl()
 }
