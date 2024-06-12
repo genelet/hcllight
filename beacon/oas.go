@@ -33,41 +33,17 @@ func ParseOas(bc *Config, bs []byte) (*Oas, error) {
 
 	collections := oas.Collections
 	for _, block := range doc.Blocks {
-		switch block.Type {
-		case "data":
-			key := block.Labels[0]
+		if grep([]string{"resource", "data", "cleanup"}, block.Type) {
+			key := [2]string{block.Labels[0], block.Type}
 			collection, ok := collections[key]
 			if !ok {
 				continue
 			}
-			err := collection.checkBody("read", block.Bdy)
+			err := collection.checkBody(block.Bdy)
 			if err != nil {
 				return nil, err
 			}
 			oas.Collections[key] = collection
-		case "resource":
-			key := block.Labels[0]
-			collection, ok := collections[key]
-			if !ok {
-				continue
-			}
-			err := collection.checkBody("write", block.Bdy)
-			if err != nil {
-				return nil, err
-			}
-			oas.Collections[key] = collection
-		case "cleanup":
-			key := block.Labels[0]
-			collection, ok := collections[key]
-			if !ok {
-				continue
-			}
-			err := collection.checkBody("delete", block.Bdy)
-			if err != nil {
-				return nil, err
-			}
-			oas.Collections[key] = collection
-		default:
 		}
 	}
 	return oas, nil
@@ -89,7 +65,7 @@ func (bc *Config) newOasFromBeacon() (*Oas, error) {
 	}
 
 	Oas := &Oas{Provider: bc.Provider, doc: bc.GetDocument()}
-	result := make(map[string]*Collection)
+	result := make(map[[2]string]*Collection)
 	if bc.Resources != nil {
 		for k, v := range bc.Resources {
 			rmap, err := v.GetRequestSchemaMap()
@@ -100,12 +76,13 @@ func (bc *Config) newOasFromBeacon() (*Oas, error) {
 			if err != nil {
 				return nil, err
 			}
-			result[k] = &Collection{
-				myURL:         myURL,
-				Path:          v.Create.Path,
-				Method:        v.Create.Method,
-				WriteRequest:  rmap,
-				WriteResponse: pmap,
+			key := [2]string{k, "resource"}
+			result[key] = &Collection{
+				myURL:    myURL,
+				Path:     v.Create.Path,
+				Method:   v.Create.Method,
+				Request:  rmap,
+				Response: pmap,
 			}
 		}
 	}
@@ -119,17 +96,13 @@ func (bc *Config) newOasFromBeacon() (*Oas, error) {
 			if err != nil {
 				return nil, err
 			}
-			if _, ok := result[k]; ok {
-				result[k].ReadRequest = rmap
-				result[k].ReadResponse = pmap
-			} else {
-				result[k] = &Collection{
-					myURL:        myURL,
-					Path:         v.Read.Path,
-					Method:       v.Read.Method,
-					ReadRequest:  rmap,
-					ReadResponse: pmap,
-				}
+			key := [2]string{k, "data"}
+			result[key] = &Collection{
+				myURL:    myURL,
+				Path:     v.Read.Path,
+				Method:   v.Read.Method,
+				Request:  rmap,
+				Response: pmap,
 			}
 		}
 	}
@@ -143,17 +116,13 @@ func (bc *Config) newOasFromBeacon() (*Oas, error) {
 			if err != nil {
 				return nil, err
 			}
-			if _, ok := result[k]; ok {
-				result[k].DeleteRequest = rmap
-				result[k].DeleteResponse = pmap
-			} else {
-				result[k] = &Collection{
-					myURL:          myURL,
-					Path:           v.Delete.Path,
-					Method:         v.Delete.Method,
-					DeleteRequest:  rmap,
-					DeleteResponse: pmap,
-				}
+			key := [2]string{k, "cleanup"}
+			result[key] = &Collection{
+				myURL:    myURL,
+				Path:     v.Delete.Path,
+				Method:   v.Delete.Method,
+				Request:  rmap,
+				Response: pmap,
 			}
 		}
 	}

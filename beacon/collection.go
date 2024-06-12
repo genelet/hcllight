@@ -14,43 +14,27 @@ import (
 
 	"github.com/genelet/hcllight/hcl"
 	"github.com/genelet/hcllight/light"
+
+	"github.com/genelet/determined/convert"
 )
 
 type Collection struct {
-	myURL              *url.URL
-	Path               string
-	Query              url.Values
-	Method             string
-	ReadRequest        *hcl.SchemaObject
-	ReadRequestData    []byte
-	ReadResponse       *hcl.SchemaObject
-	ReadResponseData   []byte
-	WriteRequest       *hcl.SchemaObject
-	WriteRequestData   []byte
-	WriteResponse      *hcl.SchemaObject
-	WriteResponseData  []byte
-	DeleteRequest      *hcl.SchemaObject
-	DeleteRequestData  []byte
-	DeleteResponse     *hcl.SchemaObject
-	DeleteResponseData []byte
+	myURL        *url.URL
+	Path         string
+	Query        url.Values
+	Method       string
+	Request      *hcl.SchemaObject
+	RequestData  []byte
+	Response     *hcl.SchemaObject
+	ResponseData []byte
 }
 
-func (self *Collection) checkBody(how string, body *light.Body) error {
+func (self *Collection) checkBody(body *light.Body) error {
 	if body == nil {
 		return nil
 	}
 
-	var schemaMap *hcl.SchemaObject
-	switch how {
-	case "read":
-		schemaMap = self.ReadRequest
-	case "write":
-		schemaMap = self.WriteRequest
-	case "delete":
-		schemaMap = self.DeleteRequest
-	default:
-		return fmt.Errorf("unknown case: %s", how)
-	}
+	schemaMap := self.Request
 
 	attributes := make(map[string]*light.Attribute)
 	var blocks []*light.Block
@@ -98,6 +82,10 @@ func (self *Collection) checkBody(how string, body *light.Body) error {
 	if err != nil {
 		return err
 	}
+	self.RequestData, err = convert.HCLToJSON(bs)
+	if err != nil {
+		return err
+	}
 
 	arr := strings.Split(self.Path, "/")
 	for i, item := range arr {
@@ -113,26 +101,8 @@ func (self *Collection) checkBody(how string, body *light.Body) error {
 	}
 	self.Path = strings.Join(arr, "/")
 
-	switch how {
-	case "read":
-		self.ReadRequestData = bs
-		if len(args) > 0 {
-			self.Query = url.Values{}
-			for k, v := range args {
-				switch v.(type) {
-				case []interface{}:
-					for _, item := range v.([]interface{}) {
-						self.Query.Add(k, fmt.Sprintf("%v", item))
-					}
-				default:
-					self.Query.Add(k, fmt.Sprintf("%v", v))
-				}
-			}
-		}
-	case "write":
-		self.WriteRequestData = bs
-	case "delete":
-		self.DeleteRequestData = bs
+	switch self.Method {
+	case "GET", "DELETE":
 		if len(args) > 0 {
 			self.Query = url.Values{}
 			for k, v := range args {
@@ -157,7 +127,21 @@ func (self *Collection) GetLocation(caller *url.URL, _ string, _ string, _ inter
 		myURL = caller
 	}
 
-	u, err := myURL.Parse(self.Path)
+	path := myURL.Path
+	if strings.HasSuffix(path, "/") {
+		if strings.HasPrefix(self.Path, "/") {
+			path += self.Path[1:]
+		} else {
+			path += self.Path
+		}
+	} else {
+		if strings.HasPrefix(self.Path, "/") {
+			path += self.Path
+		} else {
+			path += "/" + self.Path
+		}
+	}
+	u, err := myURL.Parse(path)
 	if err != nil {
 		return nil, err
 	}
@@ -167,37 +151,35 @@ func (self *Collection) GetLocation(caller *url.URL, _ string, _ string, _ inter
 	return u, nil
 }
 
-func (self *Collection) DoRequest(ctx context.Context, client *http.Client, method string) ([]byte, error) {
+func (self *Collection) DoRequest(ctx context.Context, client *http.Client, headers ...map[string][]string) error {
 	urlstr := self.myURL.String()
 
-	msg := new(bytes.Buffer)
-	if bs != nil {
-		msg = bytes.NewBuffer(bs)
-	}
-	req, err := http.NewRequestWithContext(ctx, method, urlstr, msg)
-	if err != nil {
-		return nil, err
-	}
-	if self.token != "" {
-		req.Header.Set("Authorization", "Bearer "+self.token)
+	var msg *bytes.Buffer
+	if grep([]string{"POST", "UPDATE", "PATCH"}, self.Method) && self.RequestData != nil {
+		msg = bytes.NewBuffer(self.RequestData)
 	}
 
-	res, err := self.client.Do(req)
+	req, err := http.NewRequestWithContext(ctx, self.Method, urlstr, msg)
 	if err != nil {
-		return nil, err
+		return err
+	}
+	if headers != nil {
+		req.Header = headers[0]
+	}
+
+	res, err := client.Do(req)
+	if err != nil {
+		return err
 	}
 	body, err := io.ReadAll(res.Body)
 	res.Body.Close()
 	if err != nil {
-		return nil, err
+		return err
 	}
-	if res.StatusCode != 200 {
-		return nil, fmt.Errorf("%d: %s", res.StatusCode, body)
+	if res.StatusCode < 200 || res.StatusCode >= 300 {
+		return fmt.Errorf("%d: %s", res.StatusCode, body)
 	}
+	self.ResponseData = body
 
-	return body, nil
-}
-
-func (self *Collection) Read(ctx context.Context, client *http.Client) error {
-
+	return nil
 }
