@@ -26,6 +26,23 @@ func (body *Body) Evaluate(ref ...map[string]interface{}) ([]byte, error) {
 	return []byte(str), nil
 }
 
+// ToNative converts Attribute to a native Go type assuming there is no evaluation needed.
+func (self *Attribute) ToNative() (interface{}, error) {
+	astAttr, err := xattributeTo(self)
+	if err != nil {
+		return nil, err
+	}
+	syntaxAttr, err := ast.AttributeTo(astAttr)
+	if err != nil {
+		return nil, err
+	}
+	cv, err := utils.ExpressionToCty(nil, nil, syntaxAttr.Expr)
+	if err != nil {
+		return nil, err
+	}
+	return utils.CtyToNative(cv)
+}
+
 func (self *Body) evaluateBodyNode(ref map[string]interface{}, node *utils.Tree, level int) (string, error) {
 	var arr []string
 

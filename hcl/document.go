@@ -2,6 +2,7 @@ package hcl
 
 import (
 	"fmt"
+	"net/url"
 	"strings"
 
 	"github.com/genelet/hcllight/light"
@@ -378,6 +379,23 @@ func ParseDocument(data []byte, extension ...string) (*Document, error) {
 	}
 
 	return documentFromHCL(body)
+}
+
+func (self *Document) GetDefaultServer() (string, error) {
+	var first string
+	if self.Servers != nil || len(self.Servers) != 0 {
+		for _, server := range self.Servers {
+			first = server.GetUrl()
+			u, err := url.Parse(first)
+			if err != nil {
+				return "", err
+			}
+			if u.Host != "" {
+				return first, nil
+			}
+		}
+	}
+	return first, nil
 }
 
 func (self *Document) toHCL() (*light.Body, error) {

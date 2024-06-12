@@ -22,7 +22,7 @@ type Config struct {
 	*Provider   `yaml:"provider" hcl:"provider,block"`
 	Resources   map[string]*Resource   `yaml:"resources" hcl:"resources,block"`
 	DataSources map[string]*DataSource `yaml:"data_sources" hcl:"data_sources,block"`
-	Cleanups    map[string]*DataSource `yaml:"cleanups" hcl:"cleanups,block"`
+	Cleanups    map[string]*Cleanup    `yaml:"cleanups" hcl:"cleanups,block"`
 	doc         *hcl.Document
 }
 

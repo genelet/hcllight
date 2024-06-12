@@ -8,7 +8,7 @@
 package beacon
 
 import (
-	"fmt"
+	"net/url"
 
 	"github.com/genelet/hcllight/hcl"
 	"github.com/genelet/hcllight/light"
@@ -17,7 +17,7 @@ import (
 // Oas represents a generator Oas.
 type Oas struct {
 	Provider    *Provider
-	Collections map[string]*Collection
+	Collections map[[2]string]*Collection
 	doc         *hcl.Document
 }
 
@@ -40,39 +40,33 @@ func ParseOas(bc *Config, bs []byte) (*Oas, error) {
 			if !ok {
 				continue
 			}
-			collectionData, err := checkBody(collection.ReadRequest, block.Bdy)
+			err := collection.checkBody("read", block.Bdy)
 			if err != nil {
 				return nil, err
 			}
-			if _, ok := collections[key]; ok {
-				collections[key].ReadRequestData = collectionData
-			}
+			oas.Collections[key] = collection
 		case "resource":
 			key := block.Labels[0]
 			collection, ok := collections[key]
 			if !ok {
 				continue
 			}
-			collectionData, err := checkBody(collection.WriteRequest, block.Bdy)
+			err := collection.checkBody("write", block.Bdy)
 			if err != nil {
 				return nil, err
 			}
-			if _, ok := collections[key]; ok {
-				collections[key].WriteRequestData = collectionData
-			}
+			oas.Collections[key] = collection
 		case "cleanup":
 			key := block.Labels[0]
 			collection, ok := collections[key]
 			if !ok {
 				continue
 			}
-			collectionData, err := checkBody(collection.DeleteRequest, block.Bdy)
+			err := collection.checkBody("delete", block.Bdy)
 			if err != nil {
 				return nil, err
 			}
-			if _, ok := collections[key]; ok {
-				collections[key].DeleteRequestData = collectionData
-			}
+			oas.Collections[key] = collection
 		default:
 		}
 	}
@@ -80,6 +74,20 @@ func ParseOas(bc *Config, bs []byte) (*Oas, error) {
 }
 
 func (bc *Config) newOasFromBeacon() (*Oas, error) {
+	myURL := new(url.URL)
+	if bc.doc != nil {
+		str, err := bc.doc.GetDefaultServer()
+		if err != nil {
+			return nil, err
+		}
+		if str != "" {
+			myURL, err = url.Parse(str)
+			if err != nil {
+				return nil, err
+			}
+		}
+	}
+
 	Oas := &Oas{Provider: bc.Provider, doc: bc.GetDocument()}
 	result := make(map[string]*Collection)
 	if bc.Resources != nil {
@@ -93,6 +101,9 @@ func (bc *Config) newOasFromBeacon() (*Oas, error) {
 				return nil, err
 			}
 			result[k] = &Collection{
+				myURL:         myURL,
+				Path:          v.Create.Path,
+				Method:        v.Create.Method,
 				WriteRequest:  rmap,
 				WriteResponse: pmap,
 			}
@@ -113,6 +124,9 @@ func (bc *Config) newOasFromBeacon() (*Oas, error) {
 				result[k].ReadResponse = pmap
 			} else {
 				result[k] = &Collection{
+					myURL:        myURL,
+					Path:         v.Read.Path,
+					Method:       v.Read.Method,
 					ReadRequest:  rmap,
 					ReadResponse: pmap,
 				}
@@ -134,6 +148,9 @@ func (bc *Config) newOasFromBeacon() (*Oas, error) {
 				result[k].DeleteResponse = pmap
 			} else {
 				result[k] = &Collection{
+					myURL:          myURL,
+					Path:           v.Delete.Path,
+					Method:         v.Delete.Method,
 					DeleteRequest:  rmap,
 					DeleteResponse: pmap,
 				}
@@ -144,46 +161,4 @@ func (bc *Config) newOasFromBeacon() (*Oas, error) {
 		Oas.Collections = result
 	}
 	return Oas, nil
-}
-
-func checkBody(schemaMap *hcl.SchemaObject, body *light.Body) ([]byte, error) {
-	if body == nil {
-		return nil, nil
-	}
-
-	attributes := make(map[string]*light.Attribute)
-	var blocks []*light.Block
-	var allkeys []string
-	if body.Attributes != nil {
-		for k, attr := range body.Attributes {
-			if _, ok := schemaMap.Properties[k]; ok {
-				attributes[k] = attr
-				allkeys = append(allkeys, k)
-			}
-		}
-	}
-	for _, b := range body.Blocks {
-		if _, ok := schemaMap.Properties[b.Type]; ok {
-			blocks = append(blocks, b)
-			allkeys = append(allkeys, b.Type)
-		}
-	}
-
-	var missings []string
-	for _, key := range schemaMap.Required {
-		if !grep(allkeys, key) {
-			missings = append(missings, key)
-		}
-	}
-	if len(missings) > 0 {
-		return nil, fmt.Errorf("missing required fields: %v", missings)
-	}
-	body = &light.Body{
-		Blocks: blocks,
-	}
-	if len(attributes) > 0 {
-		body.Attributes = attributes
-	}
-
-	return body.Hcl()
 }
