@@ -37,11 +37,12 @@ func TestOas(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	oas, err := NewOas(bc, bs)
+	oas, err := ParseOas(bc, bs)
 	if err != nil {
 		t.Fatal(err)
 	}
 	for k, v := range oas.Collections {
-		t.Errorf("key: %s, value: %v\n", k, v)
+		t.Errorf("key: %s, value: %s\n", k, v.ReadRequestData)
+		t.Errorf("key: %s, value: %s\n", k, v.WriteRequestData)
 	}
 }
