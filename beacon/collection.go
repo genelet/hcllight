@@ -29,6 +29,10 @@ type Collection struct {
 	ResponseData []byte
 }
 
+func (self *Collection) GetMyURL() *url.URL {
+  return self.myURL
+}
+
 func (self *Collection) checkBody(body *light.Body) error {
 	if body == nil {
 		return nil
@@ -119,36 +123,6 @@ func (self *Collection) checkBody(body *light.Body) error {
 	default:
 	}
 	return nil
-}
-
-func (self *Collection) GetLocation(caller *url.URL, _ string, _ string, _ interface{}) (*url.URL, error) {
-	myURL := self.myURL
-	if caller != nil {
-		myURL = caller
-	}
-
-	path := myURL.Path
-	if strings.HasSuffix(path, "/") {
-		if strings.HasPrefix(self.Path, "/") {
-			path += self.Path[1:]
-		} else {
-			path += self.Path
-		}
-	} else {
-		if strings.HasPrefix(self.Path, "/") {
-			path += self.Path
-		} else {
-			path += "/" + self.Path
-		}
-	}
-	u, err := myURL.Parse(path)
-	if err != nil {
-		return nil, err
-	}
-	if self.Query != nil {
-		u.RawQuery = self.Query.Encode()
-	}
-	return u, nil
 }
 
 func (self *Collection) DoRequest(ctx context.Context, client *http.Client, headers ...map[string][]string) error {

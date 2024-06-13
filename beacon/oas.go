@@ -21,18 +21,6 @@ type Oas struct {
 	doc         *hcl.Document
 }
 
-func (self *Oas) GetLocation(caller *url.URL, _ string, _ string, _ interface{}) (*url.URL, error) {
-    if caller != nil {
-        return caller, nil
-    }
-
-	str, err := self.doc.GetDefaultServer()
-	if err != nil {
-		return nil, err
-	}
-	return url.Parse(str)
-}
-
 func ParseOas(bc *Config, bs []byte) (*Oas, error) {
 	oas, err := bc.newOasFromBeacon()
 	if err != nil {
