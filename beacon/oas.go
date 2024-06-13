@@ -9,6 +9,7 @@ package beacon
 
 import (
 	"net/url"
+	"os"
 
 	"github.com/genelet/hcllight/hcl"
 	"github.com/genelet/hcllight/light"
@@ -21,6 +22,21 @@ type Oas struct {
 	doc         *hcl.Document
 }
 
+// NewOasFromFiles takes in three file paths, one for the OpenAPI spec, one for the generator config, and one for the input.
+// It returns a Oas struct or an error if one occurs.
+func NewOasFromFiles(openapi, generator, input string) (*Oas, error) {
+	config_generator, err := ParseConfigFromFiles(openapi, generator)
+	if err != nil {
+		return nil, err
+	}
+	bs, err := os.ReadFile(input)
+	if err != nil {
+		return nil, err
+	}
+	return NewOas(config_generator, bs)
+}
+
+// NewOas takes in a Config struct and a byte array, unmarshals into a Oas struct.
 func NewOas(bc *Config, bs []byte) (*Oas, error) {
 	oas, err := bc.newOasFromBeacon()
 	if err != nil {

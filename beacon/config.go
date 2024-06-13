@@ -9,11 +9,14 @@ package beacon
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/genelet/determined/dethcl"
 	"github.com/genelet/hcllight/hcl"
 	"github.com/genelet/hcllight/light"
+
 	"gopkg.in/yaml.v3"
 )
 
@@ -24,6 +27,38 @@ type Config struct {
 	DataSources map[string]*DataSource `yaml:"data_sources" hcl:"data_sources,block"`
 	Cleanups    map[string]*Cleanup    `yaml:"cleanups" hcl:"cleanups,block"`
 	doc         *hcl.Document
+}
+
+// ParseConfigFromFiles takes in two file paths, one for the OpenAPI spec and one for the generator config.
+// It returns a Config struct or an error if one occurs.
+func ParseConfigFromFiles(openapi, generator string) (*Config, error) {
+	ext_openapi := filepath.Ext(openapi)
+	if ext_openapi[0] == '.' {
+		ext_openapi = ext_openapi[1:]
+	}
+	bs, err := os.ReadFile(openapi)
+	if err != nil {
+		return nil, err
+	}
+	doc_openapi, err := hcl.ParseDocument(bs, ext_openapi)
+	if err != nil {
+		return nil, err
+	}
+
+	ext_generator := filepath.Ext(generator)
+	if ext_generator[0] == '.' {
+		ext_generator = ext_generator[1:]
+	}
+	bs, err = os.ReadFile(generator)
+	if err != nil {
+		return nil, err
+	}
+	config_generator, err := ParseConfig(bs, ext_generator)
+	if err != nil {
+		return nil, err
+	}
+	config_generator.SetDocument(doc_openapi)
+	return config_generator, nil
 }
 
 // ParseConfig takes in a byte array, unmarshals into a Config struct.
@@ -49,6 +84,7 @@ func ParseConfig(bytes []byte, data_type ...string) (*Config, error) {
 	return &result, nil
 }
 
+// SetDocument sets the document for the Config and its children.
 func (self *Config) SetDocument(doc *hcl.Document) {
 	self.doc = doc
 	for _, resource := range self.Resources {
@@ -65,6 +101,7 @@ func (self *Config) SetDocument(doc *hcl.Document) {
 	}
 }
 
+// GetDocument returns the document for the Config.
 func (self *Config) GetDocument() *hcl.Document {
 	return self.doc
 }

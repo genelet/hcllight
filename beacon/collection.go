@@ -18,6 +18,7 @@ import (
 	"github.com/genelet/determined/convert"
 )
 
+// Collection represents a generator Collection.
 type Collection struct {
 	myURL        *url.URL
 	Path         string
@@ -30,7 +31,7 @@ type Collection struct {
 }
 
 func (self *Collection) GetMyURL() *url.URL {
-  return self.myURL
+	return self.myURL
 }
 
 func (self *Collection) checkBody(body *light.Body) error {
@@ -125,6 +126,7 @@ func (self *Collection) checkBody(body *light.Body) error {
 	return nil
 }
 
+// DoRequest sends a http request according to the Collection.
 func (self *Collection) DoRequest(ctx context.Context, client *http.Client, headers ...map[string][]string) error {
 	urlstr := self.myURL.String()
 
