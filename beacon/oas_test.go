@@ -37,7 +37,7 @@ func TestOas(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	oas, err := ParseOas(bc, bs)
+	oas, err := NewOas(bc, bs)
 	if err != nil {
 		t.Fatal(err)
 	}

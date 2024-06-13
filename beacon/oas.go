@@ -21,7 +21,7 @@ type Oas struct {
 	doc         *hcl.Document
 }
 
-func ParseOas(bc *Config, bs []byte) (*Oas, error) {
+func NewOas(bc *Config, bs []byte) (*Oas, error) {
 	oas, err := bc.newOasFromBeacon()
 	if err != nil {
 		return nil, err
@@ -130,4 +130,8 @@ func (bc *Config) newOasFromBeacon() (*Oas, error) {
 		Oas.Collections = result
 	}
 	return Oas, nil
+}
+
+func (self *Oas) GetDocument() *hcl.Document {
+	return self.doc
 }
