@@ -32,6 +32,10 @@ type Collection struct {
 	ResponseData    []byte
 }
 
+func (self *Collection) SetMyURL(u *url.URL) {
+	self.myURL = u
+}
+
 func (self *Collection) GetMyURL() *url.URL {
 	return self.myURL
 }
@@ -160,6 +164,9 @@ func (self *Collection) checkBody(body *light.Body) error {
 
 // DoRequest sends a http request according to the Collection.
 func (self *Collection) DoRequest(ctx context.Context, client *http.Client, headers ...map[string][]string) error {
+	if self.myURL == nil {
+		return fmt.Errorf("request url not found")
+	}
 	urlstr := self.myURL.String()
 
 	var msg *bytes.Buffer
