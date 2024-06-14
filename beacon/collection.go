@@ -24,11 +24,11 @@ type Collection struct {
 	Path            string
 	Query           url.Values
 	Method          string
-	Parameters      []*hcl.Parameter
-	Request         *hcl.SchemaObject
-	RequestRequired bool
+	parameters      []*hcl.Parameter
+	request         *hcl.SchemaObject
+	requestRequired bool
 	RequestData     []byte
-	Response        *hcl.SchemaObject
+	response        *hcl.SchemaObject
 	ResponseData    []byte
 }
 
@@ -41,8 +41,8 @@ func (self *Collection) checkBody(body *light.Body) error {
 		return nil
 	}
 
-	_, path, query, _, _ := parametersToParametersMap(self.Parameters)
-	schemaMap := self.Request
+	_, path, query, _, _ := parametersToParametersMap(self.parameters)
+	schemaMap := self.request
 
 	attributes := make(map[string]*light.Attribute)
 	var blocks []*light.Block
@@ -122,6 +122,9 @@ func (self *Collection) checkBody(body *light.Body) error {
 		if err != nil {
 			return err
 		}
+	}
+	if self.RequestData == nil && self.requestRequired {
+		return fmt.Errorf("missing required body: %v", schemaMap.Required)
 	}
 
 	if len(args_path) > 0 {

@@ -250,10 +250,10 @@ func (self *OpenApiSpecLocation) toCollection() (*Collection, error) {
 	return &Collection{
 		Path:            self.Path,
 		Method:          self.Method,
-		Parameters:      parameters,
-		Request:         rmap,
-		RequestRequired: required,
-		Response:        pmap,
+		parameters:      parameters,
+		request:         rmap,
+		requestRequired: required,
+		response:        pmap,
 	}, nil
 }
 
