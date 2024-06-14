@@ -78,6 +78,7 @@ func (bc *Config) newOasFromBeacon() (*Oas, error) {
 			if create == nil {
 				continue
 			}
+			create.doc = bc.doc
 			key := [2]string{k, "resource"}
 			result[key], err = create.toCollection()
 			if err != nil {
@@ -92,6 +93,7 @@ func (bc *Config) newOasFromBeacon() (*Oas, error) {
 			if read == nil {
 				continue
 			}
+			read.doc = bc.doc
 			key := [2]string{k, "data"}
 			result[key], err = read.toCollection()
 			if err != nil {
@@ -106,6 +108,7 @@ func (bc *Config) newOasFromBeacon() (*Oas, error) {
 			if delett == nil {
 				continue
 			}
+			delett.doc = bc.doc
 			key := [2]string{k, "cleanup"}
 			result[key], err = delett.toCollection()
 			if err != nil {
@@ -114,6 +117,7 @@ func (bc *Config) newOasFromBeacon() (*Oas, error) {
 			result[key].myURL = myURL
 		}
 	}
+
 	if len(result) > 0 {
 		Oas.Collections = result
 	}

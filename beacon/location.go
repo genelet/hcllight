@@ -20,14 +20,6 @@ type OpenApiSpecLocation struct {
 	doc    *hcl.Document
 }
 
-func (self *OpenApiSpecLocation) SetDocument(doc *hcl.Document) {
-	self.doc = doc
-}
-
-func (self *OpenApiSpecLocation) GetDocument() *hcl.Document {
-	return self.doc
-}
-
 func (self *OpenApiSpecLocation) GetPath() *hcl.PathItem {
 	hash := self.doc.GetPaths()
 	if len(hash) == 0 {
@@ -62,7 +54,7 @@ func (self *OpenApiSpecLocation) GetOperation(common ...bool) *hcl.Operation {
 
 func (self *OpenApiSpecLocation) getRequestBody() (*hcl.RequestBody, error) {
 	operation := self.GetOperation()
-	if operation == nil {
+	if operation == nil || operation.RequestBody == nil {
 		return nil, nil
 	}
 
@@ -154,7 +146,8 @@ func parametersFromOperation(doc *hcl.Document, operation *hcl.Operation) ([]*hc
 		if err != nil {
 			return nil, err
 		}
-		if parameter.In == "query" || parameter.In == "path" {
+		switch strings.ToLower(parameter.In) {
+		case "query", "path", "header", "cookie":
 			parameters = append(parameters, parameter)
 		}
 	}
@@ -187,30 +180,57 @@ func (self *OpenApiSpecLocation) getParameters() ([]*hcl.Parameter, error) {
 // in would be missing in the schemaobject
 func (self *OpenApiSpecLocation) getParametersMap() (*hcl.SchemaObject, error) {
 	rpm, err := self.getParameters()
-	return parametersToParametersMap(rpm), err
+	m, _, _, _, _ := parametersToParametersMap(rpm)
+	return m, err
 }
 
-func parametersToParametersMap(rpm []*hcl.Parameter) *hcl.SchemaObject {
+// return schemaobject for whole parameters as SchemaObject, path, query, header, cookie as map
+func parametersToParametersMap(rpm []*hcl.Parameter) (*hcl.SchemaObject, map[string]*hcl.Parameter, map[string]*hcl.Parameter, map[string]*hcl.Parameter, map[string]*hcl.Parameter) {
 	if rpm == nil {
-		return nil
+		return nil, nil, nil, nil, nil
 	}
 	outputs := make(map[string]*hcl.SchemaOrReference)
+	var query, path, header, cookie map[string]*hcl.Parameter
 	var required []string
 	for _, parameter := range rpm {
-		if parameter.Schema != nil {
-			outputs[parameter.Name] = parameter.Schema
-			if parameter.Required {
-				required = append(required, parameter.Name)
+		if parameter.Schema == nil {
+			continue
+		}
+		outputs[parameter.Name] = parameter.Schema
+		if parameter.Required {
+			required = append(required, parameter.Name)
+		}
+		switch strings.ToLower(parameter.In) {
+		case "query":
+			if query == nil {
+				query = make(map[string]*hcl.Parameter)
 			}
+			query[parameter.Name] = parameter
+		case "path":
+			if path == nil {
+				path = make(map[string]*hcl.Parameter)
+			}
+			path[parameter.Name] = parameter
+		case "header":
+			if header == nil {
+				header = make(map[string]*hcl.Parameter)
+			}
+			header[parameter.Name] = parameter
+		case "cookie":
+			if cookie == nil {
+				cookie = make(map[string]*hcl.Parameter)
+			}
+			cookie[parameter.Name] = parameter
+		default:
 		}
 	}
 	if len(outputs) == 0 {
-		return nil
+		return nil, nil, nil, nil, nil
 	}
 	return &hcl.SchemaObject{
 		Properties: outputs,
 		Required:   required,
-	}
+	}, path, query, header, cookie
 }
 
 func (self *OpenApiSpecLocation) toCollection() (*Collection, error) {
@@ -226,6 +246,7 @@ func (self *OpenApiSpecLocation) toCollection() (*Collection, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	return &Collection{
 		Path:            self.Path,
 		Method:          self.Method,

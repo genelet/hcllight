@@ -41,115 +41,117 @@ func (self *Collection) checkBody(body *light.Body) error {
 		return nil
 	}
 
-	var pnames []string
-	for _, p := range self.Parameters {
-		pnames = append(pnames, p.Name)
-	}
-	pmap := parametersToParametersMap(self.Parameters)
+	_, path, query, _, _ := parametersToParametersMap(self.Parameters)
 	schemaMap := self.Request
 
 	attributes := make(map[string]*light.Attribute)
 	var blocks []*light.Block
+	args_path := make(map[string]interface{})
+	args_query := make(map[string]interface{})
 	var allkeys []string
-	args := make(map[string]interface{})
 
 	if body.Attributes != nil {
 		for k, attr := range body.Attributes {
-			query := grep(pnames, k)
-			var ok bool
-			if schemaMap != nil && schemaMap.Properties != nil {
-				_, ok = schemaMap.Properties[k]
-			}
-			if query || ok {
+			if path != nil && path[k] != nil {
+				v, err := attr.ToNative()
+				if err != nil {
+					return err
+				}
+				args_path[k] = v
+				allkeys = append(allkeys, k)
+			} else if query != nil && query[k] != nil {
+				v, err := attr.ToNative()
+				if err != nil {
+					return err
+				}
+				args_query[k] = v
+				allkeys = append(allkeys, k)
+			} else if schemaMap != nil && schemaMap.Properties[k] != nil {
 				attributes[k] = attr
 				allkeys = append(allkeys, k)
-				if query {
-					v, err := attr.ToNative()
-					if err != nil {
-						return err
-					}
-					args[k] = v
-				}
 			}
 		}
 	}
 	for _, b := range body.Blocks {
 		k := b.Type
-		query := grep(pnames, k)
-		var ok bool
-		if schemaMap != nil && schemaMap.Properties != nil {
-			_, ok = schemaMap.Properties[k]
-		}
-		if query || ok {
+		if schemaMap != nil && schemaMap.Properties[k] != nil {
 			blocks = append(blocks, b)
 			allkeys = append(allkeys, k)
-			if query {
-				v, err := b.Bdy.Evaluate()
-				if err != nil {
-					return err
-				}
-				args[k] = string(v)
-			}
 		}
 	}
 
 	var missings []string
-	for _, key := range schemaMap.Required {
-		if !grep(allkeys, key) {
-			missings = append(missings, key)
+	if schemaMap != nil {
+		for _, key := range schemaMap.Required {
+			if !grep(allkeys, key) {
+				missings = append(missings, key)
+			}
+		}
+	}
+	if len(path) > 0 {
+		for k, parameter := range path {
+			if parameter.Required && !grep(allkeys, k) {
+				missings = append(missings, k)
+			}
+		}
+	}
+	if len(query) > 0 {
+		for k, parameter := range query {
+			if parameter.Required && !grep(allkeys, k) {
+				missings = append(missings, k)
+			}
 		}
 	}
 	if len(missings) > 0 {
 		return fmt.Errorf("missing required fields: %v", missings)
 	}
 
-	body = &light.Body{
-		Blocks: blocks,
-	}
-	if len(attributes) > 0 {
-		body.Attributes = attributes
-	}
+	if len(blocks) > 0 || len(attributes) > 0 {
+		body = &light.Body{
+			Blocks: blocks,
+		}
+		if len(attributes) > 0 {
+			body.Attributes = attributes
+		}
 
-	bs, err := body.Evaluate()
-	if err != nil {
-		return err
-	}
-	self.RequestData, err = convert.HCLToJSON(bs)
-	if err != nil {
-		return err
-	}
-
-	arr := strings.Split(self.Path, "/")
-	for i, item := range arr {
-		if strings.HasPrefix(item, "{") && strings.HasSuffix(item, "}") {
-			name := item[1 : len(item)-1]
-			if _, ok := args[name]; !ok {
-				return fmt.Errorf("missing required field in path: %v", name)
-			}
-			arr[i] = fmt.Sprintf("%v", args[name])
-		} else {
-			delete(args, item)
+		bs, err := body.Evaluate()
+		if err != nil {
+			return err
+		}
+		self.RequestData, err = convert.HCLToJSON(bs)
+		if err != nil {
+			return err
 		}
 	}
-	self.Path = strings.Join(arr, "/")
 
-	switch self.Method {
-	case "GET", "DELETE":
-		if len(args) > 0 {
-			self.Query = url.Values{}
-			for k, v := range args {
-				switch v.(type) {
-				case []interface{}:
-					for _, item := range v.([]interface{}) {
-						self.Query.Add(k, fmt.Sprintf("%v", item))
-					}
-				default:
-					self.Query.Add(k, fmt.Sprintf("%v", v))
+	if len(args_path) > 0 {
+		arr := strings.Split(self.Path, "/")
+		for i, item := range arr {
+			if strings.HasPrefix(item, "{") && strings.HasSuffix(item, "}") {
+				name := item[1 : len(item)-1]
+				if _, ok := args_path[name]; !ok {
+					return fmt.Errorf("missing required field in path: %v", name)
 				}
+				arr[i] = fmt.Sprintf("%v", args_path[name])
 			}
 		}
-	default:
+		self.Path = strings.Join(arr, "/")
 	}
+
+	if len(args_query) > 0 {
+		self.Query = url.Values{}
+		for k, v := range args_query {
+			switch v.(type) {
+			case []interface{}:
+				for _, item := range v.([]interface{}) {
+					self.Query.Add(k, fmt.Sprintf("%v", item))
+				}
+			default:
+				self.Query.Add(k, fmt.Sprintf("%v", v))
+			}
+		}
+	}
+
 	return nil
 }
 

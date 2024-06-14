@@ -19,45 +19,6 @@ type Cleanup struct {
 }
 
 /*
-func (self *Cleanup) SetDocument(doc *hcl.Document) {
-	self.doc = doc
-}
-
-func (self *Cleanup) GetDocument() *hcl.Document {
-	return self.doc
-}
-
-func (self *Cleanup) GetRequestSchemaMap() (*hcl.SchemaObject, error) {
-	self.Delete.SetDocument(self.doc)
-	return self.Delete.getParametersMap()
-}
-
-func (self *Cleanup) GetResponseSchemaMap() (*hcl.SchemaObject, error) {
-	self.Delete.SetDocument(self.doc)
-	rrp, err := self.Delete.getResponseBody()
-	if err != nil {
-		return nil, err
-	}
-	if rrp == nil {
-		return nil, nil
-	}
-	return schemaMapFromContent(self.doc, rrp.GetContent())
-}
-
-func (self *Cleanup) getSchema() (*hcl.SchemaObject, error) {
-	outputs, err := self.GetRequestSchemaMap()
-	if err != nil {
-		return nil, err
-	}
-	hash, err := self.GetResponseSchemaMap()
-	if err != nil {
-		return nil, err
-	}
-	return addSchemaMap(outputs, hash), nil
-}
-*/
-
-/*
 ToBody will return a light Body object that represents the data source schema.
 
 The generator uses the read operation to map to the provider code specification. Multiple schemas will have the OAS types mapped to Provider Attributes and then be merged together; with the final result being the Data Source schema. The schemas that will be merged together (in priority order):

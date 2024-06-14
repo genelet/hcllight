@@ -19,44 +19,6 @@ type DataSource struct {
 }
 
 /*
-func (self *DataSource) SetDocument(doc *hcl.Document) {
-	self.doc = doc
-}
-
-func (self *DataSource) GetDocument() *hcl.Document {
-	return self.doc
-}
-
-func (self *DataSource) GetRequestSchemaMap() (*hcl.SchemaObject, error) {
-	self.Read.SetDocument(self.doc)
-	return self.Read.getParametersMap()
-}
-
-func (self *DataSource) GetResponseSchemaMap() (*hcl.SchemaObject, error) {
-	self.Read.SetDocument(self.doc)
-	rrp, err := self.Read.getResponseBody()
-	if err != nil {
-		return nil, err
-	}
-	if rrp == nil {
-		return nil, nil
-	}
-	return schemaMapFromContent(self.doc, rrp.GetContent())
-}
-
-func (self *DataSource) getSchema() (*hcl.SchemaObject, error) {
-	outputs, err := self.GetRequestSchemaMap()
-	if err != nil {
-		return nil, err
-	}
-	hash, err := self.GetResponseSchemaMap()
-	if err != nil {
-		return nil, err
-	}
-	return addSchemaMap(outputs, hash), nil
-}
-*/
-/*
 ToBody will return a light Body object that represents the data source schema.
 
 The generator uses the read operation to map to the provider code specification. Multiple schemas will have the OAS types mapped to Provider Attributes and then be merged together; with the final result being the Data Source schema. The schemas that will be merged together (in priority order):
