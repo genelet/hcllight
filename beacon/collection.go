@@ -20,14 +20,16 @@ import (
 
 // Collection represents a generator Collection.
 type Collection struct {
-	myURL        *url.URL
-	Path         string
-	Query        url.Values
-	Method       string
-	Request      *hcl.SchemaObject
-	RequestData  []byte
-	Response     *hcl.SchemaObject
-	ResponseData []byte
+	myURL           *url.URL
+	Path            string
+	Query           url.Values
+	Method          string
+	Parameters      []*hcl.Parameter
+	Request         *hcl.SchemaObject
+	RequestRequired bool
+	RequestData     []byte
+	Response        *hcl.SchemaObject
+	ResponseData    []byte
 }
 
 func (self *Collection) GetMyURL() *url.URL {
@@ -39,6 +41,11 @@ func (self *Collection) checkBody(body *light.Body) error {
 		return nil
 	}
 
+	var pnames []string
+	for _, p := range self.Parameters {
+		pnames = append(pnames, p.Name)
+	}
+	pmap := parametersToParametersMap(self.Parameters)
 	schemaMap := self.Request
 
 	attributes := make(map[string]*light.Attribute)
@@ -48,21 +55,41 @@ func (self *Collection) checkBody(body *light.Body) error {
 
 	if body.Attributes != nil {
 		for k, attr := range body.Attributes {
-			if _, ok := schemaMap.Properties[k]; ok {
+			query := grep(pnames, k)
+			var ok bool
+			if schemaMap != nil && schemaMap.Properties != nil {
+				_, ok = schemaMap.Properties[k]
+			}
+			if query || ok {
 				attributes[k] = attr
 				allkeys = append(allkeys, k)
-				v, err := attr.ToNative()
-				if err != nil {
-					return err
+				if query {
+					v, err := attr.ToNative()
+					if err != nil {
+						return err
+					}
+					args[k] = v
 				}
-				args[k] = v
 			}
 		}
 	}
 	for _, b := range body.Blocks {
-		if _, ok := schemaMap.Properties[b.Type]; ok {
+		k := b.Type
+		query := grep(pnames, k)
+		var ok bool
+		if schemaMap != nil && schemaMap.Properties != nil {
+			_, ok = schemaMap.Properties[k]
+		}
+		if query || ok {
 			blocks = append(blocks, b)
-			allkeys = append(allkeys, b.Type)
+			allkeys = append(allkeys, k)
+			if query {
+				v, err := b.Bdy.Evaluate()
+				if err != nil {
+					return err
+				}
+				args[k] = string(v)
+			}
 		}
 	}
 

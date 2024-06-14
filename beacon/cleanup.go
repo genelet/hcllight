@@ -18,6 +18,7 @@ type Cleanup struct {
 	doc            *hcl.Document
 }
 
+/*
 func (self *Cleanup) SetDocument(doc *hcl.Document) {
 	self.doc = doc
 }
@@ -54,6 +55,7 @@ func (self *Cleanup) getSchema() (*hcl.SchemaObject, error) {
 	}
 	return addSchemaMap(outputs, hash), nil
 }
+*/
 
 /*
 ToBody will return a light Body object that represents the data source schema.
@@ -73,10 +75,17 @@ func (self *Cleanup) toBody() (*light.Body, *light.Body, error) {
 		return nil, nil, nil
 	}
 
-	schemaMap, err := self.getSchema()
+	self.Delete.doc = self.doc
+	pm, err := self.Delete.getParametersMap()
 	if err != nil {
 		return nil, nil, err
 	}
+	rm, err := self.Delete.getResponseSchemaMap()
+	if err != nil {
+		return nil, nil, err
+	}
+	schemaMap := addSchemaMap(pm, rm)
+
 	required, optional := ignoreSchemaOrReferenceMap(schemaMap, self.SchemaOptions)
 	body1, err := hcl.SchemaOrReferenceMapToBody(required)
 	if err != nil {

@@ -81,6 +81,18 @@ func (self *OpenApiSpecLocation) getRequestBody() (*hcl.RequestBody, error) {
 	return rb, nil
 }
 
+func (self *OpenApiSpecLocation) getRequestSchemaMapAndRequired() (*hcl.SchemaObject, bool, error) {
+	rb, err := self.getRequestBody()
+	if err != nil {
+		return nil, false, err
+	}
+	if rb == nil {
+		return nil, false, nil
+	}
+	s, err := schemaMapFromContent(self.doc, rb.Content)
+	return s, rb.Required, err
+}
+
 func (self *OpenApiSpecLocation) getResponseBody() (*hcl.Response, error) {
 	operation := self.GetOperation()
 	if operation == nil {
@@ -114,6 +126,17 @@ func (self *OpenApiSpecLocation) getResponseBody() (*hcl.Response, error) {
 		return first2xx, nil
 	}
 	return first, nil
+}
+
+func (self *OpenApiSpecLocation) getResponseSchemaMap() (*hcl.SchemaObject, error) {
+	rb, err := self.getResponseBody()
+	if err != nil {
+		return nil, err
+	}
+	if rb == nil {
+		return nil, nil
+	}
+	return schemaMapFromContent(self.doc, rb.Content)
 }
 
 func parametersFromOperation(doc *hcl.Document, operation *hcl.Operation) ([]*hcl.Parameter, error) {
@@ -161,13 +184,15 @@ func (self *OpenApiSpecLocation) getParameters() ([]*hcl.Parameter, error) {
 	return parameters, nil
 }
 
+// in would be missing in the schemaobject
 func (self *OpenApiSpecLocation) getParametersMap() (*hcl.SchemaObject, error) {
 	rpm, err := self.getParameters()
-	if err != nil {
-		return nil, err
-	}
+	return parametersToParametersMap(rpm), err
+}
+
+func parametersToParametersMap(rpm []*hcl.Parameter) *hcl.SchemaObject {
 	if rpm == nil {
-		return nil, nil
+		return nil
 	}
 	outputs := make(map[string]*hcl.SchemaOrReference)
 	var required []string
@@ -180,11 +205,34 @@ func (self *OpenApiSpecLocation) getParametersMap() (*hcl.SchemaObject, error) {
 		}
 	}
 	if len(outputs) == 0 {
-		return nil, nil
+		return nil
 	}
 	return &hcl.SchemaObject{
 		Properties: outputs,
 		Required:   required,
+	}
+}
+
+func (self *OpenApiSpecLocation) toCollection() (*Collection, error) {
+	parameters, err := self.getParameters()
+	if err != nil {
+		return nil, err
+	}
+	rmap, required, err := self.getRequestSchemaMapAndRequired()
+	if err != nil {
+		return nil, err
+	}
+	pmap, err := self.getResponseSchemaMap()
+	if err != nil {
+		return nil, err
+	}
+	return &Collection{
+		Path:            self.Path,
+		Method:          self.Method,
+		Parameters:      parameters,
+		Request:         rmap,
+		RequestRequired: required,
+		Response:        pmap,
 	}, nil
 }
 
