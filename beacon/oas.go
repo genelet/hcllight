@@ -8,7 +8,6 @@
 package beacon
 
 import (
-	"net/url"
 	"os"
 
 	"github.com/genelet/hcllight/hcl"
@@ -66,80 +65,53 @@ func NewOas(bc *Config, bs []byte) (*Oas, error) {
 }
 
 func (bc *Config) newOasFromBeacon() (*Oas, error) {
-	myURL := new(url.URL)
-	if bc.doc != nil {
-		str, err := bc.doc.GetDefaultServer()
-		if err != nil {
-			return nil, err
-		}
-		if str != "" {
-			myURL, err = url.Parse(str)
-			if err != nil {
-				return nil, err
-			}
-		}
+	myURL, err := bc.doc.GetDefaultServer()
+	if err != nil {
+		return nil, err
 	}
 
 	Oas := &Oas{Provider: bc.Provider, doc: bc.GetDocument()}
 	result := make(map[[2]string]*Collection)
 	if bc.Resources != nil {
 		for k, v := range bc.Resources {
-			rmap, err := v.GetRequestSchemaMap()
-			if err != nil {
-				return nil, err
-			}
-			pmap, err := v.GetResponseSchemaMap()
-			if err != nil {
-				return nil, err
+			create := v.Create
+			if create == nil {
+				continue
 			}
 			key := [2]string{k, "resource"}
-			result[key] = &Collection{
-				myURL:    myURL,
-				Path:     v.Create.Path,
-				Method:   v.Create.Method,
-				Request:  rmap,
-				Response: pmap,
+			result[key], err = create.toCollection()
+			if err != nil {
+				return nil, err
 			}
+			result[key].myURL = myURL
 		}
 	}
 	if bc.DataSources != nil {
 		for k, v := range bc.DataSources {
-			rmap, err := v.GetRequestSchemaMap()
-			if err != nil {
-				return nil, err
-			}
-			pmap, err := v.GetResponseSchemaMap()
-			if err != nil {
-				return nil, err
+			read := v.Read
+			if read == nil {
+				continue
 			}
 			key := [2]string{k, "data"}
-			result[key] = &Collection{
-				myURL:    myURL,
-				Path:     v.Read.Path,
-				Method:   v.Read.Method,
-				Request:  rmap,
-				Response: pmap,
+			result[key], err = read.toCollection()
+			if err != nil {
+				return nil, err
 			}
+			result[key].myURL = myURL
 		}
 	}
 	if bc.Cleanups != nil {
 		for k, v := range bc.Cleanups {
-			rmap, err := v.GetRequestSchemaMap()
-			if err != nil {
-				return nil, err
-			}
-			pmap, err := v.GetResponseSchemaMap()
-			if err != nil {
-				return nil, err
+			delett := v.Delete
+			if delett == nil {
+				continue
 			}
 			key := [2]string{k, "cleanup"}
-			result[key] = &Collection{
-				myURL:    myURL,
-				Path:     v.Delete.Path,
-				Method:   v.Delete.Method,
-				Request:  rmap,
-				Response: pmap,
+			result[key], err = delett.toCollection()
+			if err != nil {
+				return nil, err
 			}
+			result[key].myURL = myURL
 		}
 	}
 	if len(result) > 0 {

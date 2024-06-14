@@ -381,21 +381,21 @@ func ParseDocument(data []byte, extension ...string) (*Document, error) {
 	return documentFromHCL(body)
 }
 
-func (self *Document) GetDefaultServer() (string, error) {
+func (self *Document) GetDefaultServer() (*url.URL, error) {
 	var first string
 	if self.Servers != nil || len(self.Servers) != 0 {
 		for _, server := range self.Servers {
 			first = server.GetUrl()
 			u, err := url.Parse(first)
 			if err != nil {
-				return "", err
+				return nil, err
 			}
 			if u.Host != "" {
-				return first, nil
+				return url.Parse(first)
 			}
 		}
 	}
-	return first, nil
+	return url.Parse(first)
 }
 
 func (self *Document) toHCL() (*light.Body, error) {

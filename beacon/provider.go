@@ -21,14 +21,15 @@ type Provider struct {
 	doc            *hcl.Document
 }
 
-func (self *Provider) SetDocument(doc *hcl.Document) {
-	self.doc = doc
-}
+/*
+	func (self *Provider) SetDocument(doc *hcl.Document) {
+		self.doc = doc
+	}
 
-func (self *Provider) GetDocument() *hcl.Document {
-	return self.doc
-}
-
+	func (self *Provider) GetDocument() *hcl.Document {
+		return self.doc
+	}
+*/
 func findGeneralReference(body *light.Body, names []string) *light.Body {
 	if body == nil || len(names) == 0 {
 		return body

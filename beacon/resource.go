@@ -21,6 +21,7 @@ type Resource struct {
 	doc            *hcl.Document
 }
 
+/*
 func (self *Resource) SetDocument(doc *hcl.Document) {
 	self.doc = doc
 }
@@ -82,7 +83,7 @@ func (self *Resource) getSchema() (*hcl.SchemaObject, error) {
 
 	return addSchemaMap(addSchemaMap(outputs, hash), addSchemaMap(rrp, rpm)), nil
 }
-
+*/
 /*
 ToBody will return a light.Body object that represents the schema of the resource.
 
@@ -102,10 +103,36 @@ The generator will merge all query and path parameters to the root of the schema
 The generator will consider as parameters the ones in the OAS Path Item and the ones in the OAS Operation, merged based on the rules in the specification
 */
 func (self *Resource) toBody() (*light.Body, *light.Body, error) {
-	schemaMap, err := self.getSchema()
-	if err != nil {
-		return nil, nil, err
+	if self.Create == nil && self.Read == nil {
+		return nil, nil, nil
 	}
+
+	var schemaMap *hcl.SchemaObject
+	if self.Create != nil {
+		self.Create.doc = self.doc
+		rm, _, err := self.Create.getRequestSchemaMapAndRequired()
+		if err != nil {
+			return nil, nil, err
+		}
+		rpm, err := self.Create.getResponseSchemaMap()
+		if err != nil {
+			return nil, nil, err
+		}
+		schemaMap = addSchemaMap(rm, rpm)
+	}
+	if self.Read != nil {
+		self.Read.doc = self.doc
+		rpm, err := self.Read.getResponseSchemaMap()
+		if err != nil {
+			return nil, nil, err
+		}
+		pm, err := self.Read.getParametersMap()
+		if err != nil {
+			return nil, nil, err
+		}
+		schemaMap = addSchemaMap(schemaMap, addSchemaMap(rpm, pm))
+	}
+
 	required, optional := ignoreSchemaOrReferenceMap(schemaMap, self.SchemaOptions)
 	body1, err := hcl.SchemaOrReferenceMapToBody(required)
 	if err != nil {

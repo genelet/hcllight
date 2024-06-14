@@ -88,16 +88,16 @@ func ParseConfig(bytes []byte, data_type ...string) (*Config, error) {
 func (self *Config) SetDocument(doc *hcl.Document) {
 	self.doc = doc
 	for _, resource := range self.Resources {
-		resource.SetDocument(doc)
+		resource.doc = doc
 	}
 	for _, dataSource := range self.DataSources {
-		dataSource.SetDocument(doc)
+		dataSource.doc = doc
 	}
 	for _, cleanup := range self.Cleanups {
-		cleanup.SetDocument(doc)
+		cleanup.doc = doc
 	}
 	if self.Provider != nil {
-		self.Provider.SetDocument(doc)
+		self.Provider.doc = doc
 	}
 }
 
