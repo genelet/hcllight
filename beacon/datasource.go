@@ -41,7 +41,7 @@ func (self *DataSource) toBody() (*light.Body, *light.Body, error) {
 	if err != nil {
 		return nil, nil, err
 	}
-	rm, err := self.Read.getResponseSchemaMap()
+	rm, _, err := self.Read.getResponseSchemaMap()
 	if err != nil {
 		return nil, nil, err
 	}

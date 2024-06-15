@@ -51,7 +51,7 @@ func (self *Resource) toBody() (*light.Body, *light.Body, error) {
 		if err != nil {
 			return nil, nil, err
 		}
-		rpm, err := self.Create.getResponseSchemaMap()
+		rpm, _, err := self.Create.getResponseSchemaMap()
 		if err != nil {
 			return nil, nil, err
 		}
@@ -59,7 +59,7 @@ func (self *Resource) toBody() (*light.Body, *light.Body, error) {
 	}
 	if self.Read != nil {
 		self.Read.doc = self.doc
-		rpm, err := self.Read.getResponseSchemaMap()
+		rpm, _, err := self.Read.getResponseSchemaMap()
 		if err != nil {
 			return nil, nil, err
 		}

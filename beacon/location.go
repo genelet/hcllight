@@ -8,6 +8,7 @@
 package beacon
 
 import (
+	"strconv"
 	"strings"
 
 	"github.com/genelet/hcllight/hcl"
@@ -15,9 +16,13 @@ import (
 
 // OpenApiSpecLocation defines a location in an OpenAPI spec for an API operation.
 type OpenApiSpecLocation struct {
-	Path   string `yaml:"path" hcl:"path"`
-	Method string `yaml:"method" hcl:"method"`
-	doc    *hcl.Document
+	Path               string  `yaml:"path" hcl:"path"`
+	Method             string  `yaml:"method" hcl:"method"`
+	RequestMediaType   *string `yaml:"request_media_type" hcl:"request_media_type"`
+	ResponseMediaType  *string `yaml:"response_media_type" hcl:"response_media_type"`
+	ResponseStatusCode *int    `yaml:"response_status_code" hcl:"response_status_code"`
+
+	doc *hcl.Document
 }
 
 func (self *OpenApiSpecLocation) GetPath() *hcl.PathItem {
@@ -81,7 +86,7 @@ func (self *OpenApiSpecLocation) getRequestSchemaMapAndRequired() (*hcl.SchemaOb
 	if rb == nil {
 		return nil, false, nil
 	}
-	s, err := schemaMapFromContent(self.doc, rb.Content)
+	s, err := self.schemaMapFromContent(self.doc, rb.Content, "request")
 	return s, rb.Required, err
 }
 
@@ -91,8 +96,9 @@ func (self *OpenApiSpecLocation) getResponseBody() (*hcl.Response, error) {
 		return nil, nil
 	}
 
-	var rb, first, first2xx *hcl.Response
 	var err error
+	var firstCode, first2xxCode, first200Code int
+	var rb, first, first2xx, first200 *hcl.Response
 	for k, v := range operation.Responses {
 		switch v.Oneof.(type) {
 		case *hcl.ResponseOrReference_Reference:
@@ -104,31 +110,53 @@ func (self *OpenApiSpecLocation) getResponseBody() (*hcl.Response, error) {
 		default:
 			rb = v.GetResponse()
 		}
+
+		if self.ResponseStatusCode != nil && k == strconv.Itoa(*self.ResponseStatusCode) {
+			return rb, nil
+		}
+
+		code, err := strconv.Atoi(k)
+		if err != nil {
+			return nil, err
+		}
 		if first == nil {
+			firstCode = code
 			first = rb
 		}
 		if k == "200" || k == "201" {
-			return rb, nil
+			first200Code = code
+			first200 = rb
 		} else if len(k) >= 3 && k[0:1] == "2" {
+			first2xxCode = code
 			first2xx = rb
 		}
 	}
 
-	if first2xx != nil {
+	if first200 != nil {
+		self.ResponseStatusCode = &first200Code
+		return first200, nil
+	} else if first2xx != nil {
+		self.ResponseStatusCode = &first2xxCode
 		return first2xx, nil
 	}
+	self.ResponseStatusCode = &firstCode
 	return first, nil
 }
 
-func (self *OpenApiSpecLocation) getResponseSchemaMap() (*hcl.SchemaObject, error) {
+func (self *OpenApiSpecLocation) getResponseSchemaMap() (*hcl.SchemaObject, *hcl.SchemaObject, error) {
 	rb, err := self.getResponseBody()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	if rb == nil {
-		return nil, nil
+		return nil, nil, nil
 	}
-	return schemaMapFromContent(self.doc, rb.Content)
+	headers, err := schemaMapFromHeaders(self.doc, rb.Headers)
+	if err != nil {
+		return nil, nil, err
+	}
+	body, err := self.schemaMapFromContent(self.doc, rb.Content, "response")
+	return body, headers, err
 }
 
 func parametersFromOperation(doc *hcl.Document, operation *hcl.Operation) ([]*hcl.Parameter, error) {
@@ -242,7 +270,7 @@ func (self *OpenApiSpecLocation) toCollection() (*Collection, error) {
 	if err != nil {
 		return nil, err
 	}
-	pmap, err := self.getResponseSchemaMap()
+	pmap, pheaders, err := self.getResponseSchemaMap()
 	if err != nil {
 		return nil, err
 	}
@@ -253,7 +281,9 @@ func (self *OpenApiSpecLocation) toCollection() (*Collection, error) {
 		parameters:      parameters,
 		request:         rmap,
 		requestRequired: required,
-		response:        pmap,
+		responseBody:    pmap,
+		responseHeaders: pheaders,
+		location:        &(*self),
 	}, nil
 }
 
@@ -290,19 +320,76 @@ func objectToMap(schema *hcl.SchemaOrReference) *hcl.SchemaObject {
 	return nil
 }
 
-func schemaMapFromContent(doc *hcl.Document, content map[string]*hcl.MediaType) (*hcl.SchemaObject, error) {
-	var first *hcl.SchemaOrReference
+func (self *OpenApiSpecLocation) schemaMapFromContent(doc *hcl.Document, content map[string]*hcl.MediaType, how string) (*hcl.SchemaObject, error) {
+	mt := self.RequestMediaType
+	if how == "response" {
+		mt = self.ResponseMediaType
+	}
+
+	var firsttype string
+	var first, firstjson *hcl.SchemaOrReference
 	for k, v := range content {
 		s, err := doc.ResolveSchemaOrReference(v.Schema)
 		if err != nil {
 			return nil, err
 		}
+
+		if mt != nil && strings.ToLower(k) == strings.ToLower(*mt) {
+			return objectToMap(s), nil
+		}
+
 		if first == nil {
+			firsttype = k
 			first = s
 		}
 		if k == "application/json" {
-			return objectToMap(s), nil
+			firsttype = k
+			firstjson = s
 		}
 	}
+	if how == "response" {
+		self.ResponseMediaType = &firsttype
+	} else {
+		self.RequestMediaType = &firsttype
+	}
+	if firstjson != nil {
+		return objectToMap(firstjson), nil
+	}
 	return objectToMap(first), nil
+}
+
+func schemaMapFromHeaders(doc *hcl.Document, headers map[string]*hcl.HeaderOrReference) (*hcl.SchemaObject, error) {
+	if headers == nil {
+		return nil, nil
+	}
+
+	properties := make(map[string]*hcl.SchemaOrReference)
+	var required []string
+	for k, v := range headers {
+		var newheader *hcl.Header
+		var err error
+		switch v.Oneof.(type) {
+		case *hcl.HeaderOrReference_Reference:
+			newheader, err = doc.ResolveHeaderOrReference(v.GetReference())
+			if err != nil {
+				return nil, err
+			}
+		case *hcl.HeaderOrReference_Header:
+			newheader = v.GetHeader()
+		default:
+			continue
+		}
+		s, err := doc.ResolveSchemaOrReference(newheader.Schema)
+		if err != nil {
+			return nil, err
+		}
+		properties[k] = s
+		if newheader.Required {
+			required = append(required, k)
+		}
+	}
+	return &hcl.SchemaObject{
+		Properties: properties,
+		Required:   required,
+	}, nil
 }

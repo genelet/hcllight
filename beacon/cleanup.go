@@ -41,7 +41,7 @@ func (self *Cleanup) toBody() (*light.Body, *light.Body, error) {
 	if err != nil {
 		return nil, nil, err
 	}
-	rm, err := self.Delete.getResponseSchemaMap()
+	rm, _, err := self.Delete.getResponseSchemaMap()
 	if err != nil {
 		return nil, nil, err
 	}

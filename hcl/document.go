@@ -304,6 +304,37 @@ func (self *Document) ResolveParameterOrReference(reference *Reference) (*Parame
 	return nil, fmt.Errorf("invalid reference: %s", reference.XRef)
 }
 
+func (self *Document) ResolveHeaderOrReference(reference *Reference) (*Header, error) {
+	if reference == nil {
+		return nil, fmt.Errorf("reference is nil")
+	}
+	addresses, err := reference.toAddressArray()
+	if err != nil {
+		return nil, err
+	}
+	if len(addresses) <= 3 {
+		return nil, fmt.Errorf("invalid reference: %s", reference.XRef)
+	}
+	if strings.ToLower(addresses[0]) != "components" {
+		return nil, fmt.Errorf("invalid reference: %s", reference.XRef)
+	}
+	if strings.ToLower(addresses[1]) != "headers" {
+		return nil, fmt.Errorf("invalid reference: %s", reference.XRef)
+	}
+	r2 := self.Components.Headers[addresses[2]]
+	if r2 == nil {
+		return nil, fmt.Errorf("reference not found: %s", reference.XRef)
+	}
+	switch r2.Oneof.(type) {
+	case *HeaderOrReference_Header:
+		return r2.GetHeader(), nil
+	case *HeaderOrReference_Reference:
+		return self.ResolveHeaderOrReference(r2.GetReference())
+	default:
+	}
+	return nil, fmt.Errorf("invalid reference: %s", reference.XRef)
+}
+
 func (self *Document) ResolveExampleOrReference(reference *Reference) (*Example, error) {
 	if reference == nil {
 		return nil, fmt.Errorf("reference is nil")

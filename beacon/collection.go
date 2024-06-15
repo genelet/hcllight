@@ -6,6 +6,8 @@ package beacon
 import (
 	"bytes"
 	"context"
+	"encoding/json"
+	"encoding/xml"
 	"fmt"
 	"io"
 	"net/http"
@@ -16,20 +18,24 @@ import (
 	"github.com/genelet/hcllight/light"
 
 	"github.com/genelet/determined/convert"
+	"github.com/genelet/determined/dethcl"
 )
 
 // Collection represents a generator Collection.
 type Collection struct {
-	myURL           *url.URL
-	Path            string
-	Query           url.Values
-	Method          string
-	parameters      []*hcl.Parameter
-	request         *hcl.SchemaObject
-	requestRequired bool
-	RequestData     []byte
-	response        *hcl.SchemaObject
-	ResponseData    []byte
+	location            *OpenApiSpecLocation
+	myURL               *url.URL
+	Path                string
+	Query               url.Values
+	Method              string
+	parameters          []*hcl.Parameter
+	request             *hcl.SchemaObject
+	requestRequired     bool
+	RequestData         []byte
+	responseBody        *hcl.SchemaObject
+	responseHeaders     *hcl.SchemaObject
+	ResponseBodyData    map[string]interface{}
+	ResponseHeadersData map[string][]string
 }
 
 func (self *Collection) SetMyURL(u *url.URL) {
@@ -186,15 +192,127 @@ func (self *Collection) DoRequest(ctx context.Context, client *http.Client, head
 	if err != nil {
 		return err
 	}
+
+	err = self.responseHeadersValidate(res.Header)
+	if err != nil {
+		return err
+	}
+
 	body, err := io.ReadAll(res.Body)
 	res.Body.Close()
 	if err != nil {
 		return err
 	}
-	if res.StatusCode < 200 || res.StatusCode >= 300 {
+	if self.location != nil && self.location.ResponseStatusCode != nil && *self.location.ResponseStatusCode == res.StatusCode {
+		err = self.responseBodyValidate(body)
+	} else if res.StatusCode < 200 || res.StatusCode >= 300 {
 		return fmt.Errorf("%d: %s", res.StatusCode, body)
+	} else {
+		err = self.responseBodyValidate(body)
 	}
-	self.ResponseData = body
 
+	return err
+}
+
+func (self *Collection) responseHeadersValidate(headers http.Header) error {
+	if self.responseHeaders == nil {
+		return nil
+	}
+	updated := make(map[string][]string)
+	var names []string
+	for k, v := range headers {
+		if self.responseHeaders.Properties[k] != nil {
+			updated[k] = v
+			names = append(names, k)
+		}
+	}
+	var missings []string
+	for _, key := range self.responseHeaders.Required {
+		if !grep(names, key) {
+			missings = append(missings, key)
+		}
+	}
+	if len(missings) > 0 {
+		return fmt.Errorf("missing required headers: %v", missings)
+	}
+	if len(updated) > 0 {
+		self.ResponseHeadersData = updated
+	}
+	return nil
+}
+
+func (self *Collection) bodyToMap(body []byte) (map[string]interface{}, error) {
+	var data map[string]interface{}
+	var err error
+	if self.location.ResponseMediaType == nil {
+		switch *self.location.ResponseMediaType {
+		case "application/json":
+			err = json.Unmarshal(body, &data)
+		case "application/xml":
+			err = xml.Unmarshal(body, &data)
+		case "application/hcl":
+			err = dethcl.Unmarshal(body, &data)
+		case "application/x-www-form-urlencoded":
+			x, err1 := url.ParseQuery(string(body))
+			if err1 != nil {
+				err = err1
+			} else {
+				data = make(map[string]interface{})
+				for k, v := range x {
+					data[k] = v
+				}
+			}
+		case "plain/text":
+			data = map[string]interface{}{
+				"plain": string(body),
+			}
+		default:
+		}
+	} else {
+		data = map[string]interface{}{
+			"unknown": string(body),
+		}
+	}
+	return data, err
+}
+
+func (self *Collection) responseBodyValidate(body []byte) error {
+	data, err := self.bodyToMap(body)
+	if err != nil {
+		return err
+	}
+	if self.responseBody == nil {
+		self.ResponseBodyData = data
+		return nil
+	}
+
+	updated := make(map[string]interface{})
+	var names []string
+	for k, v := range data {
+		if schema, ok := self.responseBody.Properties[k]; ok {
+			err = validateInterfaceBySchemaOrReference(v, schema)
+			if err != nil {
+				return err
+			}
+			updated[k] = v
+			names = append(names, k)
+		}
+	}
+	var missings []string
+	for _, key := range self.responseBody.Required {
+		if !grep(names, key) {
+			missings = append(missings, key)
+		}
+	}
+	if len(missings) > 0 {
+		return fmt.Errorf("missing required fields in response: %v", missings)
+	}
+	if len(updated) > 0 {
+		self.ResponseBodyData = updated
+	}
+	return nil
+}
+
+func validateInterfaceBySchemaOrReference(_ interface{}, _ *hcl.SchemaOrReference) error {
 	return nil
 }
