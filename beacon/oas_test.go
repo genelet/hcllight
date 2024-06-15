@@ -5,7 +5,7 @@ import (
 )
 
 func TestOas(t *testing.T) {
-	oas, err := NewOasFromFiles("petstore.json", "generator_config.yml", "tf_data.hcl")
+	oas, err := NewOasFromFiles("petstore.json", "generator.yml", "tf_data.hcl")
 	if err != nil {
 		t.Fatal(err)
 	}

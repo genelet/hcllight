@@ -6,7 +6,7 @@ import (
 )
 
 func TestConfigGenerator(t *testing.T) {
-	config, err := ParseConfigFromFiles("petstore.json", "generator_config.yml")
+	config, err := ParseConfigFromFiles("petstore.json", "generator.yml")
 	if err != nil {
 		t.Fatal(err)
 	}
