@@ -24,7 +24,7 @@ type Oas struct {
 // NewOasFromFiles takes in three file paths, one for the OpenAPI spec, one for the generator config, and one for the input.
 // It returns a Oas struct or an error if one occurs.
 func NewOasFromFiles(openapi, generator, input string) (*Oas, error) {
-	config_generator, err := ParseConfigFromFiles(openapi, generator)
+	config, err := ParseConfigFromFiles(openapi, generator)
 	if err != nil {
 		return nil, err
 	}
@@ -32,7 +32,7 @@ func NewOasFromFiles(openapi, generator, input string) (*Oas, error) {
 	if err != nil {
 		return nil, err
 	}
-	return NewOas(config_generator, bs)
+	return NewOas(config, bs)
 }
 
 // NewOas takes in a Config struct and a byte array, unmarshals into a Oas struct.
@@ -70,7 +70,7 @@ func (bc *Config) newOasFromBeacon() (*Oas, error) {
 		return nil, err
 	}
 
-	Oas := &Oas{Provider: bc.Provider, doc: bc.GetDocument()}
+	oas := &Oas{Provider: bc.Provider, doc: bc.GetDocument()}
 	result := make(map[[2]string]*Collection)
 	if bc.Resources != nil {
 		for k, v := range bc.Resources {
@@ -119,9 +119,9 @@ func (bc *Config) newOasFromBeacon() (*Oas, error) {
 	}
 
 	if len(result) > 0 {
-		Oas.Collections = result
+		oas.Collections = result
 	}
-	return Oas, nil
+	return oas, nil
 }
 
 func (self *Oas) GetDocument() *hcl.Document {
