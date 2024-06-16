@@ -31,7 +31,7 @@ type Collection struct {
 	parameters          []*hcl.Parameter
 	request             *hcl.SchemaObject
 	requestRequired     bool
-	RequestData         []byte
+	RequestBodyData     *light.Body
 	RequestHeadersData  map[string][]string
 	responseBody        *hcl.SchemaObject
 	responseHeaders     *hcl.SchemaObject
@@ -142,23 +142,14 @@ func (self *Collection) validateRequest(body *light.Body) error {
 	}
 
 	if len(blocks) > 0 || len(attributes) > 0 {
-		body = &light.Body{
+		self.RequestBodyData = &light.Body{
 			Blocks: blocks,
 		}
 		if len(attributes) > 0 {
-			body.Attributes = attributes
-		}
-
-		bs, err := body.Evaluate()
-		if err != nil {
-			return err
-		}
-		self.RequestData, err = convert.HCLToJSON(bs)
-		if err != nil {
-			return err
+			self.RequestBodyData.Attributes = attributes
 		}
 	}
-	if self.RequestData == nil && self.requestRequired {
+	if self.RequestBodyData == nil && self.requestRequired {
 		return fmt.Errorf("missing required body: %v", schemaMap.Required)
 	}
 
@@ -179,10 +170,14 @@ func (self *Collection) validateRequest(body *light.Body) error {
 	if len(args_query) > 0 {
 		self.Query = url.Values{}
 		for k, v := range args_query {
-			switch v.(type) {
+			switch t := v.(type) {
 			case []interface{}:
-				for _, item := range v.([]interface{}) {
+				for _, item := range t {
 					self.Query.Add(k, fmt.Sprintf("%v", item))
+				}
+			case []string:
+				for _, item := range t {
+					self.Query.Add(k, item)
 				}
 			default:
 				self.Query.Add(k, fmt.Sprintf("%v", v))
@@ -222,8 +217,12 @@ func (self *Collection) DoRequest(ctx context.Context, client *http.Client, head
 	urlstr := self.myURL.String()
 
 	var msg *bytes.Buffer
-	if grep([]string{"POST", "UPDATE", "PATCH"}, self.Method) && self.RequestData != nil {
-		msg = bytes.NewBuffer(self.RequestData)
+	if grep([]string{"POST", "UPDATE", "PATCH"}, self.Method) && self.RequestBodyData != nil {
+		bs, err := self.bodyToMsg(self.RequestBodyData)
+		if err != nil {
+			return err
+		}
+		msg = bytes.NewBuffer(bs)
 	}
 
 	req, err := http.NewRequestWithContext(ctx, self.Method, urlstr, msg)
@@ -290,10 +289,66 @@ func (self *Collection) validateResponseHeaders(headers http.Header) error {
 	return nil
 }
 
-func (self *Collection) bodyToMap(body []byte) (map[string]interface{}, error) {
+func (self *Collection) bodyToMsg(body *light.Body) ([]byte, error) {
+	if body == nil {
+		return nil, nil
+	}
+
+	bodyToJson := func(bdy *light.Body) ([]byte, error) {
+		bs, err := bdy.Evaluate()
+		if err == nil {
+			bs, err = convert.HCLToJSON(bs)
+		}
+		return bs, err
+	}
+
+	var bs []byte
+	var err error
+	if self.location.RequestMediaType != nil {
+		switch *self.location.RequestMediaType {
+		case "application/json":
+			bs, err = bodyToJson(body)
+		case "application/xml":
+			bs, err = bodyToJson(body)
+			var data map[string]interface{}
+			err = json.Unmarshal(bs, &data)
+			if err == nil {
+				bs, err = xml.Marshal(data)
+			}
+		case "application/hcl":
+			bs, err = body.Evaluate()
+		case "application/x-www-form-urlencoded":
+			data := url.Values{}
+			var v interface{}
+			for k, attr := range body.Attributes {
+				v, err = attr.ToNative()
+				if err == nil {
+					switch t := v.(type) {
+					case []interface{}:
+						for _, item := range t {
+							data.Add(k, fmt.Sprintf("%v", item))
+						}
+					case []string:
+						for _, item := range t {
+							data.Add(k, item)
+						}
+					default:
+						data.Add(k, fmt.Sprintf("%v", v))
+					}
+				}
+			}
+		default:
+		}
+	} else {
+		bs, err = bodyToJson(body)
+	}
+	return bs, err
+}
+
+func (self *Collection) msgToMap(body []byte) (map[string]interface{}, error) {
 	var data map[string]interface{}
 	var err error
-	if self.location.ResponseMediaType == nil {
+	if self.location.ResponseMediaType != nil {
 		switch *self.location.ResponseMediaType {
 		case "application/json":
 			err = json.Unmarshal(body, &data)
@@ -326,7 +381,7 @@ func (self *Collection) bodyToMap(body []byte) (map[string]interface{}, error) {
 }
 
 func (self *Collection) validateResponseBody(body []byte) error {
-	data, err := self.bodyToMap(body)
+	data, err := self.msgToMap(body)
 	if err != nil {
 		return err
 	}
