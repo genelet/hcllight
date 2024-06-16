@@ -252,7 +252,7 @@ func (self *Collection) DoRequest(ctx context.Context, client *http.Client, head
 	if err != nil {
 		return err
 	}
-	if self.location != nil && self.location.ResponseStatusCode != nil && *self.location.ResponseStatusCode == res.StatusCode {
+	if self.location != nil && self.location.ResponseStatusCode != nil && (*self.location.ResponseStatusCode == res.StatusCode || *self.location.ResponseStatusCode == -1) {
 		err = self.validateResponseBody(body)
 	} else if res.StatusCode < 200 || res.StatusCode >= 300 {
 		return fmt.Errorf("%d: %s", res.StatusCode, body)

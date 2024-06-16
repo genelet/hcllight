@@ -97,8 +97,8 @@ func (self *OpenApiSpecLocation) getResponseBody() (*hcl.Response, error) {
 	}
 
 	var err error
-	var firstCode, first2xxCode, first200Code int
-	var rb, first, first2xx, first200 *hcl.Response
+	var firstCode, defaultCode, first2xxCode, first200Code int
+	var rb, first, defaultResponse, first2xx, first200 *hcl.Response
 	for k, v := range operation.Responses {
 		switch v.Oneof.(type) {
 		case *hcl.ResponseOrReference_Reference:
@@ -113,6 +113,12 @@ func (self *OpenApiSpecLocation) getResponseBody() (*hcl.Response, error) {
 
 		if self.ResponseStatusCode != nil && k == strconv.Itoa(*self.ResponseStatusCode) {
 			return rb, nil
+		}
+
+		if k == "default" {
+			defaultResponse = rb
+			defaultCode = -1
+			continue
 		}
 
 		code, err := strconv.Atoi(k)
@@ -138,6 +144,9 @@ func (self *OpenApiSpecLocation) getResponseBody() (*hcl.Response, error) {
 	} else if first2xx != nil {
 		self.ResponseStatusCode = &first2xxCode
 		return first2xx, nil
+	} else if defaultResponse != nil {
+		self.ResponseStatusCode = &defaultCode
+		return defaultResponse, nil
 	}
 	self.ResponseStatusCode = &firstCode
 	return first, nil
