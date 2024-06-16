@@ -1,11 +1,11 @@
-package beacon
+package spider
 
 import (
 	"testing"
 )
 
-func TestOas(t *testing.T) {
-	oas, err := NewOasFromFiles("petstore.json", "generator.yml", "tf_data.hcl")
+func TestSpider(t *testing.T) {
+	spd, err := NewSpiderFromFiles("petstore.json", "generator.yml", "tf_data.hcl")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -16,7 +16,7 @@ func TestOas(t *testing.T) {
 		key: [order data], value: {"orderId":2}
 		url: /api/v3, path: /store/order/2, method: GET
 	*/
-	for k, v := range oas.Collections {
+	for k, v := range spd.Collections {
 		if k[0] == "pet" && k[1] == "resource" {
 			if v.myURL.String() != "/api/v3" || v.Path != "/pet" || v.Method != "POST" {
 				t.Errorf("key: %v, value: %s\n", k, v.RequestData)

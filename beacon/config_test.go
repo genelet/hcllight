@@ -7,7 +7,7 @@
 // Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: MPL-2.0
 
-package beacon
+package spider
 
 import (
 	"encoding/json"

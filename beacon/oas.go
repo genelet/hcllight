@@ -5,7 +5,7 @@
 // file locaion: https://github.com/hashicorp/terraform-plugin-codegen-openapi/tree/main/internal/config
 //
 
-package beacon
+package spider
 
 import (
 	"os"
@@ -14,16 +14,16 @@ import (
 	"github.com/genelet/hcllight/light"
 )
 
-// Oas represents a generator Oas.
-type Oas struct {
+// Spider represents a generator Spider.
+type Spider struct {
 	Provider    *Provider
 	Collections map[[2]string]*Collection
 	doc         *hcl.Document
 }
 
-// NewOasFromFiles takes in three file paths, one for the OpenAPI spec, one for the generator config, and one for the input.
-// It returns a Oas struct or an error if one occurs.
-func NewOasFromFiles(openapi, generator, input string) (*Oas, error) {
+// NewSpiderFromFiles takes in three file paths, one for the OpenAPI spec, one for the generator config, and one for the input.
+// It returns a Spider struct or an error if one occurs.
+func NewSpiderFromFiles(openapi, generator, input string) (*Spider, error) {
 	config, err := ParseConfigFromFiles(openapi, generator)
 	if err != nil {
 		return nil, err
@@ -32,12 +32,12 @@ func NewOasFromFiles(openapi, generator, input string) (*Oas, error) {
 	if err != nil {
 		return nil, err
 	}
-	return NewOas(config, bs)
+	return NewSpider(config, bs)
 }
 
-// NewOas takes in a Config struct and a byte array, unmarshals into a Oas struct.
-func NewOas(bc *Config, bs []byte) (*Oas, error) {
-	oas, err := bc.newOasFromBeacon()
+// NewSpider takes in a Config struct and a byte array, unmarshals into a Spider struct.
+func NewSpider(bc *Config, bs []byte) (*Spider, error) {
+	spd, err := bc.newSpiderFromBeacon()
 	if err != nil {
 		return nil, err
 	}
@@ -46,7 +46,7 @@ func NewOas(bc *Config, bs []byte) (*Oas, error) {
 		return nil, err
 	}
 
-	collections := oas.Collections
+	collections := spd.Collections
 	for _, block := range doc.Blocks {
 		if grep([]string{"resource", "data", "cleanup"}, block.Type) {
 			key := [2]string{block.Labels[0], block.Type}
@@ -54,23 +54,23 @@ func NewOas(bc *Config, bs []byte) (*Oas, error) {
 			if !ok {
 				continue
 			}
-			err := collection.checkBody(block.Bdy)
+			err := collection.validateRequest(block.Bdy)
 			if err != nil {
 				return nil, err
 			}
-			oas.Collections[key] = collection
+			spd.Collections[key] = collection
 		}
 	}
-	return oas, nil
+	return spd, nil
 }
 
-func (bc *Config) newOasFromBeacon() (*Oas, error) {
+func (bc *Config) newSpiderFromBeacon() (*Spider, error) {
 	myURL, err := bc.doc.GetDefaultServer()
 	if err != nil {
 		return nil, err
 	}
 
-	oas := &Oas{Provider: bc.Provider, doc: bc.GetDocument()}
+	spd := &Spider{Provider: bc.Provider, doc: bc.GetDocument()}
 	result := make(map[[2]string]*Collection)
 	if bc.Resources != nil {
 		for k, v := range bc.Resources {
@@ -119,11 +119,11 @@ func (bc *Config) newOasFromBeacon() (*Oas, error) {
 	}
 
 	if len(result) > 0 {
-		oas.Collections = result
+		spd.Collections = result
 	}
-	return oas, nil
+	return spd, nil
 }
 
-func (self *Oas) GetDocument() *hcl.Document {
+func (self *Spider) GetDocument() *hcl.Document {
 	return self.doc
 }

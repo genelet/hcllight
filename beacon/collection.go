@@ -1,7 +1,7 @@
 // Copyright (c) Greetingland LLC
 // MIT License
 
-package beacon
+package spider
 
 import (
 	"bytes"
@@ -32,6 +32,7 @@ type Collection struct {
 	request             *hcl.SchemaObject
 	requestRequired     bool
 	RequestData         []byte
+	RequestHeadersData  map[string][]string
 	responseBody        *hcl.SchemaObject
 	responseHeaders     *hcl.SchemaObject
 	ResponseBodyData    map[string]interface{}
@@ -46,18 +47,19 @@ func (self *Collection) GetMyURL() *url.URL {
 	return self.myURL
 }
 
-func (self *Collection) checkBody(body *light.Body) error {
+func (self *Collection) validateRequest(body *light.Body) error {
 	if body == nil {
 		return nil
 	}
 
-	_, path, query, _, _ := parametersToParametersMap(self.parameters)
+	_, path, query, headers, cookies := parametersToParametersMap(self.parameters)
 	schemaMap := self.request
 
 	attributes := make(map[string]*light.Attribute)
 	var blocks []*light.Block
 	args_path := make(map[string]interface{})
 	args_query := make(map[string]interface{})
+	args_headers := make(map[string][]string)
 	var allkeys []string
 
 	if body.Attributes != nil {
@@ -75,6 +77,29 @@ func (self *Collection) checkBody(body *light.Body) error {
 					return err
 				}
 				args_query[k] = v
+				allkeys = append(allkeys, k)
+			} else if headers != nil && headers[k] != nil {
+				v, err := attr.ToNative()
+				if err != nil {
+					return err
+				}
+				switch t := v.(type) {
+				case []interface{}:
+					for _, item := range t {
+						args_headers[k] = append(args_headers[k], fmt.Sprintf("%v", item))
+					}
+				case []string:
+					args_headers[k] = t
+				default:
+					args_headers[k] = []string{fmt.Sprintf("%v", v)}
+				}
+				allkeys = append(allkeys, k)
+			} else if cookies != nil && cookies[k] != nil {
+				v, err := attr.ToNative()
+				if err != nil {
+					return err
+				}
+				args_headers["Cookie"] = append(args_headers["Cookie"], fmt.Sprintf("%s=%v", k, v))
 				allkeys = append(allkeys, k)
 			} else if schemaMap != nil && schemaMap.Properties[k] != nil {
 				attributes[k] = attr
@@ -165,7 +190,28 @@ func (self *Collection) checkBody(body *light.Body) error {
 		}
 	}
 
+	if len(args_headers) > 0 {
+		self.RequestHeadersData = args_headers
+	}
+
 	return nil
+}
+
+func mergeHeaders(h1, h2 map[string][]string) map[string][]string {
+	if h1 == nil {
+		return h2
+	}
+	if h2 == nil {
+		return h1
+	}
+	for k, v := range h2 {
+		if arr, ok := h1[k]; ok {
+			h1[k] = append(arr, v...)
+		} else {
+			h1[k] = v
+		}
+	}
+	return h1
 }
 
 // DoRequest sends a http request according to the Collection.
@@ -184,8 +230,11 @@ func (self *Collection) DoRequest(ctx context.Context, client *http.Client, head
 	if err != nil {
 		return err
 	}
-	if headers != nil {
-		req.Header = headers[0]
+
+	if headers == nil {
+		req.Header = self.RequestHeadersData
+	} else {
+		req.Header = mergeHeaders(self.RequestHeadersData, headers[0])
 	}
 
 	res, err := client.Do(req)
@@ -193,7 +242,7 @@ func (self *Collection) DoRequest(ctx context.Context, client *http.Client, head
 		return err
 	}
 
-	err = self.responseHeadersValidate(res.Header)
+	err = self.validateResponseHeaders(res.Header)
 	if err != nil {
 		return err
 	}
@@ -204,17 +253,17 @@ func (self *Collection) DoRequest(ctx context.Context, client *http.Client, head
 		return err
 	}
 	if self.location != nil && self.location.ResponseStatusCode != nil && *self.location.ResponseStatusCode == res.StatusCode {
-		err = self.responseBodyValidate(body)
+		err = self.validateResponseBody(body)
 	} else if res.StatusCode < 200 || res.StatusCode >= 300 {
 		return fmt.Errorf("%d: %s", res.StatusCode, body)
 	} else {
-		err = self.responseBodyValidate(body)
+		err = self.validateResponseBody(body)
 	}
 
 	return err
 }
 
-func (self *Collection) responseHeadersValidate(headers http.Header) error {
+func (self *Collection) validateResponseHeaders(headers http.Header) error {
 	if self.responseHeaders == nil {
 		return nil
 	}
@@ -276,7 +325,7 @@ func (self *Collection) bodyToMap(body []byte) (map[string]interface{}, error) {
 	return data, err
 }
 
-func (self *Collection) responseBodyValidate(body []byte) error {
+func (self *Collection) validateResponseBody(body []byte) error {
 	data, err := self.bodyToMap(body)
 	if err != nil {
 		return err

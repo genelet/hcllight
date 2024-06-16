@@ -1,4 +1,4 @@
-package beacon
+package spider
 
 import (
 	"os"

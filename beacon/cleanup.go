@@ -5,7 +5,7 @@
 // file locaion: https://github.com/hashicorp/terraform-plugin-codegen-openapi/tree/main/internal/config
 //
 
-package beacon
+package spider
 
 import (
 	"github.com/genelet/hcllight/hcl"
