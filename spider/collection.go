@@ -10,6 +10,7 @@ import (
 	"encoding/xml"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"net/url"
 	"strings"
@@ -215,7 +216,7 @@ func (self *Collection) DoRequest(ctx context.Context, client *http.Client, head
 		return fmt.Errorf("request url not found")
 	}
 	urlstr := self.myURL.String()
-
+	log.Printf("999")
 	var msg *bytes.Buffer
 	if grep([]string{"POST", "UPDATE", "PATCH"}, self.Method) && self.RequestBodyData != nil {
 		bs, err := self.bodyToMsg(self.RequestBodyData)
@@ -224,7 +225,7 @@ func (self *Collection) DoRequest(ctx context.Context, client *http.Client, head
 		}
 		msg = bytes.NewBuffer(bs)
 	}
-
+	log.Printf("8888")
 	req, err := http.NewRequestWithContext(ctx, self.Method, urlstr, msg)
 	if err != nil {
 		return err
@@ -235,7 +236,7 @@ func (self *Collection) DoRequest(ctx context.Context, client *http.Client, head
 	} else {
 		req.Header = mergeHeaders(self.RequestHeadersData, headers[0])
 	}
-
+	log.Printf("7777")
 	res, err := client.Do(req)
 	if err != nil {
 		return err
@@ -245,12 +246,13 @@ func (self *Collection) DoRequest(ctx context.Context, client *http.Client, head
 	if err != nil {
 		return err
 	}
-
+	log.Printf("6666")
 	body, err := io.ReadAll(res.Body)
 	res.Body.Close()
 	if err != nil {
 		return err
 	}
+	log.Printf("111111111 %s", body)
 	if self.location != nil && self.location.ResponseStatusCode != nil && (*self.location.ResponseStatusCode == res.StatusCode || *self.location.ResponseStatusCode == -1) {
 		err = self.validateResponseBody(body)
 	} else if res.StatusCode < 200 || res.StatusCode >= 300 {
