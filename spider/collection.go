@@ -21,22 +21,26 @@ import (
 	"github.com/genelet/determined/dethcl"
 )
 
+type Response struct {
+	BodyData    map[string]interface{}
+	HeadersData map[string][]string
+}
+
 // Collection represents a generator Collection.
 type Collection struct {
-	location            *OpenApiSpecLocation
-	myURL               *url.URL
-	Path                string
-	Query               url.Values
-	Method              string
-	parameters          []*hcl.Parameter
-	request             *hcl.SchemaObject
-	requestRequired     bool
-	RequestBodyData     *light.Body
-	RequestHeadersData  map[string][]string
-	responseBody        *hcl.SchemaObject
-	responseHeaders     *hcl.SchemaObject
-	ResponseBodyData    map[string]interface{}
-	ResponseHeadersData map[string][]string
+	location           *OpenApiSpecLocation
+	myURL              *url.URL
+	Path               string
+	Query              url.Values
+	Method             string
+	parameters         []*hcl.Parameter
+	request            *hcl.SchemaObject
+	requestRequired    bool
+	RequestBodyData    *light.Body
+	RequestHeadersData map[string][]string
+	responseBody       *hcl.SchemaObject
+	responseHeaders    *hcl.SchemaObject
+	*Response
 }
 
 func (self *Collection) SetMyURL(u *url.URL) {
@@ -240,11 +244,6 @@ func (self *Collection) DoRequest(ctx context.Context, client *http.Client, head
 		return err
 	}
 
-	err = self.validateResponseHeaders(res.Header)
-	if err != nil {
-		return err
-	}
-
 	body, err := io.ReadAll(res.Body)
 	res.Body.Close()
 	if err != nil {
@@ -252,11 +251,11 @@ func (self *Collection) DoRequest(ctx context.Context, client *http.Client, head
 	}
 
 	if self.location != nil && self.location.ResponseStatusCode != nil && (*self.location.ResponseStatusCode == res.StatusCode || *self.location.ResponseStatusCode == -1) {
-		err = self.validateResponseBody(body)
+		err = self.validateResponse(body, res.Header)
 	} else if res.StatusCode < 200 || res.StatusCode >= 300 {
 		return fmt.Errorf("%d: %s", res.StatusCode, body)
 	} else {
-		err = self.validateResponseBody(body)
+		err = self.validateResponse(body, res.Header)
 	}
 
 	return err
@@ -284,7 +283,13 @@ func (self *Collection) validateResponseHeaders(headers http.Header) error {
 		return fmt.Errorf("missing required headers: %v", missings)
 	}
 	if len(updated) > 0 {
-		self.ResponseHeadersData = updated
+		if self.Response == nil {
+			self.Response = &Response{
+				HeadersData: updated,
+			}
+		} else {
+			self.Response.HeadersData = updated
+		}
 	}
 	return nil
 }
@@ -380,13 +385,31 @@ func (self *Collection) msgToMap(body []byte) (map[string]interface{}, error) {
 	return data, err
 }
 
+func (self *Collection) validateResponse(body []byte, headers http.Header) error {
+	if self.responseBody == nil {
+		return nil
+	}
+	err := self.validateResponseBody(body)
+	if err != nil {
+		return err
+	}
+	err = self.validateResponseHeaders(headers)
+	return err
+}
+
 func (self *Collection) validateResponseBody(body []byte) error {
 	data, err := self.msgToMap(body)
 	if err != nil {
 		return err
 	}
 	if self.responseBody == nil {
-		self.ResponseBodyData = data
+		if self.Response == nil {
+			self.Response = &Response{
+				BodyData: data,
+			}
+		} else {
+			self.Response.BodyData = data
+		}
 		return nil
 	}
 
@@ -412,7 +435,13 @@ func (self *Collection) validateResponseBody(body []byte) error {
 		return fmt.Errorf("missing required fields in response: %v", missings)
 	}
 	if len(updated) > 0 {
-		self.ResponseBodyData = updated
+		if self.Response == nil {
+			self.Response = &Response{
+				BodyData: updated,
+			}
+		} else {
+			self.Response.BodyData = updated
+		}
 	}
 	return nil
 }

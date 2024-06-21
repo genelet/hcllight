@@ -26,6 +26,10 @@ func (body *Body) Evaluate(ref ...map[string]interface{}) ([]byte, error) {
 	return []byte(str), nil
 }
 
+func (body *Body) MarshalHCL() ([]byte, error) {
+	return body.Evaluate()
+}
+
 // ToNative converts Attribute to a native Go type assuming there is no evaluation needed.
 func (self *Attribute) ToNative() (interface{}, error) {
 	astAttr, err := xattributeTo(self)
