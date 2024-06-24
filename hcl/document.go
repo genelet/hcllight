@@ -366,6 +366,37 @@ func (self *Document) ResolveExampleOrReference(reference *Reference) (*Example,
 	return nil, fmt.Errorf("invalid reference: %s", reference.XRef)
 }
 
+func (self *Document) ResolveSecuritySchemeOrReference(reference *Reference) (*SecurityScheme, error) {
+	if reference == nil {
+		return nil, fmt.Errorf("reference is nil")
+	}
+	addresses, err := reference.toAddressArray()
+	if err != nil {
+		return nil, err
+	}
+	if len(addresses) <= 3 {
+		return nil, fmt.Errorf("invalid reference: %s", reference.XRef)
+	}
+	if strings.ToLower(addresses[0]) != "components" {
+		return nil, fmt.Errorf("invalid reference: %s", reference.XRef)
+	}
+	if strings.ToLower(addresses[1]) != "securityschemes" {
+		return nil, fmt.Errorf("invalid reference: %s", reference.XRef)
+	}
+	r2 := self.Components.SecuritySchemes[addresses[2]]
+	if r2 == nil {
+		return nil, fmt.Errorf("reference not found: %s", reference.XRef)
+	}
+	switch r2.Oneof.(type) {
+	case *SecuritySchemeOrReference_SecurityScheme:
+		return r2.GetSecurityScheme(), nil
+	case *SecuritySchemeOrReference_Reference:
+		return self.ResolveSecuritySchemeOrReference(r2.GetReference())
+	default:
+	}
+	return nil, fmt.Errorf("invalid reference: %s", reference.XRef)
+}
+
 // ToBody converts a Document to a HCL Body.
 func (self *Document) ToBody() (*light.Body, error) {
 	return self.toHCL()

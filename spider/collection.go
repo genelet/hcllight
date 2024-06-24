@@ -4,44 +4,53 @@
 package spider
 
 import (
-	"bytes"
-	"context"
-	"encoding/json"
-	"encoding/xml"
 	"fmt"
-	"io"
-	"net/http"
 	"net/url"
 	"strings"
 
 	"github.com/genelet/hcllight/hcl"
 	"github.com/genelet/hcllight/light"
-
-	"github.com/genelet/determined/convert"
-	"github.com/genelet/determined/dethcl"
+	"github.com/genelet/kinet/micro"
 )
-
-type Response struct {
-	BodyData    map[string]interface{}
-	HeadersData map[string][]string
-}
 
 // Collection represents a generator Collection.
 type Collection struct {
 	location           *OpenApiSpecLocation
 	myURL              *url.URL
-	Path               string
-	Query              url.Values
-	Method             string
+	Path               string     `hcl:"path,optional"`
+	Query              url.Values `hcl:"query,optional"`
+	Method             string     `hcl:"method,optional"`
 	parameters         []*hcl.Parameter
 	request            *hcl.SchemaObject
 	requestRequired    bool
-	RequestBodyData    *light.Body
-	RequestHeadersData map[string][]string
+	RequestBodyData    *light.Body         `hcl:"request_body,block"`
+	RequestHeadersData map[string][]string `hcl:"request_headers,optional"`
 	responseBody       *hcl.SchemaObject
 	responseHeaders    *hcl.SchemaObject
-	*Response
+	*Response          `hcl:"response,block"`
 }
+
+func (self *Collection) GetLocation(caller *url.URL, _ string, _ string, _ interface{}) (micro.Resolver, *url.URL, error) {
+	u := &(*caller)
+	path := caller.Path
+	if self.Path != "" {
+		if strings.HasPrefix(self.Path, "/") {
+			if strings.HasSuffix(path, "/") {
+				path += self.Path[1:]
+			} else {
+				path += self.Path
+			}
+		} else if strings.HasSuffix(path, "/") {
+			path += self.Path
+		} else {
+			path += "/" + self.Path
+		}
+	}
+	u.Path = path
+	return new(Response), u, nil
+}
+
+var _ micro.Resolver = (*Collection)(nil)
 
 func (self *Collection) SetMyURL(u *url.URL) {
 	self.myURL = u
@@ -211,241 +220,4 @@ func mergeHeaders(h1, h2 map[string][]string) map[string][]string {
 		}
 	}
 	return h1
-}
-
-// DoRequest sends a http request according to the Collection.
-func (self *Collection) DoRequest(ctx context.Context, client *http.Client, headers ...map[string][]string) error {
-	if self.myURL == nil {
-		return fmt.Errorf("request url not found")
-	}
-	urlstr := self.myURL.String()
-	var msg *bytes.Buffer
-	if grep([]string{"POST", "UPDATE", "PATCH"}, self.Method) && self.RequestBodyData != nil {
-		bs, err := self.bodyToMsg(self.RequestBodyData)
-		if err != nil {
-			return err
-		}
-		msg = bytes.NewBuffer(bs)
-	}
-
-	req, err := http.NewRequestWithContext(ctx, self.Method, urlstr, msg)
-	if err != nil {
-		return err
-	}
-
-	if headers == nil {
-		req.Header = self.RequestHeadersData
-	} else {
-		req.Header = mergeHeaders(self.RequestHeadersData, headers[0])
-	}
-
-	res, err := client.Do(req)
-	if err != nil {
-		return err
-	}
-
-	body, err := io.ReadAll(res.Body)
-	res.Body.Close()
-	if err != nil {
-		return err
-	}
-
-	if self.location != nil && self.location.ResponseStatusCode != nil && (*self.location.ResponseStatusCode == res.StatusCode || *self.location.ResponseStatusCode == -1) {
-		err = self.validateResponse(body, res.Header)
-	} else if res.StatusCode < 200 || res.StatusCode >= 300 {
-		return fmt.Errorf("%d: %s", res.StatusCode, body)
-	} else {
-		err = self.validateResponse(body, res.Header)
-	}
-
-	return err
-}
-
-func (self *Collection) validateResponseHeaders(headers http.Header) error {
-	if self.responseHeaders == nil {
-		return nil
-	}
-	updated := make(map[string][]string)
-	var names []string
-	for k, v := range headers {
-		if self.responseHeaders.Properties[k] != nil {
-			updated[k] = v
-			names = append(names, k)
-		}
-	}
-	var missings []string
-	for _, key := range self.responseHeaders.Required {
-		if !grep(names, key) {
-			missings = append(missings, key)
-		}
-	}
-	if len(missings) > 0 {
-		return fmt.Errorf("missing required headers: %v", missings)
-	}
-	if len(updated) > 0 {
-		if self.Response == nil {
-			self.Response = &Response{
-				HeadersData: updated,
-			}
-		} else {
-			self.Response.HeadersData = updated
-		}
-	}
-	return nil
-}
-
-func (self *Collection) bodyToMsg(body *light.Body) ([]byte, error) {
-	if body == nil {
-		return nil, nil
-	}
-
-	bodyToJson := func(bdy *light.Body) ([]byte, error) {
-		bs, err := bdy.Evaluate()
-		if err == nil {
-			bs, err = convert.HCLToJSON(bs)
-		}
-		return bs, err
-	}
-
-	var bs []byte
-	var err error
-	if self.location.RequestMediaType != nil {
-		switch *self.location.RequestMediaType {
-		case "application/json":
-			bs, err = bodyToJson(body)
-		case "application/xml":
-			bs, err = bodyToJson(body)
-			var data map[string]interface{}
-			err = json.Unmarshal(bs, &data)
-			if err == nil {
-				bs, err = xml.Marshal(data)
-			}
-		case "application/hcl":
-			bs, err = body.Evaluate()
-		case "application/x-www-form-urlencoded":
-			data := url.Values{}
-			var v interface{}
-			for k, attr := range body.Attributes {
-				v, err = attr.ToNative()
-				if err == nil {
-					switch t := v.(type) {
-					case []interface{}:
-						for _, item := range t {
-							data.Add(k, fmt.Sprintf("%v", item))
-						}
-					case []string:
-						for _, item := range t {
-							data.Add(k, item)
-						}
-					default:
-						data.Add(k, fmt.Sprintf("%v", v))
-					}
-				}
-			}
-		default:
-		}
-	} else {
-		bs, err = bodyToJson(body)
-	}
-	return bs, err
-}
-
-func (self *Collection) msgToMap(body []byte) (map[string]interface{}, error) {
-	var data map[string]interface{}
-	var err error
-	if self.location.ResponseMediaType != nil {
-		switch *self.location.ResponseMediaType {
-		case "application/json":
-			err = json.Unmarshal(body, &data)
-		case "application/xml":
-			err = xml.Unmarshal(body, &data)
-		case "application/hcl":
-			err = dethcl.Unmarshal(body, &data)
-		case "application/x-www-form-urlencoded":
-			x, err1 := url.ParseQuery(string(body))
-			if err1 != nil {
-				err = err1
-			} else {
-				data = make(map[string]interface{})
-				for k, v := range x {
-					data[k] = v
-				}
-			}
-		case "plain/text":
-			data = map[string]interface{}{
-				"plain": string(body),
-			}
-		default:
-		}
-	} else {
-		data = map[string]interface{}{
-			"unknown": string(body),
-		}
-	}
-	return data, err
-}
-
-func (self *Collection) validateResponse(body []byte, headers http.Header) error {
-	if self.responseBody == nil {
-		return nil
-	}
-	err := self.validateResponseBody(body)
-	if err != nil {
-		return err
-	}
-	err = self.validateResponseHeaders(headers)
-	return err
-}
-
-func (self *Collection) validateResponseBody(body []byte) error {
-	data, err := self.msgToMap(body)
-	if err != nil {
-		return err
-	}
-	if self.responseBody == nil {
-		if self.Response == nil {
-			self.Response = &Response{
-				BodyData: data,
-			}
-		} else {
-			self.Response.BodyData = data
-		}
-		return nil
-	}
-
-	updated := make(map[string]interface{})
-	var names []string
-	for k, v := range data {
-		if schema, ok := self.responseBody.Properties[k]; ok {
-			err = validateInterfaceBySchemaOrReference(v, schema)
-			if err != nil {
-				return err
-			}
-			updated[k] = v
-			names = append(names, k)
-		}
-	}
-	var missings []string
-	for _, key := range self.responseBody.Required {
-		if !grep(names, key) {
-			missings = append(missings, key)
-		}
-	}
-	if len(missings) > 0 {
-		return fmt.Errorf("missing required fields in response: %v", missings)
-	}
-	if len(updated) > 0 {
-		if self.Response == nil {
-			self.Response = &Response{
-				BodyData: updated,
-			}
-		} else {
-			self.Response.BodyData = updated
-		}
-	}
-	return nil
-}
-
-func validateInterfaceBySchemaOrReference(_ interface{}, _ *hcl.SchemaOrReference) error {
-	return nil
 }

@@ -32,6 +32,15 @@ func Parse(dat []byte) (*Body, error) {
 	return bodyTo(bdy)
 }
 
+func (self *Body) UnmarshalHCL(dat []byte, _ ...string) error {
+	body, err := Parse(dat)
+	if err != nil {
+		return err
+	}
+	*self = *body
+	return nil
+}
+
 // HCL converts Body proto to HCL without evaluation of expressions.
 func (self *Body) Hcl() ([]byte, error) {
 	str, err := self.hclBodyNode(0)

@@ -11,6 +11,7 @@ package spider
 
 import (
 	"encoding/json"
+	"os"
 	"testing"
 )
 
@@ -401,5 +402,21 @@ data_sources:
 				t.Fatalf("YAML:\n%s\n and HCL:\n%s\n is not equal", bs1, bs2)
 			}
 		})
+	}
+}
+
+func TestConfigGenerator(t *testing.T) {
+	config, err := ParseConfigFromFiles("petstore.json", "petgenerator.yml")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	bs, err := config.MarshalHCL()
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = os.WriteFile("tf_config.hcl", bs, 0644)
+	if err != nil {
+		t.Fatal(err)
 	}
 }
