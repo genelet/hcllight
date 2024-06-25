@@ -31,7 +31,7 @@ func (body *Body) MarshalHCL() ([]byte, error) {
 }
 
 // ToNative converts Attribute to a native Go type assuming there is no evaluation needed.
-func (self *Attribute) ToNative() (interface{}, error) {
+func (self *Attribute) ToNative(ref map[string]interface{}, node *utils.Tree) (interface{}, error) {
 	astAttr, err := xattributeTo(self)
 	if err != nil {
 		return nil, err
@@ -40,7 +40,7 @@ func (self *Attribute) ToNative() (interface{}, error) {
 	if err != nil {
 		return nil, err
 	}
-	cv, err := utils.ExpressionToCty(nil, nil, syntaxAttr.Expr)
+	cv, err := utils.ExpressionToCty(ref, node, syntaxAttr.Expr)
 	if err != nil {
 		return nil, err
 	}
