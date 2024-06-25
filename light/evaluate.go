@@ -44,6 +44,8 @@ func (self *Attribute) ToNative(ref map[string]interface{}, node *utils.Tree) (i
 	if err != nil {
 		return nil, err
 	}
+	//syntaxAttr.Expr = utils.CtyToExpression(cv, syntaxAttr.Range())
+	//node.AddItem(name, cv)
 	return utils.CtyToNative(cv)
 }
 
@@ -72,6 +74,14 @@ func (self *Body) evaluateBodyNode(ref map[string]interface{}, node *utils.Tree,
 		}
 
 		syntaxAttr.Expr = utils.CtyToExpression(cv, syntaxAttr.Range())
+		astAttr, err = ast.XattributeTo(syntaxAttr)
+		if err != nil {
+			return "", err
+		}
+		self.Attributes[name], err = attributeTo(astAttr)
+		if err != nil {
+			return "", err
+		}
 		node.AddItem(name, cv)
 
 		bs, err := dethcl.MarshalLevel(v, level+1)
