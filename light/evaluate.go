@@ -1,7 +1,6 @@
 package light
 
 import (
-"log"
 	"fmt"
 	"strings"
 
@@ -51,7 +50,6 @@ func (self *Attribute) ToNative(ref map[string]interface{}, node *utils.Tree, k 
 	}
 	//syntaxAttr.Expr = utils.CtyToExpression(cv, syntaxAttr.Range())
 	if k != nil {
-log.Printf("0000 %s => %#v", k[0], cv)
 		node.AddItem(k[0], cv)
 	}
 	return utils.CtyToNative(cv)
