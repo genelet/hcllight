@@ -1,6 +1,7 @@
 package light
 
 import (
+"log"
 	"fmt"
 	"strings"
 
@@ -11,15 +12,19 @@ import (
 )
 
 // Evaluate converts Body proto to HCL with expressions evaluated.
-func (body *Body) Evaluate(ref ...map[string]interface{}) ([]byte, error) {
-	var r map[string]interface{}
-	if ref != nil {
-		r = ref[0]
-	} else {
-		r = make(map[string]interface{})
+func (body *Body) Evaluate(rest ...interface{}) ([]byte, error) {
+	var ref map[string]interface{}
+	var node *utils.Tree
+	if len(rest) > 0 {
+		ref = rest[0].(map[string]interface{})
+		if len(rest) == 2 {
+			node = rest[1].(*utils.Tree)
+		}
 	}
-	node, r := utils.DefaultTreeFunctions(r)
-	str, err := body.evaluateBodyNode(r, node, 0)
+	if node == nil {
+		node, ref = utils.DefaultTreeFunctions(ref)	
+	}
+	str, err := body.evaluateBodyNode(ref, node, 0)
 	if err != nil {
 		return nil, err
 	}
@@ -31,7 +36,7 @@ func (body *Body) MarshalHCL() ([]byte, error) {
 }
 
 // ToNative converts Attribute to a native Go type assuming there is no evaluation needed.
-func (self *Attribute) ToNative(ref map[string]interface{}, node *utils.Tree) (interface{}, error) {
+func (self *Attribute) ToNative(ref map[string]interface{}, node *utils.Tree, k ...string) (interface{}, error) {
 	astAttr, err := xattributeTo(self)
 	if err != nil {
 		return nil, err
@@ -45,7 +50,10 @@ func (self *Attribute) ToNative(ref map[string]interface{}, node *utils.Tree) (i
 		return nil, err
 	}
 	//syntaxAttr.Expr = utils.CtyToExpression(cv, syntaxAttr.Range())
-	//node.AddItem(name, cv)
+	if k != nil {
+log.Printf("0000 %s => %#v", k[0], cv)
+		node.AddItem(k[0], cv)
+	}
 	return utils.CtyToNative(cv)
 }
 
