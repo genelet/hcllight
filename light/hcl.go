@@ -13,8 +13,8 @@ import (
 	"github.com/hashicorp/hcl/v2/hclsyntax"
 )
 
-// Parse parses HCL data into Body proto.
-func Parse(dat []byte) (*Body, error) {
+// ParseBody parses HCL data into Body proto.
+func ParseBody(dat []byte) (*Body, error) {
 	if dat == nil {
 		return nil, nil
 	}
@@ -33,11 +33,12 @@ func Parse(dat []byte) (*Body, error) {
 }
 
 func (self *Body) UnmarshalHCL(dat []byte, _ ...string) error {
-	body, err := Parse(dat)
+	body, err := ParseBody(dat)
 	if err != nil {
 		return err
 	}
-	*self = *body
+	self.Attributes = body.Attributes
+	self.Blocks = body.Blocks
 	return nil
 }
 

@@ -55,7 +55,7 @@ func TestEval(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			bdy, err := Parse([]byte(test.input))
+			bdy, err := ParseBody([]byte(test.input))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -64,7 +64,7 @@ func TestEval(t *testing.T) {
 				t.Fatal(err)
 			}
 			if test.name == "check block with attributes and body" {
-				bdy1, err := Parse(bs)
+				bdy1, err := ParseBody(bs)
 				if err != nil {
 					t.Fatal(err)
 				}
@@ -91,7 +91,7 @@ func parseFile(filename string) (*Body, error) {
 	if err != nil {
 		return nil, err
 	}
-	return Parse(dat)
+	return ParseBody(dat)
 }
 
 func getRef() map[string]interface{} {
@@ -174,7 +174,7 @@ func hclBack(body *Body) (*Body, error) {
 	if err != nil {
 		return nil, err
 	}
-	return Parse(eval)
+	return ParseBody(eval)
 }
 
 func evalBack(body *Body) (*Body, error) {
@@ -183,7 +183,7 @@ func evalBack(body *Body) (*Body, error) {
 	if err != nil {
 		return nil, err
 	}
-	return Parse(eval)
+	return ParseBody(eval)
 }
 
 // DiffReporter is a simple custom reporter that only records differences

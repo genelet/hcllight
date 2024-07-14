@@ -57,7 +57,7 @@ func TestParseHCL(t *testing.T) {
 		t.Fatalf("Error reading HCL: %v", err)
 	}
 
-	body, err := light.Parse(bs)
+	body, err := light.ParseBody(bs)
 	if err != nil {
 		t.Fatalf("Error parsing HCL: %v", err)
 	}
