@@ -8,6 +8,38 @@ func (self *SecuritySchemeOrReference) getAble() ableHCL {
 	return self.GetSecurityScheme()
 }
 
+func (self *SecurityScheme) MarshalHCL() ([]byte, error) {
+	body, err := self.toHCL()
+	if err != nil {
+		return nil, err
+	}
+	return body.Hcl()
+}
+
+func (self *SecurityScheme) UnmarshalHCL(bs []byte, labels ...string) error {
+	body, err := light.ParseBody(bs)
+	if err != nil {
+		return err
+	}
+	securityScheme, err := securitySchemeFromHCL(body)
+	if err != nil {
+		return err
+	}
+
+	if securityScheme != nil {
+		self.BearerFormat = securityScheme.BearerFormat
+		self.Description = securityScheme.Description
+		self.Flows = securityScheme.Flows
+		self.In = securityScheme.In
+		self.Name = securityScheme.Name
+		self.OpenIdConnectUrl = securityScheme.OpenIdConnectUrl
+		self.Scheme = securityScheme.Scheme
+		self.SpecificationExtension = securityScheme.SpecificationExtension
+		self.Type = securityScheme.Type
+	}
+	return nil
+}
+
 func (self *SecurityScheme) toHCL() (*light.Body, error) {
 	body := new(light.Body)
 	attrs := make(map[string]*light.Attribute)
