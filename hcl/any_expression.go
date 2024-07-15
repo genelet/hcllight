@@ -103,7 +103,7 @@ func anyFromHCL(expr *light.Expression) (*Any, error) {
 		}, nil
 	case *light.Expression_Lvexpr:
 		return &Any{
-			Yaml: *light.LiteralValueExprToString(expr),
+			Yaml: fmt.Sprintf("%v", light.LiteralValueExprToInterface(expr)),
 		}, nil
 	case *light.Expression_Ocexpr:
 		obj := light.ObjConsExprToStringMap(expr)

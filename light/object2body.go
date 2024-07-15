@@ -70,6 +70,29 @@ func LiteralValueExprToString(l *Expression) *string {
 	return &x
 }
 
+func LiteralValueExprToInterface(l *Expression) interface{} {
+	if l == nil {
+		return nil
+	}
+	if l.GetLvexpr() == nil {
+		return nil
+	}
+	val := l.GetLvexpr().GetVal()
+	if val == nil {
+		return nil
+	}
+	switch val.CtyValueClause.(type) {
+	case *CtyValue_BoolValue:
+		return val.GetBoolValue()
+	case *CtyValue_NumberValue:
+		return val.GetNumberValue()
+	case *CtyValue_StringValue:
+		return val.GetStringValue()
+	default:
+	}
+	return nil
+}
+
 func KeyValueExprToString(l *Expression) *string {
 	if l == nil {
 		return nil
