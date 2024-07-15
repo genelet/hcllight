@@ -4,26 +4,6 @@ import (
 	"github.com/genelet/hcllight/light"
 )
 
-func (self *StringArray) MarshalHCL() ([]byte, error) {
-	tcexpr := light.StringArrayToTupleConsEpr(self.Value)
-	str, err := tcexpr.HclExpression()
-	if err != nil {
-		return nil, err
-	}
-	return []byte(str), nil
-}
-
-func (self *StringArray) UnmarshalHCL(bs []byte, labels ...string) error {
-	str := "x = " + string(bs)
-	body, err := light.ParseBody([]byte(str))
-	if err != nil {
-		return err
-	}
-	expr := body.Attributes["x"].Expr
-	self.Value = light.TupleConsExprToStringArray(expr)
-	return nil
-}
-
 func (self *SecurityRequirement) toHCL() (*light.Body, error) {
 	body := new(light.Body)
 	attrs := make(map[string]*light.Attribute)
