@@ -143,6 +143,7 @@ func componentsToApi(components *Components) *openapiv3.Components {
 		SpecificationExtension: extensionToApi(components.SpecificationExtension),
 	}
 	if components.Schemas != nil {
+		c.Schemas = &openapiv3.SchemasOrReferences{}
 		for k, v := range components.Schemas {
 			c.Schemas.AdditionalProperties = append(c.Schemas.AdditionalProperties,
 				&openapiv3.NamedSchemaOrReference{Name: k, Value: schemaOrReferenceToApi(v)},
@@ -150,6 +151,7 @@ func componentsToApi(components *Components) *openapiv3.Components {
 		}
 	}
 	if components.Responses != nil {
+		c.Responses = &openapiv3.ResponsesOrReferences{}
 		for k, v := range components.Responses {
 			c.Responses.AdditionalProperties = append(c.Responses.AdditionalProperties,
 				&openapiv3.NamedResponseOrReference{Name: k, Value: responseOrReferenceToApi(v)},
@@ -157,6 +159,7 @@ func componentsToApi(components *Components) *openapiv3.Components {
 		}
 	}
 	if components.Parameters != nil {
+		c.Parameters = &openapiv3.ParametersOrReferences{}
 		for k, v := range components.Parameters {
 			c.Parameters.AdditionalProperties = append(c.Parameters.AdditionalProperties,
 				&openapiv3.NamedParameterOrReference{Name: k, Value: parameterOrReferenceToApi(v)},
@@ -164,6 +167,7 @@ func componentsToApi(components *Components) *openapiv3.Components {
 		}
 	}
 	if components.Examples != nil {
+		c.Examples = &openapiv3.ExamplesOrReferences{}
 		for k, v := range components.Examples {
 			c.Examples.AdditionalProperties = append(c.Examples.AdditionalProperties,
 				&openapiv3.NamedExampleOrReference{Name: k, Value: exampleOrReferenceToApi(v)},
@@ -171,6 +175,7 @@ func componentsToApi(components *Components) *openapiv3.Components {
 		}
 	}
 	if components.RequestBodies != nil {
+		c.RequestBodies = &openapiv3.RequestBodiesOrReferences{}
 		for k, v := range components.RequestBodies {
 			c.RequestBodies.AdditionalProperties = append(c.RequestBodies.AdditionalProperties,
 				&openapiv3.NamedRequestBodyOrReference{Name: k, Value: requestBodyOrReferenceToApi(v)},
@@ -178,6 +183,7 @@ func componentsToApi(components *Components) *openapiv3.Components {
 		}
 	}
 	if components.Headers != nil {
+		c.Headers = &openapiv3.HeadersOrReferences{}
 		for k, v := range components.Headers {
 			c.Headers.AdditionalProperties = append(c.Headers.AdditionalProperties,
 				&openapiv3.NamedHeaderOrReference{Name: k, Value: headerOrReferenceToApi(v)},

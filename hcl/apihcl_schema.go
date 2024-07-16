@@ -434,8 +434,12 @@ func commonToApi(s *SchemaCommon) *openapiv3.Schema {
 	if s == nil {
 		return nil
 	}
+	x := s.Type
+	if x == "map" {
+		x = "object"
+	}
 	schema := &openapiv3.Schema{
-		Type:        s.Type,
+		Type:        x,
 		Format:      s.Format,
 		Description: s.Description,
 		Default:     defaultTypeToApi(s.Default),
@@ -514,7 +518,11 @@ func plusCommon(s *openapiv3.Schema, c *SchemaCommon) *openapiv3.Schema {
 	if s == nil {
 		s = &openapiv3.Schema{}
 	}
-	s.Type = c.Type
+	x := c.Type
+	if x == "map" {
+		x = "object"
+	}
+	s.Type = x
 	s.Format = c.Format
 	s.Description = c.Description
 	s.Default = defaultTypeToApi(c.Default)
@@ -882,7 +890,11 @@ func schemaToApi(schema *Schema) *openapiv3.Schema {
 	}
 	if schema.Common != nil {
 		x := commonToApi(schema.Common)
-		s.Type = x.Type
+		y := x.Type
+		if y == "map" {
+			y = "object"
+		}
+		s.Type = y
 		s.Format = x.Format
 		s.Description = x.Description
 		s.Example = x.Example
