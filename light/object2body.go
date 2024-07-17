@@ -42,6 +42,7 @@ func StringToLiteralValueExpr(s string) *Expression {
 	s = strings.ReplaceAll(s, "\n", "\\n") // newlines are not accepted in HCL
 	s = strings.ReplaceAll(s, `\/`, `/`)   // people sometimes escape slashes in JSON
 	s = strings.ReplaceAll(s, `\`, `\\`)   // people sometimes escape backslashes in JSON
+	s = strings.ReplaceAll(s, `"`, `\"`)   // carriage returns are not accepted in HCL
 
 	return &Expression{
 		ExpressionClause: &Expression_Lvexpr{
