@@ -5,9 +5,9 @@ import (
 	"strings"
 )
 
-func StringToTextValueExpr(s string) *Expression {
-	if s == "" {
-		return nil
+func StringToTextValueExpr(s string, force ...bool) *Expression {
+	if len(force) > 0 && force[0] && len(s) > 150 {
+		return stringToEOTExpr(s)
 	}
 
 	return &Expression{
@@ -44,6 +44,26 @@ func StringToLiteralValueExpr(s string) *Expression {
 	s = strings.ReplaceAll(s, `\`, `\\`)   // people sometimes escape backslashes in JSON
 	s = strings.ReplaceAll(s, `"`, `\"`)   // carriage returns are not accepted in HCL
 
+	return &Expression{
+		ExpressionClause: &Expression_Lvexpr{
+			Lvexpr: &LiteralValueExpr{
+				Val: &CtyValue{
+					CtyValueClause: &CtyValue_StringValue{
+						StringValue: s,
+					},
+				},
+			},
+		},
+	}
+}
+
+func stringToEOTExpr(s string) *Expression {
+	s = strings.TrimSpace(s)
+	s = strings.Trim(s, "\"") // people sometimes double quote strings in JSON
+
+	s = `<<EOT
+` + s + `
+EOT`
 	return &Expression{
 		ExpressionClause: &Expression_Lvexpr{
 			Lvexpr: &LiteralValueExpr{

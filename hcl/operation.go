@@ -28,7 +28,7 @@ func (self *Operation) toHCL() (*light.Body, error) {
 		if v != "" {
 			attrs[k] = &light.Attribute{
 				Name: k,
-				Expr: light.StringToTextValueExpr(v),
+				Expr: light.StringToTextValueExpr(v, true),
 			}
 		}
 	}

@@ -19,7 +19,7 @@ func (self *Any) toExpression(typ ...string) (*light.Expression, error) {
 		return light.StringToLiteralValueExpr(fmt.Sprintf("%v", self.Value)), nil
 	}
 	if typ == nil {
-		return light.StringToTextValueExpr(strings.TrimSpace(self.Yaml)), nil
+		return light.StringToTextValueExpr(strings.TrimSpace(self.Yaml), true), nil
 	}
 
 	var err error
@@ -28,7 +28,7 @@ func (self *Any) toExpression(typ ...string) (*light.Expression, error) {
 		var str string
 		err = yaml.Unmarshal([]byte(self.Yaml), &str)
 		if err == nil {
-			return light.StringToTextValueExpr(str), nil
+			return light.StringToTextValueExpr(str, true), nil
 		}
 	case "integer":
 		var i int
@@ -54,8 +54,14 @@ func (self *Any) toExpression(typ ...string) (*light.Expression, error) {
 		if err == nil {
 			var items []*light.ObjectConsItem
 			for k, v := range obj {
+				var keyExpr *light.Expression
+				if !strings.Contains(k, ".") && ((k[0] >= 'a' && k[0] <= 'z') || (k[0] >= 'A' && k[0] <= 'Z')) {
+					keyExpr = light.StringToLiteralValueExpr(k)
+				} else {
+					keyExpr = light.StringToTextValueExpr(k)
+				}
 				items = append(items, &light.ObjectConsItem{
-					KeyExpr:   light.StringToLiteralValueExpr(k),
+					KeyExpr:   keyExpr,
 					ValueExpr: light.StringToTextValueExpr(fmt.Sprintf("%v", v)),
 				})
 			}

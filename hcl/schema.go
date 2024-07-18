@@ -1,6 +1,8 @@
 package hcl
 
 import (
+	"strings"
+
 	"github.com/genelet/hcllight/light"
 	//"github.com/k0kubun/pp/v3"
 )
@@ -254,8 +256,14 @@ func mapSchemaOrReferenceToObjectConsExpr(m map[string]*SchemaOrReference) (*lig
 		if err != nil {
 			return nil, err
 		}
+		var keyExpr *light.Expression
+		if !strings.Contains(k, ".") && ((k[0] >= 'a' && k[0] <= 'z') || (k[0] >= 'A' && k[0] <= 'Z')) {
+			keyExpr = light.StringToLiteralValueExpr(k)
+		} else {
+			keyExpr = light.StringToTextValueExpr(k)
+		}
 		exprs = append(exprs, &light.ObjectConsItem{
-			KeyExpr:   light.StringToLiteralValueExpr(k),
+			KeyExpr:   keyExpr,
 			ValueExpr: expr,
 		})
 	}
@@ -302,6 +310,9 @@ func schemaOrReferenceMapToBody(m map[string]*SchemaOrReference, force ...bool) 
 	blocks := make([]*light.Block, 0)
 
 	for k, v := range m {
+		if strings.Contains(k, ".") {
+			k = strings.ReplaceAll(k, ".", "_DOT_")
+		}
 		if v == nil {
 			attrs[k] = &light.Attribute{
 				Name: k,

@@ -16,7 +16,7 @@ func (self *Response) toHCL() (*light.Body, error) {
 		body.Attributes = map[string]*light.Attribute{
 			"description": {
 				Name: "description",
-				Expr: light.StringToTextValueExpr(self.Description),
+				Expr: light.StringToTextValueExpr(self.Description, true),
 			},
 		}
 	}

@@ -1,1 +1,4 @@
 curl "https://converter.swagger.io/api/convert?url=https://docs.docker.com/reference/engine/v1.46.yaml" -H "Accept: application/yaml" -o ./docker_v1.46.yaml 
+
+$ go run main.go docker_v1.46.yaml > docker_v1.46.hcl
+$ go run main.go -from hcl -to json docker_v1.46.hcl > docker_v1.46.json
