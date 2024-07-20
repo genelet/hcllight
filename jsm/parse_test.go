@@ -65,7 +65,6 @@ func TestParseHCL(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error %v", err)
 	}
-	t.Errorf("Schema: %#v", schema.SchemaFull)
-	s := schema.ToJSM()
-	t.Errorf("Schema: %#v", s)
+	s := schema.ToJSM().String()
+	t.Errorf("Schema: %s", s)
 }

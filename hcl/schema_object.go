@@ -1,6 +1,8 @@
 package hcl
 
 import (
+	"fmt"
+
 	"github.com/genelet/hcllight/light"
 )
 
@@ -23,9 +25,16 @@ func (self *SchemaObject) MarshalHCL() ([]byte, error) {
 }
 
 func (self *SchemaObject) UnmarshalHCL(bs []byte, labels ...string) error {
+	if bs == nil {
+		return nil
+	}
+
 	body, err := light.ParseBody(bs)
 	if err != nil {
 		return err
+	}
+	if body == nil {
+		return fmt.Errorf("failsed ParseBody: body is nil")
 	}
 
 	attrs := body.Attributes
@@ -34,6 +43,9 @@ func (self *SchemaObject) UnmarshalHCL(bs []byte, labels ...string) error {
 	object, err := attributesBlocksToObject(attrs, blocks)
 	if err != nil {
 		return err
+	}
+	if object == nil {
+		return fmt.Errorf("failed attributesBlocksToObject: object is nil")
 	}
 
 	self.MaxProperties = object.MaxProperties

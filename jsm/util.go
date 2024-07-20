@@ -58,19 +58,6 @@ func stringToLiteralExpr(key, value string) *light.Expression {
 	return shortToExpr(key, light.StringToLiteralValueExpr(value))
 }
 
-/*
-	func exprToLiteralString(expr *light.Expression) (string, error) {
-		if expr == nil {
-			return "", nil
-		}
-		switch expr.ExpressionClause.(type) {
-		case *light.Expression_Lvexpr:
-			return expr.GetLvexpr().Val.GetStringValue(), nil
-		default:
-		}
-		return "", fmt.Errorf("3 invalid expression: %#v", expr)
-	}
-*/
 func float64ToLiteralExpr(key string, f float64) *light.Expression {
 	return shortToExpr(key, light.Float64ToLiteralValueExpr(f))
 }

@@ -58,9 +58,6 @@ func attributesToCommon(attrs map[string]*light.Attribute) (*Common, error) {
 			common.Format = light.TextValueExprToString(attr.Expr)
 			found = true
 		case "default":
-			//for _, t := range attr.Expr.GetStexpr().Traversal {
-			//	log.Printf("default: %#v", t)
-			//}
 			common.Default = &yaml.Node{
 				Kind: yaml.ScalarNode,
 				//Value: *light.LiteralValueExprToString(attr.Expr),
@@ -355,6 +352,7 @@ func attributesBlocksToObject(attrs map[string]*light.Attribute) (*SchemaObject,
 			found = true
 		case "required":
 			object.Required = light.TupleConsExprToStringArray(attr.Expr)
+			found = true
 		case "properties":
 			object.Properties, err = bodyToMapSchema(attr.Expr.GetOcexpr().ToBody())
 			found = true
@@ -399,9 +397,10 @@ func attributesToMap(attrs map[string]*light.Attribute) (*SchemaMap, error) {
 	for _, attr := range attrs {
 		switch attr.Name {
 		case "additionalProperties":
-			if attr.Expr.GetOcexpr() != nil {
+			switch attr.Expr.ExpressionClause.(type) {
+			case *light.Expression_Ocexpr, *light.Expression_Stexpr:
 				mmap.AdditionalProperties.Schema, err = expressionToSchema(attr.Expr)
-			} else {
+			default:
 				mmap.AdditionalProperties.Boolean = light.LiteralValueExprToBoolean(attr.Expr)
 			}
 			found = true
@@ -546,6 +545,7 @@ func bodyToShorts(body *light.Body) (*Reference, *Common, *SchemaNumber, *Schema
 			continue
 		}
 	}
+
 	return reference, common, schemaNumber, schemaString, schemaArray, schemaObject, schemaMap, nil
 }
 

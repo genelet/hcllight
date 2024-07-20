@@ -89,9 +89,12 @@ func (s *Schema) ToJSM() *jsonschema.Schema {
 	}
 	if s.SchemaMap != nil {
 		return mapToJSM(schema, s.SchemaMap)
+	} else if s.Common != nil {
+		// boolean
+		return schema
 	}
-	// boolean
-	return schema
+
+	return nil
 }
 
 func namedSchemaArrayToMap(s *[]*jsonschema.NamedSchema) map[string]*Schema {
@@ -354,9 +357,10 @@ func mapToHcl(s *jsonschema.Schema) *SchemaMap {
 }
 
 func mapToJSM(jsm *jsonschema.Schema, m *SchemaMap) *jsonschema.Schema {
-	if m == nil || m.AdditionalProperties == nil {
+	if m == nil {
 		return jsm
 	}
+
 	if jsm == nil {
 		jsm = &jsonschema.Schema{}
 	}
@@ -364,7 +368,7 @@ func mapToJSM(jsm *jsonschema.Schema, m *SchemaMap) *jsonschema.Schema {
 		jsm.AdditionalProperties = &jsonschema.SchemaOrBoolean{}
 	}
 	if m.AdditionalProperties.Schema != nil {
-		jsm.AdditionalProperties.Schema = (m.AdditionalProperties.Schema).ToJSM()
+		jsm.AdditionalProperties.Schema = m.AdditionalProperties.Schema.ToJSM()
 	} else {
 		jsm.AdditionalProperties.Boolean = m.AdditionalProperties.Boolean
 	}
@@ -392,6 +396,7 @@ func objectToJSM(jsm *jsonschema.Schema, o *SchemaObject) *jsonschema.Schema {
 	if o == nil {
 		return jsm
 	}
+
 	if jsm == nil {
 		jsm = &jsonschema.Schema{}
 	}
@@ -464,11 +469,21 @@ func schemaFullToJSM(s *Schema) *jsonschema.Schema {
 	}
 	jsm.ReadOnly = full.ReadOnly
 	jsm.WriteOnly = full.WriteOnly
-	jsm = stringToJSM(jsm, full.SchemaString)
-	jsm = numberToJSM(jsm, full.SchemaNumber)
-	jsm = arrayToJSM(jsm, full.SchemaArray)
-	jsm = objectToJSM(jsm, full.SchemaObject)
-	jsm = mapToJSM(jsm, full.SchemaMap)
+	if full.SchemaString != nil {
+		jsm = stringToJSM(jsm, full.SchemaString)
+	}
+	if full.SchemaNumber != nil {
+		jsm = numberToJSM(jsm, full.SchemaNumber)
+	}
+	if full.SchemaArray != nil {
+		jsm = arrayToJSM(jsm, full.SchemaArray)
+	}
+	if full.SchemaObject != nil {
+		jsm = objectToJSM(jsm, full.SchemaObject)
+	}
+	if full.SchemaMap != nil {
+		jsm = mapToJSM(jsm, full.SchemaMap)
+	}
 
 	if full.AdditionalItems != nil {
 		if full.AdditionalItems.Schema != nil {

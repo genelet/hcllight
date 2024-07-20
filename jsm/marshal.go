@@ -179,6 +179,7 @@ func expressionToSchemaOrSchemaArray(expr *light.Expression) (*SchemaOrSchemaArr
 	}
 }
 
+// should use it in schemaMap
 func schemaOrBooleanToExpression(items *SchemaOrBoolean) (*light.Expression, error) {
 	if items.Schema != nil {
 		return schemaToExpression(items.Schema)
@@ -187,6 +188,7 @@ func schemaOrBooleanToExpression(items *SchemaOrBoolean) (*light.Expression, err
 	}
 }
 
+// should use it in schemaMap
 func expressionToSchemaOrBoolean(expr *light.Expression) (*SchemaOrBoolean, error) {
 	if expr.GetLvexpr() != nil {
 		return &SchemaOrBoolean{
@@ -444,8 +446,6 @@ func fcexprToCommon(fcexpr *light.FunctionCallExpr) (*Common, error) {
 		},
 	}
 
-	found := false
-
 	for _, arg := range fcexpr.Args {
 		switch arg.ExpressionClause.(type) {
 		case *light.Expression_Fcexpr:
@@ -457,7 +457,6 @@ func fcexprToCommon(fcexpr *light.FunctionCallExpr) (*Common, error) {
 					return nil, err
 				}
 				common.Format = &format
-				found = true
 			case "default":
 				def, err := exprToTextString(expr.Args[0])
 				if err != nil {
@@ -467,7 +466,6 @@ func fcexprToCommon(fcexpr *light.FunctionCallExpr) (*Common, error) {
 					Kind:  yaml.ScalarNode,
 					Value: def,
 				}
-				found = true
 			case "enum":
 				enum, err := tupleConsExprToEnum(&light.TupleConsExpr{
 					Exprs: expr.Args,
@@ -476,17 +474,15 @@ func fcexprToCommon(fcexpr *light.FunctionCallExpr) (*Common, error) {
 					return nil, err
 				}
 				common.Enumeration = enum
-				found = true
 			default:
+				// ignore for Common
 			}
 		default:
+			// ignore for Common
 		}
 	}
 
-	if found {
-		return common, nil
-	}
-	return nil, nil
+	return common, nil
 }
 
 // because of order in function, we can't loop attribute map
@@ -575,9 +571,13 @@ func fcexprToSchemaNumber(fcexpr *light.FunctionCallExpr) (*SchemaNumber, error)
 					Float: &mul,
 				}
 				found = true
+			case "enum", "format", "default":
+				// ignore
 			default:
+				return nil, fmt.Errorf("invalid name in number function: %s", expr.Name)
 			}
 		default:
+			return nil, fmt.Errorf("invalid expression in number: %#v", arg)
 		}
 	}
 	if found {
@@ -631,9 +631,13 @@ func fcexprToSchemaString(fcexpr *light.FunctionCallExpr) (*SchemaString, error)
 				}
 				s.Pattern = &pattern
 				found = true
+			case "enum", "format", "default":
+				// ignore
 			default:
+				return nil, fmt.Errorf("invalid name in string function: %s", expr.Name)
 			}
 		default:
+			return nil, fmt.Errorf("invalid expression in string: %#v", arg)
 		}
 	}
 	if found {
@@ -696,7 +700,15 @@ func fcexprToSchemaArray(fcexpr *light.FunctionCallExpr) (*SchemaArray, error) {
 				}
 				s.UniqueItems = &unique
 				found = true
+			case "enum", "format", "default":
+				// ignore
 			default:
+				items, err := expressionToSchemaOrSchemaArray(arg)
+				if err != nil {
+					return nil, err
+				}
+				s.Items = items
+				found = true
 			}
 		default:
 			items, err := expressionToSchemaOrSchemaArray(arg)
@@ -782,9 +794,13 @@ func fcexprToSchemaObject(fcexpr *light.FunctionCallExpr) (*SchemaObject, error)
 			case "required":
 				s.Required = light.TupleConsExprToStringArray(expr.Args[0])
 				found = true
+			case "enum", "format", "default":
+				// ignore
 			default:
+				return nil, fmt.Errorf("invalid name in object function: %s", expr.Name)
 			}
 		default:
+			return nil, fmt.Errorf("invalid expression in object: %#v", arg)
 		}
 	}
 	if found {
@@ -826,22 +842,34 @@ func fcexprToSchemaMap(fcexpr *light.FunctionCallExpr) (*SchemaMap, error) {
 			s.AdditionalProperties = &SchemaOrBoolean{
 				Boolean: &b,
 			}
-			found = true
+			continue
+		case *light.Expression_Fcexpr:
+			expr := arg.GetFcexpr()
+			switch expr.Name {
+			case "enum", "format", "default":
+				// ignore
+				continue
+			default:
+			}
 		default:
-			schema, err := expressionToSchema(arg)
-			if err != nil {
-				return nil, err
-			}
-			s.AdditionalProperties = &SchemaOrBoolean{
-				Schema: schema,
-			}
-			found = true
+		}
+
+		schema, err := expressionToSchema(arg)
+		if err != nil {
+			return nil, err
+		}
+		s.AdditionalProperties = &SchemaOrBoolean{
+			Schema: schema,
 		}
 	}
-	if found {
-		return s, nil
+	if !found {
+		b := true
+		s.AdditionalProperties = &SchemaOrBoolean{
+			Boolean: &b,
+		}
 	}
-	return nil, nil
+
+	return s, nil
 }
 
 func schemaToFcexpr(self *Schema) (*light.FunctionCallExpr, error) {
@@ -864,10 +892,12 @@ func schemaToFcexpr(self *Schema) (*light.FunctionCallExpr, error) {
 		err = schemaStringToFcexpr(self.SchemaString, expr)
 	case "number", "integer":
 		err = schemaNumberToFcexpr(self.SchemaNumber, expr)
+	case "boolean":
+		// this is boolean
 	default:
+		return nil, fmt.Errorf("invalid type: %s", expr.Name)
 	}
 
-	// this is boolean
 	return expr, err
 }
 
@@ -897,7 +927,9 @@ func fcexprToSchema(fcexpr *light.FunctionCallExpr) (*Schema, error) {
 		schemaObject, err = fcexprToSchemaObject(fcexpr)
 	case "map":
 		schemaMap, err = fcexprToSchemaMap(fcexpr)
+	case "boolean":
 	default:
+		return nil, fmt.Errorf("invalid type: %s", fcexpr.Name)
 	}
 
 	return &Schema{
@@ -969,5 +1001,5 @@ func expressionToSchema(expr *light.Expression) (*Schema, error) {
 	default:
 	}
 
-	return nil, nil
+	return nil, fmt.Errorf("not supported expression: %#v", expr)
 }
