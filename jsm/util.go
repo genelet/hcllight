@@ -46,9 +46,17 @@ func exprToTextString(expr *light.Expression) (string, error) {
 	}
 	switch expr.ExpressionClause.(type) {
 	case *light.Expression_Texpr:
-		return expr.GetTexpr().Parts[0].GetLvexpr().GetVal().GetStringValue(), nil
+		s := light.TextValueExprToString(expr)
+		if s != nil {
+			return *s, nil
+		}
+		return "", nil
 	case *light.Expression_Lvexpr:
-		return expr.GetLvexpr().Val.GetStringValue(), nil
+		s := light.LiteralValueExprToString(expr)
+		if s != nil {
+			return *s, nil
+		}
+		return "", nil
 	default:
 	}
 	return "", fmt.Errorf("2 invalid expression: %#v", expr)

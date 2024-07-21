@@ -65,6 +65,21 @@ func TestParseHCL(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error %v", err)
 	}
+
+	x, err := schema.ToBody()
+	if err != nil {
+		t.Fatalf("error %v", err)
+	}
+	data, err := x.Hcl()
+	if err != nil {
+		t.Fatalf("error %v", err)
+	}
+
+	err = os.WriteFile("back_v30.hcl", data, 0644)
+	if err != nil {
+		t.Fatalf("Error writing HCL: %v", err)
+	}
+
 	s := schema.ToJSM().String()
 	t.Errorf("Schema: %s", s)
 }

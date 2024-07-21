@@ -498,7 +498,9 @@ func schemaFullToJSM(s *Schema) *jsonschema.Schema {
 	jsm.AllOf = sliceToJSM(full.AllOf)
 	jsm.AnyOf = sliceToJSM(full.AnyOf)
 	jsm.OneOf = sliceToJSM(full.OneOf)
-	jsm.Not = s.Not.ToJSM()
+	if s.Not != nil {
+		jsm.Not = s.Not.ToJSM()
+	}
 	jsm.Definitions = mapToNamedSchemaArray(full.Definitions)
 
 	jsm.Title = full.Title
