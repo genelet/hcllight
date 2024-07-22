@@ -1,8 +1,6 @@
 package jsm
 
 import (
-	"log"
-
 	"github.com/google/gnostic/jsonschema"
 )
 
@@ -76,17 +74,11 @@ func (s *Schema) ToJSM() *jsonschema.Schema {
 	}
 
 	schema := commonToJSM(s.Common)
-	log.Printf("111111: %#v => %#v", s.Common.Type.String, s.Common.Default.Value)
-	log.Printf("222222: %#v => %#v", schema.Type.String, schema.Default.Value)
 	if s.SchemaString != nil {
 		return stringToJSM(schema, s.SchemaString)
 	}
 	if s.SchemaNumber != nil {
-		y := numberToJSM(schema, s.SchemaNumber)
-		log.Printf("333333: %#v", s.SchemaNumber)
-		log.Printf("444444: %#v", schema.Default.Value)
-		log.Printf("555555: %#v", schema.Minimum)
-		return y
+		return numberToJSM(schema, s.SchemaNumber)
 	}
 	if s.SchemaArray != nil {
 		return arrayToJSM(schema, s.SchemaArray)
