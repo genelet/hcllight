@@ -80,6 +80,8 @@ func TestParseHCL(t *testing.T) {
 		t.Fatalf("Error writing HCL: %v", err)
 	}
 
-	s := schema.ToJSM().String()
-	t.Errorf("Schema: %s", s)
+	err = os.WriteFile("back_v30.json", []byte(schema.ToJSM().JSONString()), 0644)
+	if err != nil {
+		t.Fatalf("Error writing JSON: %v", err)
+	}
 }

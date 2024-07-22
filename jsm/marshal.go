@@ -464,9 +464,10 @@ func fcexprToCommon(fcexpr *light.FunctionCallExpr) (*Common, error) {
 				common.Format = light.TextValueExprToString(expr.Args[0])
 			case "default":
 				v := light.LiteralValueExprToInterface(expr.Args[0])
-				common.Default = &yaml.Node{
-					Kind:  yaml.ScalarNode,
-					Value: fmt.Sprintf("%v", v),
+				common.Default = &yaml.Node{}
+				err := common.Default.Encode(v)
+				if err != nil {
+					return nil, err
 				}
 			case "enum":
 				for _, arg := range expr.Args {
@@ -531,6 +532,7 @@ func schemaNumberToFcexpr(self *SchemaNumber, expr *light.FunctionCallExpr) erro
 }
 
 func fcexprToSchemaNumber(fcexpr *light.FunctionCallExpr) (*SchemaNumber, error) {
+	name := fcexpr.Name
 	s := &SchemaNumber{}
 	found := false
 
@@ -540,21 +542,41 @@ func fcexprToSchemaNumber(fcexpr *light.FunctionCallExpr) (*SchemaNumber, error)
 			expr := arg.GetFcexpr()
 			switch expr.Name {
 			case "minimum":
-				min, err := exprToFloat64(expr.Args[0])
-				if err != nil {
-					return nil, err
-				}
-				s.Minimum = &jsonschema.SchemaNumber{
-					Float: &min,
+				if name == "integer" {
+					min, err := exprToInt64(expr.Args[0])
+					if err != nil {
+						return nil, err
+					}
+					s.Minimum = &jsonschema.SchemaNumber{
+						Integer: &min,
+					}
+				} else {
+					min, err := exprToFloat64(expr.Args[0])
+					if err != nil {
+						return nil, err
+					}
+					s.Minimum = &jsonschema.SchemaNumber{
+						Float: &min,
+					}
 				}
 				found = true
 			case "maximum":
-				max, err := exprToFloat64(expr.Args[0])
-				if err != nil {
-					return nil, err
-				}
-				s.Maximum = &jsonschema.SchemaNumber{
-					Float: &max,
+				if name == "integer" {
+					max, err := exprToInt64(expr.Args[0])
+					if err != nil {
+						return nil, err
+					}
+					s.Maximum = &jsonschema.SchemaNumber{
+						Integer: &max,
+					}
+				} else {
+					max, err := exprToFloat64(expr.Args[0])
+					if err != nil {
+						return nil, err
+					}
+					s.Maximum = &jsonschema.SchemaNumber{
+						Float: &max,
+					}
 				}
 				found = true
 			case "exclusiveMinimum":
@@ -572,12 +594,22 @@ func fcexprToSchemaNumber(fcexpr *light.FunctionCallExpr) (*SchemaNumber, error)
 				s.ExclusiveMaximum = &excl
 				found = true
 			case "multipleOf":
-				mul, err := exprToFloat64(expr.Args[0])
-				if err != nil {
-					return nil, err
-				}
-				s.MultipleOf = &jsonschema.SchemaNumber{
-					Float: &mul,
+				if name == "integer" {
+					mul, err := exprToInt64(expr.Args[0])
+					if err != nil {
+						return nil, err
+					}
+					s.MultipleOf = &jsonschema.SchemaNumber{
+						Integer: &mul,
+					}
+				} else {
+					mul, err := exprToFloat64(expr.Args[0])
+					if err != nil {
+						return nil, err
+					}
+					s.MultipleOf = &jsonschema.SchemaNumber{
+						Float: &mul,
+					}
 				}
 				found = true
 			case "enum", "format", "default":
