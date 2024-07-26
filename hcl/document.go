@@ -3,6 +3,7 @@ package hcl
 import (
 	"fmt"
 	"net/url"
+	"regexp"
 	"strings"
 
 	"github.com/genelet/hcllight/light"
@@ -281,14 +282,14 @@ func (self *Document) ResolveParameterOrReference(reference *Reference) (*Parame
 	if err != nil {
 		return nil, err
 	}
-	if len(addresses) <= 3 {
-		return nil, fmt.Errorf("invalid reference: %s", reference.XRef)
+	if len(addresses) < 3 {
+		return nil, fmt.Errorf("should be 3 parts or more. invalid reference: %s ", reference.XRef)
 	}
 	if strings.ToLower(addresses[0]) != "components" {
-		return nil, fmt.Errorf("invalid reference: %s", reference.XRef)
+		return nil, fmt.Errorf("should be components. invalid reference: %s", addresses[0])
 	}
 	if strings.ToLower(addresses[1]) != "parameters" {
-		return nil, fmt.Errorf("invalid reference: %s", reference.XRef)
+		return nil, fmt.Errorf("should be parameters. invalid reference: %s", addresses[1])
 	}
 	r2 := self.Components.Parameters[addresses[2]]
 	if r2 == nil {
@@ -443,11 +444,27 @@ func ParseDocument(data []byte, extension ...string) (*Document, error) {
 	return documentFromHCL(body)
 }
 
-func (self *Document) GetDefaultServer() (string, error) {
+func modifyURL(first string, m map[string]string) string {
+	re := regexp.MustCompile(`{([^}]+)}`)
+	f1 := func(in []byte) []byte {
+		out, ok := m[string(in[1:len(in)-1])]
+		if ok {
+			return []byte(out)
+		}
+		return in
+	}
+	output := re.ReplaceAllFunc([]byte(first), f1)
+	return string(output)
+}
+
+func (self *Document) GetDefaultServer(m ...map[string]string) (string, error) {
 	var first string
 	if self.Servers != nil || len(self.Servers) != 0 {
 		for _, server := range self.Servers {
 			first = server.GetUrl()
+			if m != nil && m[0] != nil {
+				first = modifyURL(first, m[0])
+			}
 			u, err := url.Parse(first)
 			if err != nil {
 				return "", err
