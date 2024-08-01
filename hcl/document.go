@@ -70,24 +70,8 @@ func (self *Document) ResolveSchemaOrReference(sor *SchemaOrReference) (*SchemaO
 		if err != nil {
 			return nil, err
 		}
-		if len(arr) == 2 {
-			if arr[1] == nil {
-				return arr[0], nil
-			}
-			switch arr[1].Oneof.(type) {
-			case *SchemaOrReference_Schema:
-				s := arr[1].GetSchema()
-				// Case found: the only reason to use AllOf is to add Description, e.g. AWS API.
-				// we can remove AllOf and the description, and use the first one
-				if !s.Nullable && !s.ReadOnly && !s.WriteOnly && s.Xml == nil && s.ExternalDocs == nil &&
-					!s.Deprecated && s.Title == "" && s.Number == nil && s.String_ == nil && s.Array == nil &&
-					s.Object == nil && s.Map == nil && s.AllOf == nil && s.AnyOf == nil && s.OneOf == nil &&
-					s.Not == nil && s.Discriminator == nil && s.SpecificationExtension == nil && s.Common != nil &&
-					s.Common.Type == "" && s.Common.Format == "" && s.Common.Default == nil && s.Common.Example == nil {
-					return arr[0], nil
-				}
-			default:
-			}
+		if len(arr) == 1 {
+			return arr[0], nil
 		}
 		return &SchemaOrReference{
 			Oneof: &SchemaOrReference_AllOf{
@@ -101,6 +85,10 @@ func (self *Document) ResolveSchemaOrReference(sor *SchemaOrReference) (*SchemaO
 		if err != nil {
 			return nil, err
 		}
+		if len(arr) == 1 {
+			return arr[0], nil
+		}
+
 		return &SchemaOrReference{
 			Oneof: &SchemaOrReference_AnyOf{
 				AnyOf: &SchemaAnyOf{
@@ -113,6 +101,10 @@ func (self *Document) ResolveSchemaOrReference(sor *SchemaOrReference) (*SchemaO
 		if err != nil {
 			return nil, err
 		}
+		if len(arr) == 1 {
+			return arr[0], nil
+		}
+
 		return &SchemaOrReference{
 			Oneof: &SchemaOrReference_OneOf{
 				OneOf: &SchemaOneOf{
@@ -122,7 +114,8 @@ func (self *Document) ResolveSchemaOrReference(sor *SchemaOrReference) (*SchemaO
 		}, nil
 	case *SchemaOrReference_Array:
 		sa := sor.GetArray()
-		arr, err := self.resolveItems(sa.GetArray().Items)
+		saArray := sa.GetArray()
+		arr, err := self.resolveItems(saArray.Items)
 		if err != nil {
 			return nil, err
 		}
@@ -131,9 +124,9 @@ func (self *Document) ResolveSchemaOrReference(sor *SchemaOrReference) (*SchemaO
 				Array: &OASArray{
 					Array: &SchemaArray{
 						Items:       arr,
-						UniqueItems: sa.GetArray().UniqueItems,
-						MaxItems:    sa.GetArray().MaxItems,
-						MinItems:    sa.GetArray().MinItems,
+						UniqueItems: saArray.UniqueItems,
+						MaxItems:    saArray.MaxItems,
+						MinItems:    saArray.MinItems,
 					},
 					Common: sa.Common,
 				},
@@ -141,8 +134,9 @@ func (self *Document) ResolveSchemaOrReference(sor *SchemaOrReference) (*SchemaO
 		}, nil
 	case *SchemaOrReference_Object:
 		so := sor.GetObject()
+		soObject := so.GetObject()
 		properties := make(map[string]*SchemaOrReference)
-		for key, value := range so.GetObject().Properties {
+		for key, value := range soObject.Properties {
 			sor1, err := self.ResolveSchemaOrReference(value)
 			if err != nil {
 				return nil, err
@@ -154,9 +148,9 @@ func (self *Document) ResolveSchemaOrReference(sor *SchemaOrReference) (*SchemaO
 				Object: &OASObject{
 					Object: &SchemaObject{
 						Properties:    properties,
-						Required:      so.GetObject().Required,
-						MaxProperties: so.GetObject().MaxProperties,
-						MinProperties: so.GetObject().MinProperties,
+						Required:      soObject.Required,
+						MaxProperties: soObject.MaxProperties,
+						MinProperties: soObject.MinProperties,
 					},
 					Common: so.Common,
 				},
@@ -197,9 +191,10 @@ func (self *Document) ResolveSchemaOrReference(sor *SchemaOrReference) (*SchemaO
 				return nil, err
 			}
 			s.Array = &SchemaArray{
-				Items:    arr,
-				MaxItems: array.MaxItems,
-				MinItems: array.MinItems,
+				Items:       arr,
+				UniqueItems: array.UniqueItems,
+				MaxItems:    array.MaxItems,
+				MinItems:    array.MinItems,
 			}
 		}
 		if object := s.GetObject(); object != nil {
@@ -224,9 +219,6 @@ func (self *Document) ResolveSchemaOrReference(sor *SchemaOrReference) (*SchemaO
 				return nil, err
 			}
 			s.Not = x
-		}
-		if xml := s.GetXml(); xml != nil {
-			s.Xml = nil
 		}
 		return refreshFullSchema(s), nil
 	default:
