@@ -70,6 +70,25 @@ func (self *Document) ResolveSchemaOrReference(sor *SchemaOrReference) (*SchemaO
 		if err != nil {
 			return nil, err
 		}
+		if len(arr) == 2 {
+			if arr[1] == nil {
+				return arr[0], nil
+			}
+			switch arr[1].Oneof.(type) {
+			case *SchemaOrReference_Schema:
+				s := arr[1].GetSchema()
+				// Case found: the only reason to use AllOf is to add Description, e.g. AWS API.
+				// we can remove AllOf and the description, and use the first one
+				if !s.Nullable && !s.ReadOnly && !s.WriteOnly && s.Xml == nil && s.ExternalDocs == nil &&
+					!s.Deprecated && s.Title == "" && s.Number == nil && s.String_ == nil && s.Array == nil &&
+					s.Object == nil && s.Map == nil && s.AllOf == nil && s.AnyOf == nil && s.OneOf == nil &&
+					s.Not == nil && s.Discriminator == nil && s.SpecificationExtension == nil && s.Common != nil &&
+					s.Common.Type == "" && s.Common.Format == "" && s.Common.Default == nil && s.Common.Example == nil {
+					return arr[0], nil
+				}
+			default:
+			}
+		}
 		return &SchemaOrReference{
 			Oneof: &SchemaOrReference_AllOf{
 				AllOf: &SchemaAllOf{
@@ -111,9 +130,10 @@ func (self *Document) ResolveSchemaOrReference(sor *SchemaOrReference) (*SchemaO
 			Oneof: &SchemaOrReference_Array{
 				Array: &OASArray{
 					Array: &SchemaArray{
-						Items:    arr,
-						MaxItems: sa.GetArray().MaxItems,
-						MinItems: sa.GetArray().MinItems,
+						Items:       arr,
+						UniqueItems: sa.GetArray().UniqueItems,
+						MaxItems:    sa.GetArray().MaxItems,
+						MinItems:    sa.GetArray().MinItems,
 					},
 					Common: sa.Common,
 				},
@@ -134,6 +154,7 @@ func (self *Document) ResolveSchemaOrReference(sor *SchemaOrReference) (*SchemaO
 				Object: &OASObject{
 					Object: &SchemaObject{
 						Properties:    properties,
+						Required:      so.GetObject().Required,
 						MaxProperties: so.GetObject().MaxProperties,
 						MinProperties: so.GetObject().MinProperties,
 					},
@@ -192,6 +213,7 @@ func (self *Document) ResolveSchemaOrReference(sor *SchemaOrReference) (*SchemaO
 			}
 			s.Object = &SchemaObject{
 				Properties:    properties,
+				Required:      object.Required,
 				MaxProperties: object.MaxProperties,
 				MinProperties: object.MinProperties,
 			}
