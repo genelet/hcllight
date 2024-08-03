@@ -135,13 +135,26 @@ func (self *Document) ResolveSchemaOrReference(sor *SchemaOrReference) (*SchemaO
 	case *SchemaOrReference_Object:
 		so := sor.GetObject()
 		soObject := so.GetObject()
-		properties := make(map[string]*SchemaOrReference)
-		for key, value := range soObject.Properties {
-			sor1, err := self.ResolveSchemaOrReference(value)
-			if err != nil {
-				return nil, err
+		if soObject == nil {
+			return &SchemaOrReference{
+				Oneof: &SchemaOrReference_Object{
+					Object: &OASObject{
+						Common: so.Common,
+					},
+				},
+			}, nil
+		}
+
+		var properties map[string]*SchemaOrReference
+		if soObject.Properties != nil {
+			properties = make(map[string]*SchemaOrReference)
+			for key, value := range soObject.Properties {
+				sor1, err := self.ResolveSchemaOrReference(value)
+				if err != nil {
+					return nil, err
+				}
+				properties[key] = sor1
 			}
-			properties[key] = sor1
 		}
 		return &SchemaOrReference{
 			Oneof: &SchemaOrReference_Object{

@@ -244,7 +244,8 @@ func StringMapToObjConsExpr(items map[string]string) *Expression {
 	var args []*ObjectConsItem
 	for k, v := range items {
 		args = append(args, &ObjectConsItem{
-			KeyExpr:   StringToTextValueExpr(k),
+			KeyExpr:   reliableKeyFromString(k),
+			//KeyExpr:   StringToTextValueExpr(k),
 			ValueExpr: StringToTextValueExpr(v),
 		})
 	}
