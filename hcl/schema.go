@@ -4,7 +4,6 @@ import (
 	"strings"
 
 	"github.com/genelet/hcllight/light"
-	//"github.com/k0kubun/pp/v3"
 )
 
 func (self *SchemaOrReference) toExpression() (*light.Expression, error) {
@@ -97,6 +96,10 @@ func (self *SchemaOrReference) toExpression() (*light.Expression, error) {
 			Fcexpr: expr,
 		},
 	}, err
+}
+
+func ExpressionToSchemaOrReference(self *light.Expression) (*SchemaOrReference, error) {
+	return expressionToSchemaOrReference(self)
 }
 
 func expressionToSchemaOrReference(self *light.Expression) (*SchemaOrReference, error) {

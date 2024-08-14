@@ -471,12 +471,12 @@ func ParseDocument(data []byte, extension ...string) (*Document, error) {
 	return documentFromHCL(body)
 }
 
-func modifyURL(first string, m map[string]string) string {
+func modifyURL(first string, m map[string]interface{}) string {
 	re := regexp.MustCompile(`{([^}]+)}`)
 	f1 := func(in []byte) []byte {
 		out, ok := m[string(in[1:len(in)-1])]
 		if ok {
-			return []byte(out)
+			return []byte(out.(string))
 		}
 		return in
 	}
@@ -484,19 +484,23 @@ func modifyURL(first string, m map[string]string) string {
 	return string(output)
 }
 
-func (self *Document) GetDefaultServer(m ...map[string]string) (string, error) {
+func (self *Document) GetDefaultServer(m ...map[string]interface{}) (string, error) {
 	var first string
 	if self.Servers != nil || len(self.Servers) != 0 {
 		for _, server := range self.Servers {
 			first = server.GetUrl()
+			var x string
 			if m != nil && m[0] != nil {
-				first = modifyURL(first, m[0])
+				x = modifyURL(first, m[0])
+				first = x
+			} else {
+				x = strings.ReplaceAll(strings.ReplaceAll(first, "{", ""), "}", "")
 			}
-			u, err := url.Parse(first)
+			u, err := url.Parse(x)
 			if err != nil {
 				return "", err
 			}
-			if u.Host != "" {
+			if u.Scheme == "https" && u.Host != "" {
 				return first, nil
 			}
 		}

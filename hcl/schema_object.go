@@ -6,7 +6,7 @@ import (
 	"github.com/genelet/hcllight/light"
 )
 
-func (self *SchemaObject) MarshalHCL() ([]byte, error) {
+func (self *SchemaObject) ToBody() (*light.Body, error) {
 	attrs := make(map[string]*light.Attribute)
 	blocks := make([]*light.Block, 0)
 	err := objectToAttributesBlocks(self, attrs, &blocks)
@@ -21,6 +21,15 @@ func (self *SchemaObject) MarshalHCL() ([]byte, error) {
 	if len(blocks) > 0 {
 		body.Blocks = blocks
 	}
+	return body, nil
+}
+
+func (self *SchemaObject) MarshalHCL() ([]byte, error) {
+	body, err := self.ToBody()
+	if err != nil {
+		return nil, err
+	}
+
 	return body.Hcl()
 }
 
@@ -92,6 +101,10 @@ func objectToAttributesBlocks(self *SchemaObject, attrs map[string]*light.Attrib
 		})
 	}
 	return nil
+}
+
+func Body2SchemaObject(body *light.Body) (*SchemaObject, error) {
+	return attributesBlocksToObject(body.Attributes, body.Blocks)
 }
 
 func attributesBlocksToObject(attrs map[string]*light.Attribute, blocks []*light.Block) (*SchemaObject, error) {
