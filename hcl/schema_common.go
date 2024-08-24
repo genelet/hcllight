@@ -104,6 +104,20 @@ func commonToAttributes(self *SchemaCommon, attrs map[string]*light.Attribute) e
 	if self == nil || attrs == nil {
 		return nil
 	}
+	mapBools := map[string]bool{
+		"nullable":   self.Nullable,
+		"readOnly":   self.ReadOnly,
+		"writeOnly":  self.WriteOnly,
+		"deprecated": self.Deprecated,
+	}
+	for k, v := range mapBools {
+		if v {
+			attrs[k] = &light.Attribute{
+				Name: k,
+				Expr: light.BooleanToLiteralValueExpr(v),
+			}
+		}
+	}
 
 	if self.Type != "" {
 		attrs["type"] = &light.Attribute{
@@ -164,36 +178,46 @@ func attributesToCommon(attrs map[string]*light.Attribute) (*SchemaCommon, error
 	var found bool
 	var err error
 	common := &SchemaCommon{}
-	if v, ok := attrs["type"]; ok {
-		common.Type = *light.TextValueExprToString(v.Expr)
-		found = true
-	}
-	if v, ok := attrs["format"]; ok {
-		common.Format = *light.TextValueExprToString(v.Expr)
-		found = true
-	}
-	if v, ok := attrs["description"]; ok {
-		common.Description = *light.TextValueExprToString(v.Expr)
-		found = true
-	}
-	if v, ok := attrs["default"]; ok {
-		common.Default = expressionToDefaultType(v.Expr)
-		found = true
-	}
-	if v, ok := attrs["example"]; ok {
-		common.Example, err = anyFromHCL(v.Expr)
-		if err != nil {
-			return nil, err
+	for k, v := range attrs {
+		switch k {
+		case "type":
+			common.Type = *light.TextValueExprToString(v.Expr)
+			found = true
+		case "format":
+			common.Format = *light.TextValueExprToString(v.Expr)
+			found = true
+		case "description":
+			common.Description = *light.TextValueExprToString(v.Expr)
+			found = true
+		case "default":
+			common.Default = expressionToDefaultType(v.Expr)
+			found = true
+		case "example":
+			common.Example, err = anyFromHCL(v.Expr)
+			if err != nil {
+				return nil, err
+			}
+			found = true
+		case "enum":
+			common.Enum, err = tupleConsExprToEnum(v.Expr.GetTcexpr())
+			if err != nil {
+				return nil, err
+			}
+			found = true
+		case "nullable":
+			common.Nullable = *light.LiteralValueExprToBoolean(v.Expr)
+			found = true
+		case "readOnly":
+			common.ReadOnly = *light.LiteralValueExprToBoolean(v.Expr)
+			found = true
+		case "writeOnly":
+			common.WriteOnly = *light.LiteralValueExprToBoolean(v.Expr)
+			found = true
+		case "deprecated":
+			common.Deprecated = *light.LiteralValueExprToBoolean(v.Expr)
+			found = true
+		default:
 		}
-		found = true
-	}
-	if v, ok := attrs["enum"]; ok {
-		enums, err := tupleConsExprToEnum(v.Expr.GetTcexpr())
-		if err != nil {
-			return nil, err
-		}
-		common.Enum = enums
-		found = true
 	}
 
 	if found {
@@ -253,6 +277,18 @@ func commonToFcexpr(self *SchemaCommon) (*light.FunctionCallExpr, error) {
 			})
 		}
 	}
+	if self.Nullable {
+		fnc.Args = append(fnc.Args, booleanToLiteralFcexpr("nullable", self.Nullable))
+	}
+	if self.ReadOnly {
+		fnc.Args = append(fnc.Args, booleanToLiteralFcexpr("readOnly", self.ReadOnly))
+	}
+	if self.WriteOnly {
+		fnc.Args = append(fnc.Args, booleanToLiteralFcexpr("writeOnly", self.WriteOnly))
+	}
+	if self.Deprecated {
+		fnc.Args = append(fnc.Args, booleanToLiteralFcexpr("deprecated", self.Deprecated))
+	}
 	return fnc, nil
 }
 
@@ -290,6 +326,14 @@ func fcexprToCommon(fcexpr *light.FunctionCallExpr) (*SchemaCommon, error) {
 					return nil, err
 				}
 				common.Enum = enum
+			case "nullable":
+				common.Nullable = *light.LiteralValueExprToBoolean(items[0])
+			case "readOnly":
+				common.ReadOnly = *light.LiteralValueExprToBoolean(items[0])
+			case "writeOnly":
+				common.WriteOnly = *light.LiteralValueExprToBoolean(items[0])
+			case "deprecated":
+				common.Deprecated = *light.LiteralValueExprToBoolean(items[0])
 			default:
 			}
 		default:

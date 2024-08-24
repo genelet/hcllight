@@ -420,6 +420,10 @@ func commonFromApi(s *openapiv3.Schema) *SchemaCommon {
 		Description: s.Description,
 		Default:     defaultFromApi(s.Default),
 		Example:     anyFromApi(s.Example),
+		Nullable:    s.Nullable,
+		ReadOnly:    s.ReadOnly,
+		WriteOnly:   s.WriteOnly,
+		Deprecated:  s.Deprecated,
 	}
 	if s.Enum != nil {
 		for _, v := range s.Enum {
@@ -444,6 +448,10 @@ func commonToApi(s *SchemaCommon) *openapiv3.Schema {
 		Description: s.Description,
 		Default:     defaultTypeToApi(s.Default),
 		Example:     anyToApi(s.Example),
+		Nullable:    s.Nullable,
+		ReadOnly:    s.ReadOnly,
+		WriteOnly:   s.WriteOnly,
+		Deprecated:  s.Deprecated,
 	}
 	if s.Enum != nil {
 		for _, v := range s.Enum {
@@ -527,6 +535,10 @@ func plusCommon(s *openapiv3.Schema, c *SchemaCommon) *openapiv3.Schema {
 	s.Description = c.Description
 	s.Default = defaultTypeToApi(c.Default)
 	s.Example = anyToApi(c.Example)
+	s.Nullable = c.Nullable
+	s.ReadOnly = c.ReadOnly
+	s.WriteOnly = c.WriteOnly
+	s.Deprecated = c.Deprecated
 	for _, v := range c.Enum {
 		s.Enum = append(s.Enum, anyToApi(v))
 	}
@@ -805,12 +817,8 @@ func schemaFromApi(schema *openapiv3.Schema) *Schema {
 	}
 
 	return &Schema{
-		Nullable:     schema.Nullable,
-		ReadOnly:     schema.ReadOnly,
-		WriteOnly:    schema.WriteOnly,
 		Xml:          xmlFromApi(schema.Xml),
 		ExternalDocs: externalDocsFromApi(schema.ExternalDocs),
-		Deprecated:   schema.Deprecated,
 		Title:        schema.Title,
 		Not: schemaOrReferenceFromApi(&openapiv3.SchemaOrReference{
 			Oneof: &openapiv3.SchemaOrReference_Schema{Schema: schema.Not}}),
@@ -834,12 +842,8 @@ func schemaToApi(schema *Schema) *openapiv3.Schema {
 	}
 
 	s := &openapiv3.Schema{
-		Nullable:               schema.Nullable,
-		ReadOnly:               schema.ReadOnly,
-		WriteOnly:              schema.WriteOnly,
 		Xml:                    xmlToApi(schema.Xml),
 		ExternalDocs:           externalDocsToApi(schema.ExternalDocs),
-		Deprecated:             schema.Deprecated,
 		Title:                  schema.Title,
 		Discriminator:          discriminatorToApi(schema.Discriminator),
 		SpecificationExtension: extensionToApi(schema.SpecificationExtension),
@@ -899,6 +903,10 @@ func schemaToApi(schema *Schema) *openapiv3.Schema {
 		s.Description = x.Description
 		s.Example = x.Example
 		s.Default = x.Default
+		s.Nullable = x.Nullable
+		s.ReadOnly = x.ReadOnly
+		s.WriteOnly = x.WriteOnly
+		s.Deprecated = x.Deprecated
 		s.Enum = x.Enum
 	}
 

@@ -301,6 +301,10 @@ message SchemaCommon {
   DefaultType default = 4;
   Any example = 5; 
   repeated Any enum = 6;
+  bool nullable = 7;
+  bool read_only = 8;
+  bool write_only = 9;
+  bool deprecated = 10;
 }
 
 message OASBoolean {
@@ -377,28 +381,24 @@ message SchemaAnyOf {
 }
 
 message Schema {
-  bool nullable = 1;
-  bool read_only = 2;
-  bool write_only = 3;
-  Xml xml = 4;
-  ExternalDocs external_docs = 5;
-  bool deprecated = 6;
-  string title = 7;
+  Xml xml = 1;
+  ExternalDocs external_docs = 2;
+  string title = 3;
 
-  SchemaCommon common = 10;
-  SchemaNumber number = 11;
-  SchemaString string = 12;
-  SchemaArray array = 13;
-  SchemaObject object = 14;
-  SchemaMap map = 15;
+  SchemaCommon common = 4;
+  SchemaNumber number = 5;
+  SchemaString string = 6;
+  SchemaArray array = 7;
+  SchemaObject object = 8;
+  SchemaMap map = 9;
 
-  SchemaAllOf all_of = 26;
-  SchemaOneOf one_of = 27;
-  SchemaAnyOf any_of = 28;
+  SchemaAllOf all_of = 10;
+  SchemaOneOf one_of = 11;
+  SchemaAnyOf any_of = 12;
 
-  SchemaOrReference not = 29;
-  Discriminator discriminator = 30;
-  map<string,Any> specification_extension = 36;
+  SchemaOrReference not = 13;
+  Discriminator discriminator = 14;
+  map<string,Any> specification_extension = 15;
 }
 
 message SchemaOrReference {

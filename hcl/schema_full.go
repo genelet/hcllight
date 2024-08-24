@@ -13,24 +13,10 @@ func (self *Schema) toHCL() (*light.Body, error) {
 	body := new(light.Body)
 	attrs := make(map[string]*light.Attribute)
 	blocks := make([]*light.Block, 0)
-	mapBools := map[string]bool{
-		"nullable":   self.Nullable,
-		"readOnly":   self.ReadOnly,
-		"writeOnly":  self.WriteOnly,
-		"deprecated": self.Deprecated,
-	}
 	mapStrings := map[string]string{
 		"title": self.Title,
 	}
 
-	for k, v := range mapBools {
-		if v {
-			attrs[k] = &light.Attribute{
-				Name: k,
-				Expr: light.BooleanToLiteralValueExpr(v),
-			}
-		}
-	}
 	for k, v := range mapStrings {
 		if v != "" {
 			attrs[k] = &light.Attribute{
@@ -190,14 +176,6 @@ func schemaFullFromHCL(body *light.Body) (*Schema, error) {
 			if err != nil {
 				return nil, err
 			}
-		case "nullable":
-			s.Nullable = *light.LiteralValueExprToBoolean(v.Expr)
-		case "readOnly":
-			s.ReadOnly = *light.LiteralValueExprToBoolean(v.Expr)
-		case "writeOnly":
-			s.WriteOnly = *light.LiteralValueExprToBoolean(v.Expr)
-		case "deprecated":
-			s.Deprecated = *light.LiteralValueExprToBoolean(v.Expr)
 		case "title":
 			s.Title = *light.TextValueExprToString(v.Expr)
 		default:
