@@ -199,7 +199,7 @@ func schemaArrayToFcexpr(self *SchemaArray, expr *light.FunctionCallExpr) error 
 	if self.UniqueItems {
 		expr.Args = append(expr.Args, booleanToLiteralFcexpr("uniqueItems", self.UniqueItems))
 	}
-	if self.Items != nil && len(self.Items) > 0 {
+	if len(self.Items) > 0 {
 		e, err := arrayToTupleConsExpr(self.Items)
 		if err != nil {
 			return err

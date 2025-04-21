@@ -20,7 +20,7 @@ func TestParseSchemaJSON(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Error converting schema to expression: %v", err)
 	}
-	data, err := body.Hcl()
+	data, err := body.MarshalHCL()
 	if err != nil {
 		t.Fatalf("Error converting expression to HCL: %v", err)
 	}
@@ -41,7 +41,7 @@ func TestParseSchemaYAML(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Error converting schema to expression: %v", err)
 	}
-	data, err := body.Hcl()
+	data, err := body.MarshalHCL()
 	if err != nil {
 		t.Fatalf("Error converting expression to HCL: %v", err)
 	}
@@ -70,7 +70,7 @@ func TestParseHCL(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error %v", err)
 	}
-	data, err := x.Hcl()
+	data, err := x.MarshalHCL()
 	if err != nil {
 		t.Fatalf("error %v", err)
 	}

@@ -188,10 +188,9 @@ func schemaFullFromHCL(body *light.Body) (*Schema, error) {
 // refreshFullSchema converts a full Schema to a SchemaOrReference.
 // This helps in cases where the full schema may have shortened version.
 func refreshFullSchema(s *Schema) *SchemaOrReference {
-	api := schemaToApi(s)
-	return schemaOrReferenceFromApi(&openapiv3.SchemaOrReference{
+	return schemaOrReferenceFromAPI(&openapiv3.SchemaOrReference{
 		Oneof: &openapiv3.SchemaOrReference_Schema{
-			Schema: api,
+			Schema: schemaToAPI(s),
 		},
 	})
 }

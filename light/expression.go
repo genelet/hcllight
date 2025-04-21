@@ -1,3 +1,4 @@
+// Package light removes position and location tags in [hclsyntax](https://pkg.go.dev/github.com/hashicorp/hcl/v2/hclsyntax) , the official AST parsing package for HCL (HashiCorp Configuration Language).
 package light
 
 import (

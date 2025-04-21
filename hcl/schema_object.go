@@ -30,7 +30,7 @@ func (self *SchemaObject) MarshalHCL() ([]byte, error) {
 		return nil, err
 	}
 
-	return body.Hcl()
+	return body.MarshalHCL()
 }
 
 func (self *SchemaObject) UnmarshalHCL(bs []byte, labels ...string) error {

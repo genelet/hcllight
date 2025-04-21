@@ -42,8 +42,8 @@ func (self *Body) UnmarshalHCL(dat []byte, _ ...string) error {
 	return nil
 }
 
-// HCL converts Body proto to HCL without evaluation of expressions.
-func (self *Body) Hcl() ([]byte, error) {
+// MarshalHCL converts Body proto to HCL without evaluation of expressions.
+func (self *Body) MarshalHCL() ([]byte, error) {
 	str, err := self.hclBodyNode(0)
 	if err != nil {
 		return nil, err
@@ -224,15 +224,15 @@ func (self *Expression) HclExpression(x ...interface{}) (string, error) {
 		return name + "(" + strings.Join(arr, ", ") + ")", nil
 	case *Expression_Iexpr:
 		v := self.GetIexpr()
-		s_collection, err := v.GetCollection().HclExpression()
+		sCollection, err := v.GetCollection().HclExpression()
 		if err != nil {
 			return "", err
 		}
-		s_key, err := v.GetKey().HclExpression()
+		sKey, err := v.GetKey().HclExpression()
 		if err != nil {
 			return "", err
 		}
-		return s_collection + "[" + s_key + "]", nil
+		return sCollection + "[" + sKey + "]", nil
 	case *Expression_Lvexpr:
 		expr := self.GetLvexpr()
 		return hclCty(expr.GetVal())
@@ -328,7 +328,11 @@ func (self *Expression) HclExpression(x ...interface{}) (string, error) {
 			}
 			arr = append(arr, str)
 		}
-		return `"` + strings.Join(arr, ``) + `"`, nil
+		s := strings.Join(arr, "")
+		if strings.HasPrefix(s, `<<EOT`) {
+			return s, nil
+		}
+		return `"` + s + `"`, nil
 		/*
 			case *Expression_Tjexpr:
 				v, err := xtemplateJoinExprTo(e.Tjexpr)
@@ -378,7 +382,13 @@ func (self *Expression) HclExpression(x ...interface{}) (string, error) {
 func hclCty(self *CtyValue) (string, error) {
 	switch t := self.CtyValueClause.(type) {
 	case *CtyValue_StringValue:
-		return t.StringValue, nil
+		x := strings.TrimRight(t.StringValue, "\n")
+		if strings.Contains(x, "\n") {
+			x = `<<EOT
+` + x + `
+EOT`
+		}
+		return x, nil
 	case *CtyValue_BoolValue:
 		return fmt.Sprintf("%t", t.BoolValue), nil
 	case *CtyValue_NumberValue:

@@ -58,7 +58,7 @@ func main() {
 		os.Exit(0)
 	}
 
-	apidoc := doc.ToApi()
+	apidoc := doc.ToAPI()
 	bs, err := apidoc.YAMLValue("converted")
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "error: %v\n", err)

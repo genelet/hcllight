@@ -11,7 +11,7 @@ import (
 )
 
 // Evaluate converts Body proto to HCL with expressions evaluated.
-func (body *Body) Evaluate(rest ...interface{}) ([]byte, error) {
+func (self *Body) Evaluate(rest ...interface{}) ([]byte, error) {
 	var ref map[string]interface{}
 	var node *utils.Tree
 	if len(rest) > 0 {
@@ -21,17 +21,13 @@ func (body *Body) Evaluate(rest ...interface{}) ([]byte, error) {
 		}
 	}
 	if node == nil {
-		node, ref = utils.DefaultTreeFunctions(ref)	
+		node, ref = utils.DefaultTreeFunctions(ref)
 	}
-	str, err := body.evaluateBodyNode(ref, node, 0)
+	str, err := self.evaluateBodyNode(ref, node, 0)
 	if err != nil {
 		return nil, err
 	}
 	return []byte(str), nil
-}
-
-func (body *Body) MarshalHCL() ([]byte, error) {
-	return body.Evaluate()
 }
 
 // ToNative converts Attribute to a native Go type assuming there is no evaluation needed.

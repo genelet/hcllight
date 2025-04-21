@@ -25,6 +25,8 @@ func xrangeTo(x ...interface{}) *ast.Range {
 	}
 }
 
+/*
+
 func xblockTo(blk *Block) (*ast.Block, error) {
 	if blk == nil {
 		return nil, nil
@@ -45,6 +47,8 @@ func xblockTo(blk *Block) (*ast.Block, error) {
 	}, nil
 }
 
+*/
+
 func blockTo(blk *ast.Block) (*Block, error) {
 	if blk == nil {
 		return nil, nil
@@ -61,6 +65,8 @@ func blockTo(blk *ast.Block) (*Block, error) {
 		Bdy:    body,
 	}, nil
 }
+
+/*
 
 func xbodyTo(bdy *Body) (*ast.Body, error) {
 	if bdy == nil {
@@ -94,6 +100,8 @@ func xbodyTo(bdy *Body) (*ast.Body, error) {
 
 	return b, nil
 }
+
+*/
 
 func bodyTo(bdy *ast.Body) (*Body, error) {
 	if bdy == nil {

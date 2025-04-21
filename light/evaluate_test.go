@@ -23,7 +23,7 @@ func TestEval(t *testing.T) {
 		{`check string`, `x = "hello"`, `x = "hello"`},
 		{`check bool`, `x = true`, `x = true`},
 		{`check int`, `x = 1`, `x = 1`},
-		{`check float`, `x = 1.01`, `x = 1.01`},
+		{`check float`, `x = 1.01`, `x = 1.010000`},
 		{`check map`, `x = { a = 1 }`, `x = {` + "\n" + `    a = 1` + "\n" + `  }`},
 		{`check list`, `x = [1]`, `x = [` + "\n" + `    1` + "\n" + `  ]`},
 		{`check block`, `x "y" {}`, `x "y" {}`},
@@ -170,7 +170,7 @@ func TestParseFileHcl(t *testing.T) {
 }
 
 func hclBack(body *Body) (*Body, error) {
-	eval, err := body.Hcl()
+	eval, err := body.MarshalHCL()
 	if err != nil {
 		return nil, err
 	}

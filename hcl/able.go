@@ -1,3 +1,4 @@
+// Package hcl provides functions to manage OpenAPI schemas in HCL format.
 package hcl
 
 import (
@@ -109,7 +110,7 @@ func bodyToBlocks(body *light.Body, name ...string) []*light.Block {
 	labels := name[1:]
 
 	var blocks []*light.Block
-	if body.Attributes != nil && len(body.Attributes) > 0 {
+	if len(body.Attributes) > 0 {
 		blocks = append(blocks, &light.Block{
 			Type:   typ,
 			Labels: labels,

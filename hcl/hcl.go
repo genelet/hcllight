@@ -19,7 +19,7 @@ func isArray(s *openapiv3.Schema) bool {
 	return s.Items != nil || s.MaxItems != 0 || s.MinItems != 0 || s.UniqueItems
 }
 func isObject(s *openapiv3.Schema) bool {
-	return s.MaxProperties != 0 || s.MinProperties != 0 || (s.Properties != nil && len(s.Properties.AdditionalProperties) > 0) || (s.Required != nil && len(s.Required) > 0)
+	return s.MaxProperties != 0 || s.MinProperties != 0 || (s.Properties != nil && len(s.Properties.AdditionalProperties) > 0) || len(s.Required) > 0
 }
 
 func isMap(s *openapiv3.Schema) bool {
@@ -39,7 +39,7 @@ func isAnyOf(s *openapiv3.Schema) bool {
 }
 
 func isRest(s *openapiv3.Schema) bool {
-	return s.Discriminator != nil || s.Xml != nil || s.ExternalDocs != nil || s.Title != "" || s.Not != nil || (s.SpecificationExtension != nil && len(s.SpecificationExtension) > 0)
+	return s.Discriminator != nil || s.Xml != nil || s.ExternalDocs != nil || s.Title != "" || s.Not != nil || len(s.SpecificationExtension) > 0
 }
 
 func isFull(s *openapiv3.Schema) bool {

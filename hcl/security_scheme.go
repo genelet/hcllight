@@ -13,7 +13,7 @@ func (self *SecurityScheme) MarshalHCL() ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	return body.Hcl()
+	return body.MarshalHCL()
 }
 
 func (self *SecurityScheme) UnmarshalHCL(bs []byte, labels ...string) error {
@@ -26,17 +26,19 @@ func (self *SecurityScheme) UnmarshalHCL(bs []byte, labels ...string) error {
 		return err
 	}
 
-	if securityScheme != nil {
-		self.BearerFormat = securityScheme.BearerFormat
-		self.Description = securityScheme.Description
-		self.Flows = securityScheme.Flows
-		self.In = securityScheme.In
-		self.Name = securityScheme.Name
-		self.OpenIdConnectUrl = securityScheme.OpenIdConnectUrl
-		self.Scheme = securityScheme.Scheme
-		self.SpecificationExtension = securityScheme.SpecificationExtension
-		self.Type = securityScheme.Type
+	if securityScheme == nil {
+		return nil
 	}
+	self.BearerFormat = securityScheme.BearerFormat
+	self.Description = securityScheme.Description
+	self.Flows = securityScheme.Flows
+	self.In = securityScheme.In
+	self.Name = securityScheme.Name
+	self.OpenIdConnectUrl = securityScheme.OpenIdConnectUrl
+	self.Scheme = securityScheme.Scheme
+	self.SpecificationExtension = securityScheme.SpecificationExtension
+	self.Type = securityScheme.Type
+
 	return nil
 }
 

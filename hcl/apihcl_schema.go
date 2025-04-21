@@ -2,10 +2,9 @@ package hcl
 
 import (
 	openapiv3 "github.com/google/gnostic-models/openapiv3"
-	//"github.com/k0kubun/pp/v3"
 )
 
-func schemaOrReferenceFromApi(schema *openapiv3.SchemaOrReference, force ...bool) *SchemaOrReference {
+func schemaOrReferenceFromAPI(schema *openapiv3.SchemaOrReference, force ...bool) *SchemaOrReference {
 	if schema == nil {
 		return nil
 	}
@@ -13,7 +12,7 @@ func schemaOrReferenceFromApi(schema *openapiv3.SchemaOrReference, force ...bool
 	if x := schema.GetReference(); x != nil {
 		return &SchemaOrReference{
 			Oneof: &SchemaOrReference_Reference{
-				Reference: referenceFromApi(x),
+				Reference: referenceFromAPI(x),
 			},
 		}
 	}
@@ -25,31 +24,31 @@ func schemaOrReferenceFromApi(schema *openapiv3.SchemaOrReference, force ...bool
 	if (force != nil && force[0]) || isFull(s) { // force to parse to Schema
 		return &SchemaOrReference{
 			Oneof: &SchemaOrReference_Schema{
-				Schema: schemaFromApi(s),
+				Schema: schemaFromAPI(s),
 			},
 		}
 	}
 
-	common := commonFromApi(s)
+	common := commonFromAPI(s)
 	if common == nil {
 		if isAllOf(s) {
 			return &SchemaOrReference{
 				Oneof: &SchemaOrReference_AllOf{
-					AllOf: allOfFromApi(s),
+					AllOf: allOfFromAPI(s),
 				},
 			}
 		}
 		if isOneOf(s) {
 			return &SchemaOrReference{
 				Oneof: &SchemaOrReference_OneOf{
-					OneOf: oneOfFromApi(s),
+					OneOf: oneOfFromAPI(s),
 				},
 			}
 		}
 		if isAnyOf(s) {
 			return &SchemaOrReference{
 				Oneof: &SchemaOrReference_AnyOf{
-					AnyOf: anyOfFromApi(s),
+					AnyOf: anyOfFromAPI(s),
 				},
 			}
 		}
@@ -59,7 +58,7 @@ func schemaOrReferenceFromApi(schema *openapiv3.SchemaOrReference, force ...bool
 	case "array":
 		return &SchemaOrReference{
 			Oneof: &SchemaOrReference_Array{
-				Array: oasArrayFromApi(s),
+				Array: oasArrayFromAPI(s),
 			},
 		}
 	case "object":
@@ -70,31 +69,31 @@ func schemaOrReferenceFromApi(schema *openapiv3.SchemaOrReference, force ...bool
 			}
 			return &SchemaOrReference{
 				Oneof: &SchemaOrReference_Map{
-					Map: oasMapFromApi(s),
+					Map: oasMapFromAPI(s),
 				},
 			}
 		}
 		return &SchemaOrReference{
 			Oneof: &SchemaOrReference_Object{
-				Object: oasObjectFromApi(s),
+				Object: oasObjectFromAPI(s),
 			},
 		}
 	case "string":
 		return &SchemaOrReference{
 			Oneof: &SchemaOrReference_String_{
-				String_: oasStringFromApi(s),
+				String_: oasStringFromAPI(s),
 			},
 		}
 	case "number", "integer":
 		return &SchemaOrReference{
 			Oneof: &SchemaOrReference_Number{
-				Number: oasNumberFromApi(s),
+				Number: oasNumberFromAPI(s),
 			},
 		}
 	case "boolean":
 		return &SchemaOrReference{
 			Oneof: &SchemaOrReference_Boolean{
-				Boolean: oasBooleanFromApi(s),
+				Boolean: oasBooleanFromAPI(s),
 			},
 		}
 	default:
@@ -102,7 +101,7 @@ func schemaOrReferenceFromApi(schema *openapiv3.SchemaOrReference, force ...bool
 	return nil
 }
 
-func schemaOrReferenceToApi(schema *SchemaOrReference) *openapiv3.SchemaOrReference {
+func schemaOrReferenceToAPI(schema *SchemaOrReference) *openapiv3.SchemaOrReference {
 	if schema == nil {
 		return nil
 	}
@@ -112,77 +111,77 @@ func schemaOrReferenceToApi(schema *SchemaOrReference) *openapiv3.SchemaOrRefere
 		x := schema.GetReference()
 		return &openapiv3.SchemaOrReference{
 			Oneof: &openapiv3.SchemaOrReference_Reference{
-				Reference: referenceToApi(x),
+				Reference: referenceToAPI(x),
 			},
 		}
 	case *SchemaOrReference_AllOf:
 		x := schema.GetAllOf()
 		return &openapiv3.SchemaOrReference{
 			Oneof: &openapiv3.SchemaOrReference_Schema{
-				Schema: allOfToApi(x),
+				Schema: allOfToAPI(x),
 			},
 		}
 	case *SchemaOrReference_OneOf:
 		x := schema.GetOneOf()
 		return &openapiv3.SchemaOrReference{
 			Oneof: &openapiv3.SchemaOrReference_Schema{
-				Schema: oneOfToApi(x),
+				Schema: oneOfToAPI(x),
 			},
 		}
 	case *SchemaOrReference_AnyOf:
 		x := schema.GetAnyOf()
 		return &openapiv3.SchemaOrReference{
 			Oneof: &openapiv3.SchemaOrReference_Schema{
-				Schema: anyOfToApi(x),
+				Schema: anyOfToAPI(x),
 			},
 		}
 	case *SchemaOrReference_Schema:
 		s := schema.GetSchema()
 		return &openapiv3.SchemaOrReference{
 			Oneof: &openapiv3.SchemaOrReference_Schema{
-				Schema: schemaToApi(s),
+				Schema: schemaToAPI(s),
 			},
 		}
 	case *SchemaOrReference_Array:
 		x := schema.GetArray()
 		return &openapiv3.SchemaOrReference{
 			Oneof: &openapiv3.SchemaOrReference_Schema{
-				Schema: oasArrayToApi(x),
+				Schema: oasArrayToAPI(x),
 			},
 		}
 	case *SchemaOrReference_Object:
 		x := schema.GetObject()
 		return &openapiv3.SchemaOrReference{
 			Oneof: &openapiv3.SchemaOrReference_Schema{
-				Schema: oasObjectToApi(x),
+				Schema: oasObjectToAPI(x),
 			},
 		}
 	case *SchemaOrReference_Map:
 		x := schema.GetMap()
 		return &openapiv3.SchemaOrReference{
 			Oneof: &openapiv3.SchemaOrReference_Schema{
-				Schema: oasMapToApi(x),
+				Schema: oasMapToAPI(x),
 			},
 		}
 	case *SchemaOrReference_String_:
 		x := schema.GetString_()
 		return &openapiv3.SchemaOrReference{
 			Oneof: &openapiv3.SchemaOrReference_Schema{
-				Schema: oasStringToApi(x),
+				Schema: oasStringToAPI(x),
 			},
 		}
 	case *SchemaOrReference_Number:
 		x := schema.GetNumber()
 		return &openapiv3.SchemaOrReference{
 			Oneof: &openapiv3.SchemaOrReference_Schema{
-				Schema: oasNumberToApi(x),
+				Schema: oasNumberToAPI(x),
 			},
 		}
 	case *SchemaOrReference_Boolean:
 		x := schema.GetBoolean()
 		return &openapiv3.SchemaOrReference{
 			Oneof: &openapiv3.SchemaOrReference_Schema{
-				Schema: oasBooleanToApi(x),
+				Schema: oasBooleanToAPI(x),
 			},
 		}
 	default:
@@ -191,7 +190,7 @@ func schemaOrReferenceToApi(schema *SchemaOrReference) *openapiv3.SchemaOrRefere
 	return nil
 }
 
-func anyFromApi(any *openapiv3.Any) *Any {
+func anyFromAPI(any *openapiv3.Any) *Any {
 	if any == nil {
 		return nil
 	}
@@ -201,7 +200,7 @@ func anyFromApi(any *openapiv3.Any) *Any {
 	}
 }
 
-func anyToApi(any *Any) *openapiv3.Any {
+func anyToAPI(any *Any) *openapiv3.Any {
 	if any == nil {
 		return nil
 	}
@@ -211,29 +210,29 @@ func anyToApi(any *Any) *openapiv3.Any {
 	}
 }
 
-func extensionFromApi(extension []*openapiv3.NamedAny) map[string]*Any {
+func extensionFromAPI(extension []*openapiv3.NamedAny) map[string]*Any {
 	if extension == nil {
 		return nil
 	}
 	e := make(map[string]*Any)
 	for _, v := range extension {
-		e[v.Name] = anyFromApi(v.Value)
+		e[v.Name] = anyFromAPI(v.Value)
 	}
 	return e
 }
 
-func extensionToApi(extention map[string]*Any) []*openapiv3.NamedAny {
+func extensionToAPI(extention map[string]*Any) []*openapiv3.NamedAny {
 	if extention == nil {
 		return nil
 	}
 	var e []*openapiv3.NamedAny
 	for k, v := range extention {
-		e = append(e, &openapiv3.NamedAny{Name: k, Value: anyToApi(v)})
+		e = append(e, &openapiv3.NamedAny{Name: k, Value: anyToAPI(v)})
 	}
 	return e
 }
 
-func xmlFromApi(xml *openapiv3.Xml) *Xml {
+func xmlFromAPI(xml *openapiv3.Xml) *Xml {
 	if xml == nil {
 		return nil
 	}
@@ -243,11 +242,11 @@ func xmlFromApi(xml *openapiv3.Xml) *Xml {
 		Prefix:                 xml.Prefix,
 		Attribute:              xml.Attribute,
 		Wrapped:                xml.Wrapped,
-		SpecificationExtension: extensionFromApi(xml.SpecificationExtension),
+		SpecificationExtension: extensionFromAPI(xml.SpecificationExtension),
 	}
 }
 
-func xmlToApi(xml *Xml) *openapiv3.Xml {
+func xmlToAPI(xml *Xml) *openapiv3.Xml {
 	if xml == nil {
 		return nil
 	}
@@ -257,17 +256,17 @@ func xmlToApi(xml *Xml) *openapiv3.Xml {
 		Prefix:                 xml.Prefix,
 		Attribute:              xml.Attribute,
 		Wrapped:                xml.Wrapped,
-		SpecificationExtension: extensionToApi(xml.SpecificationExtension),
+		SpecificationExtension: extensionToAPI(xml.SpecificationExtension),
 	}
 }
 
-func discriminatorFromApi(discriminator *openapiv3.Discriminator) *Discriminator {
+func discriminatorFromAPI(discriminator *openapiv3.Discriminator) *Discriminator {
 	if discriminator == nil {
 		return nil
 	}
 	d := &Discriminator{
 		PropertyName:           discriminator.PropertyName,
-		SpecificationExtension: extensionFromApi(discriminator.SpecificationExtension),
+		SpecificationExtension: extensionFromAPI(discriminator.SpecificationExtension),
 	}
 	if discriminator.Mapping != nil {
 		d.Mapping = make(map[string]string)
@@ -278,13 +277,13 @@ func discriminatorFromApi(discriminator *openapiv3.Discriminator) *Discriminator
 	return d
 }
 
-func discriminatorToApi(discriminator *Discriminator) *openapiv3.Discriminator {
+func discriminatorToAPI(discriminator *Discriminator) *openapiv3.Discriminator {
 	if discriminator == nil {
 		return nil
 	}
 	d := &openapiv3.Discriminator{
 		PropertyName:           discriminator.PropertyName,
-		SpecificationExtension: extensionToApi(discriminator.SpecificationExtension),
+		SpecificationExtension: extensionToAPI(discriminator.SpecificationExtension),
 	}
 	if discriminator.Mapping != nil {
 		d.Mapping = &openapiv3.Strings{}
@@ -297,29 +296,29 @@ func discriminatorToApi(discriminator *Discriminator) *openapiv3.Discriminator {
 	return d
 }
 
-func externalDocsFromApi(docs *openapiv3.ExternalDocs) *ExternalDocs {
+func externalDocsFromAPI(docs *openapiv3.ExternalDocs) *ExternalDocs {
 	if docs == nil {
 		return nil
 	}
 	return &ExternalDocs{
 		Description:            docs.Description,
 		Url:                    docs.Url,
-		SpecificationExtension: extensionFromApi(docs.SpecificationExtension),
+		SpecificationExtension: extensionFromAPI(docs.SpecificationExtension),
 	}
 }
 
-func externalDocsToApi(externalDocs *ExternalDocs) *openapiv3.ExternalDocs {
+func externalDocsToAPI(externalDocs *ExternalDocs) *openapiv3.ExternalDocs {
 	if externalDocs == nil {
 		return nil
 	}
 	return &openapiv3.ExternalDocs{
 		Description:            externalDocs.Description,
 		Url:                    externalDocs.Url,
-		SpecificationExtension: extensionToApi(externalDocs.SpecificationExtension),
+		SpecificationExtension: extensionToAPI(externalDocs.SpecificationExtension),
 	}
 }
 
-func additionalPropertiesItemFromApi(item *openapiv3.AdditionalPropertiesItem) *AdditionalPropertiesItem {
+func additionalPropertiesItemFromAPI(item *openapiv3.AdditionalPropertiesItem) *AdditionalPropertiesItem {
 	if item == nil {
 		return nil
 	}
@@ -332,14 +331,14 @@ func additionalPropertiesItemFromApi(item *openapiv3.AdditionalPropertiesItem) *
 	} else if x := item.GetSchemaOrReference(); x != nil {
 		return &AdditionalPropertiesItem{
 			Oneof: &AdditionalPropertiesItem_SchemaOrReference{
-				SchemaOrReference: schemaOrReferenceFromApi(x),
+				SchemaOrReference: schemaOrReferenceFromAPI(x),
 			},
 		}
 	}
 	return nil
 }
 
-func additionalPropertiesItemToApi(additionalPropertiesItem *AdditionalPropertiesItem) *openapiv3.AdditionalPropertiesItem {
+func additionalPropertiesItemToAPI(additionalPropertiesItem *AdditionalPropertiesItem) *openapiv3.AdditionalPropertiesItem {
 	if additionalPropertiesItem == nil {
 		return nil
 	}
@@ -353,12 +352,12 @@ func additionalPropertiesItemToApi(additionalPropertiesItem *AdditionalPropertie
 	x := additionalPropertiesItem.GetSchemaOrReference()
 	return &openapiv3.AdditionalPropertiesItem{
 		Oneof: &openapiv3.AdditionalPropertiesItem_SchemaOrReference{
-			SchemaOrReference: schemaOrReferenceToApi(x),
+			SchemaOrReference: schemaOrReferenceToAPI(x),
 		},
 	}
 }
 
-func defaultFromApi(default_ *openapiv3.DefaultType) *DefaultType {
+func defaultFromAPI(default_ *openapiv3.DefaultType) *DefaultType {
 	if default_ == nil {
 		return nil
 	}
@@ -384,7 +383,7 @@ func defaultFromApi(default_ *openapiv3.DefaultType) *DefaultType {
 	return nil
 }
 
-func defaultTypeToApi(defaultType *DefaultType) *openapiv3.DefaultType {
+func defaultTypeToAPI(defaultType *DefaultType) *openapiv3.DefaultType {
 	if defaultType == nil {
 		return nil
 	}
@@ -410,7 +409,7 @@ func defaultTypeToApi(defaultType *DefaultType) *openapiv3.DefaultType {
 	return nil
 }
 
-func commonFromApi(s *openapiv3.Schema) *SchemaCommon {
+func commonFromAPI(s *openapiv3.Schema) *SchemaCommon {
 	if s == nil || !isCommon(s) {
 		return nil
 	}
@@ -418,8 +417,8 @@ func commonFromApi(s *openapiv3.Schema) *SchemaCommon {
 		Type:        s.Type,
 		Format:      s.Format,
 		Description: s.Description,
-		Default:     defaultFromApi(s.Default),
-		Example:     anyFromApi(s.Example),
+		Default:     defaultFromAPI(s.Default),
+		Example:     anyFromAPI(s.Example),
 		Nullable:    s.Nullable,
 		ReadOnly:    s.ReadOnly,
 		WriteOnly:   s.WriteOnly,
@@ -427,14 +426,14 @@ func commonFromApi(s *openapiv3.Schema) *SchemaCommon {
 	}
 	if s.Enum != nil {
 		for _, v := range s.Enum {
-			common.Enum = append(common.Enum, anyFromApi(v))
+			common.Enum = append(common.Enum, anyFromAPI(v))
 		}
 	}
 
 	return common
 }
 
-func commonToApi(s *SchemaCommon) *openapiv3.Schema {
+func commonToAPI(s *SchemaCommon) *openapiv3.Schema {
 	if s == nil {
 		return nil
 	}
@@ -446,8 +445,8 @@ func commonToApi(s *SchemaCommon) *openapiv3.Schema {
 		Type:        x,
 		Format:      s.Format,
 		Description: s.Description,
-		Default:     defaultTypeToApi(s.Default),
-		Example:     anyToApi(s.Example),
+		Default:     defaultTypeToAPI(s.Default),
+		Example:     anyToAPI(s.Example),
 		Nullable:    s.Nullable,
 		ReadOnly:    s.ReadOnly,
 		WriteOnly:   s.WriteOnly,
@@ -455,32 +454,32 @@ func commonToApi(s *SchemaCommon) *openapiv3.Schema {
 	}
 	if s.Enum != nil {
 		for _, v := range s.Enum {
-			schema.Enum = append(schema.Enum, anyToApi(v))
+			schema.Enum = append(schema.Enum, anyToAPI(v))
 		}
 	}
 	return schema
 }
 
-func oasBooleanFromApi(s *openapiv3.Schema) *OASBoolean {
+func oasBooleanFromAPI(s *openapiv3.Schema) *OASBoolean {
 	if s == nil || s.Type != "boolean" {
 		return nil
 	}
 
 	return &OASBoolean{
-		Common: commonFromApi(s),
+		Common: commonFromAPI(s),
 	}
 }
 
-func oasBooleanToApi(s *OASBoolean) *openapiv3.Schema {
+func oasBooleanToAPI(s *OASBoolean) *openapiv3.Schema {
 	if s == nil {
 		return nil
 	}
-	schema := commonToApi(s.Common)
+	schema := commonToAPI(s.Common)
 	schema.Type = "boolean"
 	return schema
 }
 
-func numberFromApi(s *openapiv3.Schema) *SchemaNumber {
+func numberFromAPI(s *openapiv3.Schema) *SchemaNumber {
 	if s == nil || !isNumber(s) {
 		return nil
 	}
@@ -495,7 +494,7 @@ func numberFromApi(s *openapiv3.Schema) *SchemaNumber {
 	return number
 }
 
-func numberToApi(s *SchemaNumber) *openapiv3.Schema {
+func numberToAPI(s *SchemaNumber) *openapiv3.Schema {
 	if s == nil {
 		return nil
 	}
@@ -508,14 +507,14 @@ func numberToApi(s *SchemaNumber) *openapiv3.Schema {
 	}
 }
 
-func oasNumberFromApi(s *openapiv3.Schema) *OASNumber {
+func oasNumberFromAPI(s *openapiv3.Schema) *OASNumber {
 	if s == nil || (!isNumber(s) && !isCommon(s)) {
 		return nil
 	}
 
 	return &OASNumber{
-		Common: commonFromApi(s),
-		Number: numberFromApi(s),
+		Common: commonFromAPI(s),
+		Number: numberFromAPI(s),
 	}
 }
 
@@ -533,26 +532,26 @@ func plusCommon(s *openapiv3.Schema, c *SchemaCommon) *openapiv3.Schema {
 	s.Type = x
 	s.Format = c.Format
 	s.Description = c.Description
-	s.Default = defaultTypeToApi(c.Default)
-	s.Example = anyToApi(c.Example)
+	s.Default = defaultTypeToAPI(c.Default)
+	s.Example = anyToAPI(c.Example)
 	s.Nullable = c.Nullable
 	s.ReadOnly = c.ReadOnly
 	s.WriteOnly = c.WriteOnly
 	s.Deprecated = c.Deprecated
 	for _, v := range c.Enum {
-		s.Enum = append(s.Enum, anyToApi(v))
+		s.Enum = append(s.Enum, anyToAPI(v))
 	}
 	return s
 }
 
-func oasNumberToApi(s *OASNumber) *openapiv3.Schema {
+func oasNumberToAPI(s *OASNumber) *openapiv3.Schema {
 	if s == nil {
 		return nil
 	}
-	return plusCommon(numberToApi(s.Number), s.Common)
+	return plusCommon(numberToAPI(s.Number), s.Common)
 }
 
-func stringFromApi(s *openapiv3.Schema) *SchemaString {
+func stringFromAPI(s *openapiv3.Schema) *SchemaString {
 	if s == nil || !isString(s) {
 		return nil
 	}
@@ -565,7 +564,7 @@ func stringFromApi(s *openapiv3.Schema) *SchemaString {
 	return str
 }
 
-func stringToApi(s *SchemaString) *openapiv3.Schema {
+func stringToAPI(s *SchemaString) *openapiv3.Schema {
 	if s == nil {
 		return nil
 	}
@@ -576,31 +575,31 @@ func stringToApi(s *SchemaString) *openapiv3.Schema {
 	}
 }
 
-func oasStringFromApi(s *openapiv3.Schema) *OASString {
+func oasStringFromAPI(s *openapiv3.Schema) *OASString {
 	if s == nil || (!isString(s) && !isCommon(s)) {
 		return nil
 	}
 
 	return &OASString{
-		Common:  commonFromApi(s),
-		String_: stringFromApi(s),
+		Common:  commonFromAPI(s),
+		String_: stringFromAPI(s),
 	}
 }
 
-func oasStringToApi(s *OASString) *openapiv3.Schema {
+func oasStringToAPI(s *OASString) *openapiv3.Schema {
 	if s == nil {
 		return nil
 	}
-	return plusCommon(stringToApi(s.String_), s.Common)
+	return plusCommon(stringToAPI(s.String_), s.Common)
 }
 
-func arrayFromApi(s *openapiv3.Schema) *SchemaArray {
+func arrayFromAPI(s *openapiv3.Schema) *SchemaArray {
 	if s == nil || !isArray(s) {
 		return nil
 	}
 	var items []*SchemaOrReference
 	for _, v := range s.Items.SchemaOrReference {
-		items = append(items, schemaOrReferenceFromApi(v))
+		items = append(items, schemaOrReferenceFromAPI(v))
 	}
 	return &SchemaArray{
 		Items:       items,
@@ -610,7 +609,7 @@ func arrayFromApi(s *openapiv3.Schema) *SchemaArray {
 	}
 }
 
-func arrayToApi(s *SchemaArray) *openapiv3.Schema {
+func arrayToAPI(s *SchemaArray) *openapiv3.Schema {
 	if s == nil {
 		return nil
 	}
@@ -623,30 +622,30 @@ func arrayToApi(s *SchemaArray) *openapiv3.Schema {
 		if schema.Items == nil {
 			schema.Items = &openapiv3.ItemsItem{}
 		}
-		schema.Items.SchemaOrReference = append(schema.Items.SchemaOrReference, schemaOrReferenceToApi(v))
+		schema.Items.SchemaOrReference = append(schema.Items.SchemaOrReference, schemaOrReferenceToAPI(v))
 	}
 	return schema
 }
 
-func oasArrayFromApi(s *openapiv3.Schema) *OASArray {
+func oasArrayFromAPI(s *openapiv3.Schema) *OASArray {
 	if s == nil || (!isArray(s) && !isCommon(s)) {
 		return nil
 	}
 
 	return &OASArray{
-		Common: commonFromApi(s),
-		Array:  arrayFromApi(s),
+		Common: commonFromAPI(s),
+		Array:  arrayFromAPI(s),
 	}
 }
 
-func oasArrayToApi(s *OASArray) *openapiv3.Schema {
+func oasArrayToAPI(s *OASArray) *openapiv3.Schema {
 	if s == nil {
 		return nil
 	}
-	return plusCommon(arrayToApi(s.Array), s.Common)
+	return plusCommon(arrayToAPI(s.Array), s.Common)
 }
 
-func objectFromApi(s *openapiv3.Schema) *SchemaObject {
+func objectFromAPI(s *openapiv3.Schema) *SchemaObject {
 	if s == nil || !isObject(s) {
 		return nil
 	}
@@ -654,7 +653,7 @@ func objectFromApi(s *openapiv3.Schema) *SchemaObject {
 	if s.Properties != nil {
 		properties = make(map[string]*SchemaOrReference)
 		for _, v := range s.Properties.AdditionalProperties {
-			properties[v.Name] = schemaOrReferenceFromApi(v.Value)
+			properties[v.Name] = schemaOrReferenceFromAPI(v.Value)
 		}
 	}
 	return &SchemaObject{
@@ -665,7 +664,7 @@ func objectFromApi(s *openapiv3.Schema) *SchemaObject {
 	}
 }
 
-func objectToApi(s *SchemaObject) *openapiv3.Schema {
+func objectToAPI(s *SchemaObject) *openapiv3.Schema {
 	if s == nil {
 		return nil
 	}
@@ -678,214 +677,214 @@ func objectToApi(s *SchemaObject) *openapiv3.Schema {
 		schema.Properties = &openapiv3.Properties{}
 		for k, v := range s.Properties {
 			schema.Properties.AdditionalProperties = append(schema.Properties.AdditionalProperties,
-				&openapiv3.NamedSchemaOrReference{Name: k, Value: schemaOrReferenceToApi(v)},
+				&openapiv3.NamedSchemaOrReference{Name: k, Value: schemaOrReferenceToAPI(v)},
 			)
 		}
 	}
 	return schema
 }
 
-func oasObjectFromApi(s *openapiv3.Schema) *OASObject {
+func oasObjectFromAPI(s *openapiv3.Schema) *OASObject {
 	if s == nil || (!isObject(s) && !isCommon(s)) {
 		return nil
 	}
 
 	return &OASObject{
-		Common: commonFromApi(s),
-		Object: objectFromApi(s),
+		Common: commonFromAPI(s),
+		Object: objectFromAPI(s),
 	}
 }
 
-func oasObjectToApi(s *OASObject) *openapiv3.Schema {
+func oasObjectToAPI(s *OASObject) *openapiv3.Schema {
 	if s == nil {
 		return nil
 	}
-	return plusCommon(objectToApi(s.Object), s.Common)
+	return plusCommon(objectToAPI(s.Object), s.Common)
 }
 
-func mapFromApi(s *openapiv3.Schema) *SchemaMap {
+func mapFromAPI(s *openapiv3.Schema) *SchemaMap {
 	if s == nil || !isMap(s) {
 		return nil
 	}
 	return &SchemaMap{
-		AdditionalProperties: additionalPropertiesItemFromApi(s.AdditionalProperties),
+		AdditionalProperties: additionalPropertiesItemFromAPI(s.AdditionalProperties),
 	}
 }
 
-func mapToApi(s *SchemaMap) *openapiv3.Schema {
+func mapToAPI(s *SchemaMap) *openapiv3.Schema {
 	if s == nil {
 		return nil
 	}
 	return &openapiv3.Schema{
-		AdditionalProperties: additionalPropertiesItemToApi(s.AdditionalProperties),
+		AdditionalProperties: additionalPropertiesItemToAPI(s.AdditionalProperties),
 	}
 }
 
-func oasMapFromApi(s *openapiv3.Schema) *OASMap {
+func oasMapFromAPI(s *openapiv3.Schema) *OASMap {
 	if s == nil || (!isMap(s) && !isCommon(s)) {
 		return nil
 	}
 
 	return &OASMap{
-		Common: commonFromApi(s),
-		Map:    mapFromApi(s),
+		Common: commonFromAPI(s),
+		Map:    mapFromAPI(s),
 	}
 }
 
-func oasMapToApi(s *OASMap) *openapiv3.Schema {
+func oasMapToAPI(s *OASMap) *openapiv3.Schema {
 	if s == nil {
 		return nil
 	}
-	return plusCommon(mapToApi(s.Map), s.Common)
+	return plusCommon(mapToAPI(s.Map), s.Common)
 }
 
-func allOfFromApi(s *openapiv3.Schema) *SchemaAllOf {
+func allOfFromAPI(s *openapiv3.Schema) *SchemaAllOf {
 	if s == nil || !isAllOf(s) {
 		return nil
 	}
 	var items []*SchemaOrReference
 	for _, v := range s.AllOf {
-		items = append(items, schemaOrReferenceFromApi(v))
+		items = append(items, schemaOrReferenceFromAPI(v))
 	}
 	return &SchemaAllOf{
 		Items: items,
 	}
 }
 
-func allOfToApi(s *SchemaAllOf) *openapiv3.Schema {
+func allOfToAPI(s *SchemaAllOf) *openapiv3.Schema {
 	if s == nil {
 		return nil
 	}
 	schema := &openapiv3.Schema{}
 	for _, v := range s.Items {
-		schema.AllOf = append(schema.AllOf, schemaOrReferenceToApi(v))
+		schema.AllOf = append(schema.AllOf, schemaOrReferenceToAPI(v))
 	}
 	return schema
 }
 
-func oneOfFromApi(s *openapiv3.Schema) *SchemaOneOf {
+func oneOfFromAPI(s *openapiv3.Schema) *SchemaOneOf {
 	if s == nil || !isOneOf(s) {
 		return nil
 	}
 	var items []*SchemaOrReference
 	for _, v := range s.OneOf {
-		items = append(items, schemaOrReferenceFromApi(v))
+		items = append(items, schemaOrReferenceFromAPI(v))
 	}
 	return &SchemaOneOf{
 		Items: items,
 	}
 }
 
-func oneOfToApi(s *SchemaOneOf) *openapiv3.Schema {
+func oneOfToAPI(s *SchemaOneOf) *openapiv3.Schema {
 	if s == nil {
 		return nil
 	}
 	schema := &openapiv3.Schema{}
 	for _, v := range s.Items {
-		schema.OneOf = append(schema.OneOf, schemaOrReferenceToApi(v))
+		schema.OneOf = append(schema.OneOf, schemaOrReferenceToAPI(v))
 	}
 	return schema
 }
 
-func anyOfFromApi(s *openapiv3.Schema) *SchemaAnyOf {
+func anyOfFromAPI(s *openapiv3.Schema) *SchemaAnyOf {
 	if s == nil || !isAnyOf(s) {
 		return nil
 	}
 	var items []*SchemaOrReference
 	for _, v := range s.AnyOf {
-		items = append(items, schemaOrReferenceFromApi(v))
+		items = append(items, schemaOrReferenceFromAPI(v))
 	}
 	return &SchemaAnyOf{
 		Items: items,
 	}
 }
 
-func anyOfToApi(s *SchemaAnyOf) *openapiv3.Schema {
+func anyOfToAPI(s *SchemaAnyOf) *openapiv3.Schema {
 	if s == nil {
 		return nil
 	}
 	schema := &openapiv3.Schema{}
 	for _, v := range s.Items {
-		schema.AnyOf = append(schema.AnyOf, schemaOrReferenceToApi(v))
+		schema.AnyOf = append(schema.AnyOf, schemaOrReferenceToAPI(v))
 	}
 	return schema
 }
 
-func schemaFromApi(schema *openapiv3.Schema) *Schema {
+func schemaFromAPI(schema *openapiv3.Schema) *Schema {
 	if schema == nil {
 		return nil
 	}
 
 	return &Schema{
-		Xml:          xmlFromApi(schema.Xml),
-		ExternalDocs: externalDocsFromApi(schema.ExternalDocs),
+		Xml:          xmlFromAPI(schema.Xml),
+		ExternalDocs: externalDocsFromAPI(schema.ExternalDocs),
 		Title:        schema.Title,
-		Not: schemaOrReferenceFromApi(&openapiv3.SchemaOrReference{
+		Not: schemaOrReferenceFromAPI(&openapiv3.SchemaOrReference{
 			Oneof: &openapiv3.SchemaOrReference_Schema{Schema: schema.Not}}),
-		Discriminator:          discriminatorFromApi(schema.Discriminator),
-		SpecificationExtension: extensionFromApi(schema.SpecificationExtension),
-		AllOf:                  allOfFromApi(schema),
-		OneOf:                  oneOfFromApi(schema),
-		AnyOf:                  anyOfFromApi(schema),
-		Object:                 objectFromApi(schema),
-		Array:                  arrayFromApi(schema),
-		Map:                    mapFromApi(schema),
-		String_:                stringFromApi(schema),
-		Number:                 numberFromApi(schema),
-		Common:                 commonFromApi(schema),
+		Discriminator:          discriminatorFromAPI(schema.Discriminator),
+		SpecificationExtension: extensionFromAPI(schema.SpecificationExtension),
+		AllOf:                  allOfFromAPI(schema),
+		OneOf:                  oneOfFromAPI(schema),
+		AnyOf:                  anyOfFromAPI(schema),
+		Object:                 objectFromAPI(schema),
+		Array:                  arrayFromAPI(schema),
+		Map:                    mapFromAPI(schema),
+		String_:                stringFromAPI(schema),
+		Number:                 numberFromAPI(schema),
+		Common:                 commonFromAPI(schema),
 	}
 }
 
-func schemaToApi(schema *Schema) *openapiv3.Schema {
+func schemaToAPI(schema *Schema) *openapiv3.Schema {
 	if schema == nil {
 		return nil
 	}
 
 	s := &openapiv3.Schema{
-		Xml:                    xmlToApi(schema.Xml),
-		ExternalDocs:           externalDocsToApi(schema.ExternalDocs),
+		Xml:                    xmlToAPI(schema.Xml),
+		ExternalDocs:           externalDocsToAPI(schema.ExternalDocs),
 		Title:                  schema.Title,
-		Discriminator:          discriminatorToApi(schema.Discriminator),
-		SpecificationExtension: extensionToApi(schema.SpecificationExtension),
+		Discriminator:          discriminatorToAPI(schema.Discriminator),
+		SpecificationExtension: extensionToAPI(schema.SpecificationExtension),
 	}
 	if schema.Not != nil {
-		s.Not = schemaToApi(schema.Not.GetSchema())
+		s.Not = schemaToAPI(schema.Not.GetSchema())
 	}
 	if schema.AllOf != nil {
-		s.AllOf = allOfToApi(schema.AllOf).AllOf
+		s.AllOf = allOfToAPI(schema.AllOf).AllOf
 	}
 	if schema.OneOf != nil {
-		s.OneOf = oneOfToApi(schema.OneOf).OneOf
+		s.OneOf = oneOfToAPI(schema.OneOf).OneOf
 	}
 	if schema.AnyOf != nil {
-		s.AnyOf = anyOfToApi(schema.AnyOf).AnyOf
+		s.AnyOf = anyOfToAPI(schema.AnyOf).AnyOf
 	}
 	if schema.Object != nil {
-		x := objectToApi(schema.Object)
+		x := objectToAPI(schema.Object)
 		s.Properties = x.Properties
 		s.MaxProperties = x.MaxProperties
 		s.MinProperties = x.MinProperties
 		s.Required = x.Required
 	}
 	if schema.Array != nil {
-		x := arrayToApi(schema.Array)
+		x := arrayToAPI(schema.Array)
 		s.Items = x.Items
 		s.MaxItems = x.MaxItems
 		s.MinItems = x.MinItems
 		s.UniqueItems = x.UniqueItems
 	}
 	if schema.Map != nil {
-		x := mapToApi(schema.Map)
+		x := mapToAPI(schema.Map)
 		s.AdditionalProperties = x.AdditionalProperties
 	}
 	if schema.String_ != nil {
-		x := stringToApi(schema.String_)
+		x := stringToAPI(schema.String_)
 		s.MinLength = x.MinLength
 		s.MaxLength = x.MaxLength
 		s.Pattern = x.Pattern
 	}
 	if schema.Number != nil {
-		x := numberToApi(schema.Number)
+		x := numberToAPI(schema.Number)
 		s.MultipleOf = x.MultipleOf
 		s.Minimum = x.Minimum
 		s.Maximum = x.Maximum
@@ -893,7 +892,7 @@ func schemaToApi(schema *Schema) *openapiv3.Schema {
 		s.ExclusiveMaximum = x.ExclusiveMaximum
 	}
 	if schema.Common != nil {
-		x := commonToApi(schema.Common)
+		x := commonToAPI(schema.Common)
 		y := x.Type
 		if y == "map" {
 			y = "object"

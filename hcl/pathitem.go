@@ -75,7 +75,7 @@ func (self *PathItem) ToOperationMap() map[string]*Operation {
 		p["trace"] = self.Trace
 	}
 
-	if (self.Servers != nil && len(self.Servers) > 0) || self.Summary != "" || self.Description != "" || (self.Parameters != nil && len(self.Parameters) > 0) || (self.SpecificationExtension != nil && len(self.SpecificationExtension) > 0) {
+	if len(self.Servers) > 0 || self.Summary != "" || self.Description != "" || len(self.Parameters) > 0 || len(self.SpecificationExtension) > 0 {
 		p["common"] = &Operation{
 			Summary:                self.Summary,
 			Description:            self.Description,

@@ -77,7 +77,7 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	hcl, err := body.Hcl()
+	hcl, err := body.MarshalHCL()
 	if err != nil {
 		panic(err)
 	}

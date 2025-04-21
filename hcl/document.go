@@ -436,14 +436,28 @@ func (self *Document) MarshalHCL() ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	return body.Hcl()
+	return body.MarshalHCL()
 }
 
 // UnmarshalHCL converts HCL representation to a Document.
 func (self *Document) UnmarshalHCL(data []byte) error {
-	var err error
-	self, err = ParseDocument(data)
-	return err
+	parsed, err := ParseDocument(data)
+	if err != nil {
+		return err
+	}
+	if parsed == nil {
+		return fmt.Errorf("failed to parse document: parsed is nil")
+	}
+	self.Openapi = parsed.Openapi
+	self.Info = parsed.Info
+	self.Servers = parsed.Servers
+	self.Tags = parsed.Tags
+	self.ExternalDocs = parsed.ExternalDocs
+	self.Paths = parsed.Paths
+	self.Components = parsed.Components
+	self.Security = parsed.Security
+	self.SpecificationExtension = parsed.SpecificationExtension
+	return nil
 }
 
 // ParseDocument parses a Document from HCL, JSON, or YAML.
@@ -460,7 +474,7 @@ func ParseDocument(data []byte, extension ...string) (*Document, error) {
 		if err != nil {
 			return nil, err
 		}
-		return DocumentFromApi(doc), nil
+		return DocumentFromAPI(doc), nil
 	}
 
 	body, err := light.ParseBody(data)
@@ -528,7 +542,7 @@ func (self *Document) toHCL() (*light.Body, error) {
 			Bdy:  bdy,
 		})
 	}
-	if self.Servers != nil && len(self.Servers) > 0 {
+	if len(self.Servers) > 0 {
 		expr, err := serversToTupleConsExpr(self.Servers)
 		if err != nil {
 			return nil, err
@@ -538,7 +552,7 @@ func (self *Document) toHCL() (*light.Body, error) {
 			Expr: expr,
 		}
 	}
-	if self.Tags != nil && len(self.Tags) > 0 {
+	if len(self.Tags) > 0 {
 		expr, err := tagsToTupleConsExpr(self.Tags)
 		if err != nil {
 			return nil, err
@@ -617,7 +631,7 @@ func documentFromHCL(body *light.Body) (*Document, error) {
 	}
 
 	doc := new(Document)
-	var blks_paths, blks_comments []*light.Block
+	var blksPaths, blksComments []*light.Block
 	for key, attr := range body.Attributes {
 		switch key {
 		case "openapi":
@@ -660,13 +674,13 @@ func documentFromHCL(body *light.Body) (*Document, error) {
 			}
 			doc.ExternalDocs = externalDocs
 		case "paths":
-			blks_paths = append(blks_paths, &light.Block{
+			blksPaths = append(blksPaths, &light.Block{
 				Type:   block.Labels[0],
 				Labels: block.Labels[1:],
 				Bdy:    block.Bdy,
 			})
 		case "components":
-			blks_comments = append(blks_comments, &light.Block{
+			blksComments = append(blksComments, &light.Block{
 				Type:   block.Labels[0],
 				Labels: block.Labels[1:],
 				Bdy:    block.Bdy,
@@ -675,15 +689,15 @@ func documentFromHCL(body *light.Body) (*Document, error) {
 		}
 	}
 
-	if blks_paths != nil {
-		paths, err := blocksToPathItemOrReferenceMap(blks_paths)
+	if blksPaths != nil {
+		paths, err := blocksToPathItemOrReferenceMap(blksPaths)
 		if err != nil {
 			return nil, err
 		}
 		doc.Paths = paths
 	}
-	if blks_comments != nil {
-		components, err := componentsFromHCL(&light.Body{Blocks: blks_comments})
+	if blksComments != nil {
+		components, err := componentsFromHCL(&light.Body{Blocks: blksComments})
 		if err != nil {
 			return nil, err
 		}

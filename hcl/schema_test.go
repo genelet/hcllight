@@ -44,7 +44,7 @@ func TestSchemaSimpleString(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	bs, err := body.Hcl()
+	bs, err := body.MarshalHCL()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -92,7 +92,7 @@ func TestSchemaSimpleNumber(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	bs, err := body.Hcl()
+	bs, err := body.MarshalHCL()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -140,7 +140,7 @@ func TestSchemaSimpleArray(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	bs, err := body.Hcl()
+	bs, err := body.MarshalHCL()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -184,7 +184,7 @@ func TestSchemaSimpleObject(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	bs, err := body.Hcl()
+	bs, err := body.MarshalHCL()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -225,7 +225,7 @@ func TestSchemaSimpleAllOf(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	bs, err := body.Hcl()
+	bs, err := body.MarshalHCL()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -264,7 +264,7 @@ func TestSchemaSimpleAnyOf(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	bs, err := body.Hcl()
+	bs, err := body.MarshalHCL()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -303,7 +303,7 @@ func TestSchemaSimpleOneOf(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	bs, err := body.Hcl()
+	bs, err := body.MarshalHCL()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -367,7 +367,7 @@ func TestSchemaSimpleMap(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	bs, err := body.Hcl()
+	bs, err := body.MarshalHCL()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -402,8 +402,8 @@ func TestSchemaSimpleMap(t *testing.T) {
 		t.Errorf("%+v", hash1["schema2"].GetMap().Map.AdditionalProperties)
 	}
 
-	apiSchema1 := schemaOrReferenceToApi(hash1["schema1"]).GetSchema().ToRawInfo()
-	apiSchema2 := schemaOrReferenceToApi(hash1["schema2"]).GetSchema().ToRawInfo()
+	apiSchema1 := schemaOrReferenceToAPI(hash1["schema1"]).GetSchema().ToRawInfo()
+	apiSchema2 := schemaOrReferenceToAPI(hash1["schema2"]).GetSchema().ToRawInfo()
 	var sr1 map[string]interface{}
 	var sr2 bool
 	apiSchema1.Decode(&sr1)
