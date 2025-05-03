@@ -383,7 +383,7 @@ func hclCty(self *CtyValue) (string, error) {
 	switch t := self.CtyValueClause.(type) {
 	case *CtyValue_StringValue:
 		x := strings.TrimRight(t.StringValue, "\n")
-		if strings.Contains(x, "\n") {
+		if strings.Contains(x, "\n") && !strings.Contains(x, `<<EOT`) {
 			x = `<<EOT
 ` + x + `
 EOT`
